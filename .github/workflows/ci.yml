@@ -11,9 +11,55 @@ on:
       - develop
       - "feature/**"
   pull_request:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
 
 jobs:
+  fast-checks:
+    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/feature/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run ci:typecheck
+
+      - name: Unit and integration tests
+        run: npm run ci:test
+
+      - name: GraphQL schema contract check
+        run: npm run ci:schema:check
+
+      - name: Upload test artifacts
+        if: always()
+        # NOTE: GitHub currently reports a Node 20 deprecation warning for this action.
+        # This warning is expected until actions/upload-artifact ships a Node 24 runtime.
+        # We keep this step enabled for CI diagnostics (JUnit and other test artifacts).
+        uses: actions/upload-artifact@v5
+        with:
+          name: test-artifacts-fast
+          path: |
+            artifacts/junit.xml
+            coverage/**
+            allure-results/**
+            allure-report/**
+          if-no-files-found: warn
+
   hardening:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     timeout-minutes: 240
 
@@ -55,7 +101,7 @@ jobs:
         # We keep this step enabled for CI diagnostics (JUnit and other test artifacts).
         uses: actions/upload-artifact@v5
         with:
-          name: test-artifacts
+          name: test-artifacts-hardening
           path: |
             artifacts/junit.xml
             coverage/**
