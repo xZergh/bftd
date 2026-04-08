@@ -13,6 +13,7 @@ export default tseslint.config(
       "coverage/**",
       "artifacts/**",
       "**/*.js",
+      "**/*.cjs",
       "**/*.mjs",
       "vitest.config.ts",
       "vitest.stryker.config.ts"

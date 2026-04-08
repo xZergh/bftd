@@ -49,6 +49,8 @@ jobs:
     if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/feature/')
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      CI_SKIP_ALLURE: "1"
 
     steps:
       - name: Checkout
@@ -75,17 +77,6 @@ jobs:
       - name: Unit and integration tests
         run: npm run ci:test
 
-      - name: Setup Java (Allure CLI)
-        if: always()
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-
-      - name: Generate Allure HTML report
-        if: always()
-        run: npm run allure:generate
-
       - name: GraphQL schema contract check
         run: npm run ci:schema:check
 
@@ -100,8 +91,6 @@ jobs:
           path: |
             artifacts/junit.xml
             artifacts/coverage/**
-            artifacts/allure-results/**
-            artifacts/allure-report/**
           if-no-files-found: warn
 
   hardening:
