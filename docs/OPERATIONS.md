@@ -18,6 +18,10 @@
 - runtime budgets:
   - unit tests: up to 30 minutes
   - integration tests: up to 3 hours
+- GitHub Actions runtime note:
+  - `actions/upload-artifact@v5` may emit a Node 20 deprecation warning while being forced to run on Node 24
+  - this warning is currently expected and non-blocking until upstream action runtime is updated
+  - keep artifact upload enabled for diagnostics unless policy explicitly changes
 
 ## 3. Migration Gates
 

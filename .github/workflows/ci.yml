@@ -50,6 +50,9 @@ jobs:
 
       - name: Upload test artifacts
         if: always()
+        # NOTE: GitHub currently reports a Node 20 deprecation warning for this action.
+        # This warning is expected until actions/upload-artifact ships a Node 24 runtime.
+        # We keep this step enabled for CI diagnostics (JUnit and other test artifacts).
         uses: actions/upload-artifact@v5
         with:
           name: test-artifacts
