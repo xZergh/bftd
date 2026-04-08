@@ -23,10 +23,10 @@ describe("GraphQL integration", () => {
     expect(projectId).toBeTruthy();
 
     const summaryQuery = {
-      query: `query($projectId: ID!) {
-        projectSummary(projectId: $projectId) { totalRequirements totalManualCases totalAutomatedCases }
+      query: `query($input: ProjectSummaryInput!) {
+        projectSummary(input: $input) { totalRequirements totalManualCases totalAutomatedCases }
       }`,
-      variables: { projectId }
+      variables: { input: { projectId } }
     };
     const sRes = await agent.post("/graphql").send(summaryQuery);
     expect(sRes.body.data.projectSummary).toEqual({
@@ -123,13 +123,13 @@ describe("GraphQL integration", () => {
     const runId = runRes.body.data.createTestRun.run.id as string;
 
     const reportBefore = await agent.post("/graphql").send({
-      query: `query($runId: ID!) {
-        runTraceabilityReport(runId: $runId) {
+      query: `query($input: RunTraceabilityReportInput!) {
+        runTraceabilityReport(input: $input) {
           runId
           edges { requirementId manualTestCaseId automatedTestCaseId }
         }
       }`,
-      variables: { runId }
+      variables: { input: { runId } }
     });
     expect(reportBefore.body.data.runTraceabilityReport.edges.length).toBe(1);
 
@@ -155,13 +155,13 @@ describe("GraphQL integration", () => {
     });
 
     const reportAfter = await agent.post("/graphql").send({
-      query: `query($runId: ID!) {
-        runTraceabilityReport(runId: $runId) {
+      query: `query($input: RunTraceabilityReportInput!) {
+        runTraceabilityReport(input: $input) {
           runId
           edges { requirementId manualTestCaseId automatedTestCaseId }
         }
       }`,
-      variables: { runId }
+      variables: { input: { runId } }
     });
     expect(reportAfter.body.data.runTraceabilityReport.edges.length).toBe(1);
 
@@ -523,6 +523,80 @@ describe("GraphQL integration", () => {
       }
     });
     expect(invalidProvider.body.data.upsertRequirementDesignLink.error.code).toBe("VALIDATION_ERROR");
+
+    await new Promise<void>((resolve, reject) =>
+      server.close((err) => (err ? reject(err) : resolve()))
+    );
+  });
+
+  it("supports release/sprint labels and summary filtering", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "tcms-int-"));
+    const { server } = createApp(join(dir, "db.sqlite"));
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    const agent = request(server);
+
+    const pRes = await agent.post("/graphql").send({
+      query: `mutation($input: CreateProjectInput!) {
+        createProject(input: $input) { project { id } }
+      }`,
+      variables: { input: { name: "Labels App" } }
+    });
+    const projectId = pRes.body.data.createProject.project.id as string;
+
+    const req1 = await agent.post("/graphql").send({
+      query: `mutation($input: CreateRequirementInput!) {
+        createRequirement(input: $input) { requirement { id } }
+      }`,
+      variables: {
+        input: { projectId, externalKey: "LBL-1", title: "Req 1", releaseLabel: "R1", sprintLabel: "S1" }
+      }
+    });
+    const req2 = await agent.post("/graphql").send({
+      query: `mutation($input: CreateRequirementInput!) {
+        createRequirement(input: $input) { requirement { id } }
+      }`,
+      variables: {
+        input: { projectId, externalKey: "LBL-2", title: "Req 2", releaseLabel: "R2", sprintLabel: "S2" }
+      }
+    });
+
+    await agent.post("/graphql").send({
+      query: `mutation($input: CreateManualTestCaseInput!) {
+        createManualTestCase(input: $input) { testCase { id } }
+      }`,
+      variables: {
+        input: {
+          projectId,
+          title: "Manual R1S1",
+          requirementIds: [req1.body.data.createRequirement.requirement.id],
+          releaseLabel: "R1",
+          sprintLabel: "S1"
+        }
+      }
+    });
+    await agent.post("/graphql").send({
+      query: `mutation($input: CreateManualTestCaseInput!) {
+        createManualTestCase(input: $input) { testCase { id } }
+      }`,
+      variables: {
+        input: {
+          projectId,
+          title: "Manual R2S2",
+          requirementIds: [req2.body.data.createRequirement.requirement.id],
+          releaseLabel: "R2",
+          sprintLabel: "S2"
+        }
+      }
+    });
+
+    const summaryFiltered = await agent.post("/graphql").send({
+      query: `query($input: ProjectSummaryInput!) {
+        projectSummary(input: $input) { totalRequirements totalManualCases totalAutomatedCases }
+      }`,
+      variables: { input: { projectId, releaseLabel: "R1", sprintLabel: "S1" } }
+    });
+    expect(summaryFiltered.body.data.projectSummary.totalRequirements).toBe(1);
+    expect(summaryFiltered.body.data.projectSummary.totalManualCases).toBe(1);
 
     await new Promise<void>((resolve, reject) =>
       server.close((err) => (err ? reject(err) : resolve()))

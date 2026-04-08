@@ -10,21 +10,39 @@ const requirementInput = z.object({
   projectId: z.string().min(1),
   externalKey: z.string().min(1),
   title: z.string().min(1),
-  description: z.string().optional()
+  description: z.string().optional(),
+  releaseLabel: z.string().optional(),
+  sprintLabel: z.string().optional()
 });
 const manualInput = z.object({
   projectId: z.string().min(1),
   title: z.string().min(1),
-  requirementIds: z.array(z.string().min(1))
+  requirementIds: z.array(z.string().min(1)),
+  releaseLabel: z.string().optional(),
+  sprintLabel: z.string().optional()
 });
 const automatedInput = z.object({
   projectId: z.string().min(1),
   title: z.string().min(1),
-  manualTestCaseIds: z.array(z.string().min(1))
+  manualTestCaseIds: z.array(z.string().min(1)),
+  releaseLabel: z.string().optional(),
+  sprintLabel: z.string().optional()
 });
 const runInput = z.object({
   projectId: z.string().min(1),
-  name: z.string().min(1)
+  name: z.string().min(1),
+  releaseLabel: z.string().optional(),
+  sprintLabel: z.string().optional()
+});
+const projectSummaryInput = z.object({
+  projectId: z.string().min(1),
+  releaseLabel: z.string().optional(),
+  sprintLabel: z.string().optional()
+});
+const runTraceabilityInput = z.object({
+  runId: z.string().min(1),
+  releaseLabel: z.string().optional(),
+  sprintLabel: z.string().optional()
 });
 const resultInput = z.object({
   runId: z.string().min(1),
@@ -34,21 +52,29 @@ const resultInput = z.object({
 });
 const requirementsImportInput = z.object({
   projectId: z.string().min(1),
+  releaseLabel: z.string().optional(),
+  sprintLabel: z.string().optional(),
   requirements: z.array(
     z.object({
       externalKey: z.string().optional(),
       title: z.string().optional(),
-      description: z.string().optional()
+      description: z.string().optional(),
+      releaseLabel: z.string().optional(),
+      sprintLabel: z.string().optional()
     })
   )
 });
 const trrImportInput = z.object({
   projectId: z.string().min(1),
+  releaseLabel: z.string().optional(),
+  sprintLabel: z.string().optional(),
   automatedTests: z.array(
     z.object({
       internalTestCaseId: z.string().optional(),
       externalId: z.string().optional(),
       title: z.string().optional(),
+      releaseLabel: z.string().optional(),
+      sprintLabel: z.string().optional(),
       linkedManualCaseIds: z.array(z.string()).optional(),
       steps: z
         .array(
@@ -64,7 +90,9 @@ const trrImportInput = z.object({
   )
 });
 const kpiDashboardInput = z.object({
-  projectId: z.string().min(1)
+  projectId: z.string().min(1),
+  releaseLabel: z.string().optional(),
+  sprintLabel: z.string().optional()
 });
 const recalcKpiInput = z.object({
   projectId: z.string().min(1),
@@ -149,6 +177,8 @@ export function buildSchema() {
         projectId: ID!
         externalKey: String!
         title: String!
+        releaseLabel: String
+        sprintLabel: String
       }
 
       type TestCase {
@@ -156,12 +186,16 @@ export function buildSchema() {
         projectId: ID!
         type: String!
         title: String!
+        releaseLabel: String
+        sprintLabel: String
       }
 
       type TestRun {
         id: ID!
         projectId: ID!
         name: String!
+        releaseLabel: String
+        sprintLabel: String
       }
 
       type TestResult {
@@ -322,23 +356,41 @@ export function buildSchema() {
         externalKey: String!
         title: String!
         description: String
+        releaseLabel: String
+        sprintLabel: String
       }
 
       input CreateManualTestCaseInput {
         projectId: ID!
         title: String!
         requirementIds: [ID!]!
+        releaseLabel: String
+        sprintLabel: String
       }
 
       input CreateAutomatedTestCaseInput {
         projectId: ID!
         title: String!
         manualTestCaseIds: [ID!]!
+        releaseLabel: String
+        sprintLabel: String
       }
 
       input CreateTestRunInput {
         projectId: ID!
         name: String!
+        releaseLabel: String
+        sprintLabel: String
+      }
+      input ProjectSummaryInput {
+        projectId: ID!
+        releaseLabel: String
+        sprintLabel: String
+      }
+      input RunTraceabilityReportInput {
+        runId: ID!
+        releaseLabel: String
+        sprintLabel: String
       }
 
       input SubmitTestResultInput {
@@ -352,10 +404,14 @@ export function buildSchema() {
         externalKey: String
         title: String
         description: String
+        releaseLabel: String
+        sprintLabel: String
       }
 
       input ImportRequirementsInput {
         projectId: ID!
+        releaseLabel: String
+        sprintLabel: String
         requirements: [RequirementImportItemInput!]!
       }
 
@@ -370,17 +426,23 @@ export function buildSchema() {
         internalTestCaseId: ID
         externalId: String
         title: String
+        releaseLabel: String
+        sprintLabel: String
         linkedManualCaseIds: [ID!]
         steps: [TrrStepInput!]
       }
 
       input ImportAutomatedFromTrrInput {
         projectId: ID!
+        releaseLabel: String
+        sprintLabel: String
         automatedTests: [TrrAutomatedTestInput!]!
       }
 
       input KpiDashboardInput {
         projectId: ID!
+        releaseLabel: String
+        sprintLabel: String
       }
 
       input RecalculateKpiInput {
@@ -459,8 +521,8 @@ export function buildSchema() {
       }
 
       type Query {
-        projectSummary(projectId: ID!): ProjectSummary!
-        runTraceabilityReport(runId: ID!): RunTraceabilityReport!
+        projectSummary(input: ProjectSummaryInput!): ProjectSummary!
+        runTraceabilityReport(input: RunTraceabilityReportInput!): RunTraceabilityReport!
         kpiDashboard(input: KpiDashboardInput!): KpiDashboard!
         requirementDesignLinks(input: RequirementDesignLinksQueryInput!): [RequirementDesignLink!]!
       }
@@ -482,9 +544,14 @@ export function buildSchema() {
     `,
     resolvers: {
       Query: {
-        projectSummary: async (_root, args, ctx) => ctx.service.getProjectSummary(args.projectId),
-        runTraceabilityReport: async (_root, args, ctx) =>
-          ctx.service.getRunTraceabilityReport(args.runId),
+        projectSummary: async (_root, args, ctx) => {
+          const input = projectSummaryInput.parse(args.input);
+          return ctx.service.getProjectSummary(input);
+        },
+        runTraceabilityReport: async (_root, args, ctx) => {
+          const input = runTraceabilityInput.parse(args.input);
+          return ctx.service.getRunTraceabilityReport(input);
+        },
         kpiDashboard: async (_root, args, ctx) => {
           const input = kpiDashboardInput.parse(args.input);
           return ctx.service.getKpiDashboard(input);

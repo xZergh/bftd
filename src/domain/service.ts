@@ -88,6 +88,11 @@ function pct(numerator: number, denominator: number) {
 export class TcmsService {
   constructor(private readonly db: Db) {}
 
+  private normalizeLabel(value?: string) {
+    const trimmed = (value ?? "").trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
   async createProject(name: string) {
     const project = {
       id: randomUUID(),
@@ -105,6 +110,8 @@ export class TcmsService {
     externalKey: string;
     title: string;
     description?: string;
+    releaseLabel?: string;
+    sprintLabel?: string;
   }) {
     const req = {
       id: randomUUID(),
@@ -112,6 +119,8 @@ export class TcmsService {
       externalKey: input.externalKey,
       title: input.title,
       description: input.description ?? null,
+      releaseLabel: this.normalizeLabel(input.releaseLabel),
+      sprintLabel: this.normalizeLabel(input.sprintLabel),
       createdAt: now(),
       updatedAt: now()
     };
@@ -123,6 +132,8 @@ export class TcmsService {
     projectId: string;
     title: string;
     requirementIds: string[];
+    releaseLabel?: string;
+    sprintLabel?: string;
   }) {
     if (input.requirementIds.length === 0) {
       throw new AppError(
@@ -154,6 +165,8 @@ export class TcmsService {
       externalId: null,
       type: "manual" as const,
       title: input.title,
+      releaseLabel: this.normalizeLabel(input.releaseLabel),
+      sprintLabel: this.normalizeLabel(input.sprintLabel),
       createdAt: now(),
       updatedAt: now()
     };
@@ -175,6 +188,8 @@ export class TcmsService {
     projectId: string;
     title: string;
     manualTestCaseIds: string[];
+    releaseLabel?: string;
+    sprintLabel?: string;
   }) {
     if (input.manualTestCaseIds.length === 0) {
       throw new AppError(
@@ -206,6 +221,8 @@ export class TcmsService {
       externalId: null,
       type: "automated" as const,
       title: input.title,
+      releaseLabel: this.normalizeLabel(input.releaseLabel),
+      sprintLabel: this.normalizeLabel(input.sprintLabel),
       createdAt: now(),
       updatedAt: now()
     };
@@ -220,15 +237,29 @@ export class TcmsService {
     return tc;
   }
 
-  async getProjectSummary(projectId: string) {
+  async getProjectSummary(input: { projectId: string; releaseLabel?: string; sprintLabel?: string }) {
+    const releaseLabel = this.normalizeLabel(input.releaseLabel);
+    const sprintLabel = this.normalizeLabel(input.sprintLabel);
     const reqCount = await this.db
       .select({ id: requirements.id })
       .from(requirements)
-      .where(eq(requirements.projectId, projectId));
+      .where(
+        and(
+          eq(requirements.projectId, input.projectId),
+          releaseLabel ? eq(requirements.releaseLabel, releaseLabel) : undefined,
+          sprintLabel ? eq(requirements.sprintLabel, sprintLabel) : undefined
+        )
+      );
     const caseRows = await this.db
       .select({ id: testCases.id, type: testCases.type })
       .from(testCases)
-      .where(eq(testCases.projectId, projectId));
+      .where(
+        and(
+          eq(testCases.projectId, input.projectId),
+          releaseLabel ? eq(testCases.releaseLabel, releaseLabel) : undefined,
+          sprintLabel ? eq(testCases.sprintLabel, sprintLabel) : undefined
+        )
+      );
     return {
       totalRequirements: reqCount.length,
       totalManualCases: caseRows.filter((c) => c.type === "manual").length,
@@ -236,11 +267,13 @@ export class TcmsService {
     };
   }
 
-  async createTestRun(input: { projectId: string; name: string }) {
+  async createTestRun(input: { projectId: string; name: string; releaseLabel?: string; sprintLabel?: string }) {
     const run = {
       id: randomUUID(),
       projectId: input.projectId,
       name: input.name,
+      releaseLabel: this.normalizeLabel(input.releaseLabel),
+      sprintLabel: this.normalizeLabel(input.sprintLabel),
       createdAt: now()
     };
     await this.db.insert(testRuns).values(run);
@@ -291,7 +324,9 @@ export class TcmsService {
     return result;
   }
 
-  async getRunTraceabilityReport(runId: string) {
+  async getRunTraceabilityReport(input: { runId: string; releaseLabel?: string; sprintLabel?: string }) {
+    const releaseLabel = this.normalizeLabel(input.releaseLabel);
+    const sprintLabel = this.normalizeLabel(input.sprintLabel);
     const snapshots = await this.db
       .select({
         id: runTraceabilitySnapshots.id,
@@ -300,18 +335,38 @@ export class TcmsService {
         capturedAt: runTraceabilitySnapshots.capturedAt
       })
       .from(runTraceabilitySnapshots)
-      .where(eq(runTraceabilitySnapshots.runId, runId));
+      .where(eq(runTraceabilitySnapshots.runId, input.runId));
 
     if (snapshots.length === 0) {
       throw new AppError(
         "ENTITY_NOT_FOUND",
         "Run snapshot not found.",
         "Create a test run to capture traceability snapshot.",
-        { runId }
+        { runId: input.runId }
       );
     }
 
     const snapshot = snapshots[0];
+    const runRows = await this.db
+      .select({
+        id: testRuns.id,
+        releaseLabel: testRuns.releaseLabel,
+        sprintLabel: testRuns.sprintLabel
+      })
+      .from(testRuns)
+      .where(eq(testRuns.id, snapshot.runId));
+    if (
+      runRows.length === 0 ||
+      (releaseLabel && runRows[0].releaseLabel !== releaseLabel) ||
+      (sprintLabel && runRows[0].sprintLabel !== sprintLabel)
+    ) {
+      throw new AppError(
+        "ENTITY_NOT_FOUND",
+        "Run not found for provided label filters.",
+        "Use a runId and label filters that point to the same test run.",
+        { runId: input.runId, releaseLabel, sprintLabel }
+      );
+    }
     const edges = await this.db
       .select({
         requirementId: runTraceabilityEdges.requirementId,
@@ -435,10 +490,14 @@ export class TcmsService {
 
   async importRequirements(input: {
     projectId: string;
+    releaseLabel?: string;
+    sprintLabel?: string;
     requirements: Array<{
       externalKey?: string;
       title?: string;
       description?: string;
+      releaseLabel?: string;
+      sprintLabel?: string;
     }>;
   }) {
     let createdCount = 0;
@@ -472,6 +531,8 @@ export class TcmsService {
           externalKey: item.externalKey,
           title: item.title,
           description: item.description ?? null,
+          releaseLabel: this.normalizeLabel(item.releaseLabel ?? input.releaseLabel),
+          sprintLabel: this.normalizeLabel(item.sprintLabel ?? input.sprintLabel),
           createdAt: now(),
           updatedAt: now()
         });
@@ -482,6 +543,8 @@ export class TcmsService {
           .set({
             title: item.title,
             description: item.description ?? null,
+            releaseLabel: this.normalizeLabel(item.releaseLabel ?? input.releaseLabel),
+            sprintLabel: this.normalizeLabel(item.sprintLabel ?? input.sprintLabel),
             updatedAt: now()
           })
           .where(eq(requirements.id, existing[0].id));
@@ -497,10 +560,14 @@ export class TcmsService {
 
   async importAutomatedFromTrr(input: {
     projectId: string;
+    releaseLabel?: string;
+    sprintLabel?: string;
     automatedTests: Array<{
       internalTestCaseId?: string;
       externalId?: string;
       title?: string;
+      releaseLabel?: string;
+      sprintLabel?: string;
       linkedManualCaseIds?: string[];
       steps?: Array<{ order: number; name: string; expectedResult?: string; sourceStepId?: string }>;
     }>;
@@ -581,6 +648,8 @@ export class TcmsService {
           externalId: item.externalId ?? null,
           type: "automated",
           title: item.title,
+          releaseLabel: this.normalizeLabel(item.releaseLabel ?? input.releaseLabel),
+          sprintLabel: this.normalizeLabel(item.sprintLabel ?? input.sprintLabel),
           createdAt: now(),
           updatedAt: now()
         });
@@ -591,6 +660,8 @@ export class TcmsService {
           .set({
             title: item.title,
             externalId: item.externalId ?? null,
+            releaseLabel: this.normalizeLabel(item.releaseLabel ?? input.releaseLabel),
+            sprintLabel: this.normalizeLabel(item.sprintLabel ?? input.sprintLabel),
             updatedAt: now()
           })
           .where(eq(testCases.id, automatedId));
@@ -723,8 +794,10 @@ export class TcmsService {
     };
   }
 
-  async getKpiDashboard(input: { projectId: string }) {
+  async getKpiDashboard(input: { projectId: string; releaseLabel?: string; sprintLabel?: string }) {
     await this.recalculateKpiSnapshots({ projectId: input.projectId });
+    const releaseLabel = this.normalizeLabel(input.releaseLabel);
+    const sprintLabel = this.normalizeLabel(input.sprintLabel);
     const currentSnap = await this.db
       .select({ payloadJson: kpiProjectSnapshots.payloadJson, generatedAt: kpiProjectSnapshots.generatedAt })
       .from(kpiProjectSnapshots)
@@ -740,12 +813,30 @@ export class TcmsService {
 
     const current = currentSnap.length
       ? JSON.parse(currentSnap[currentSnap.length - 1].payloadJson)
-      : await this.computeCurrentKpi(input.projectId);
+      : await this.computeCurrentKpi(input.projectId, releaseLabel, sprintLabel);
     const generatedAt = currentSnap.length
       ? currentSnap[currentSnap.length - 1].generatedAt.toISOString()
       : new Date().toISOString();
 
-    const perRun = runSnaps.map((s) => JSON.parse(s.payloadJson));
+    let perRun = runSnaps.map((s) => JSON.parse(s.payloadJson));
+    if (releaseLabel || sprintLabel) {
+      const runs = await this.db
+        .select({
+          id: testRuns.id,
+          releaseLabel: testRuns.releaseLabel,
+          sprintLabel: testRuns.sprintLabel
+        })
+        .from(testRuns)
+        .where(
+          and(
+            eq(testRuns.projectId, input.projectId),
+            releaseLabel ? eq(testRuns.releaseLabel, releaseLabel) : undefined,
+            sprintLabel ? eq(testRuns.sprintLabel, sprintLabel) : undefined
+          )
+        );
+      const runSet = new Set(runs.map((r) => r.id));
+      perRun = perRun.filter((r: { runId: string }) => runSet.has(r.runId));
+    }
     perRun.sort((a: { runStartedAt: string }, b: { runStartedAt: string }) =>
       a.runStartedAt < b.runStartedAt ? 1 : -1
     );
@@ -1023,13 +1114,37 @@ export class TcmsService {
     };
   }
 
-  private async computeCurrentKpi(projectId: string) {
-    const reqs = await this.db.select({ id: requirements.id }).from(requirements).where(eq(requirements.projectId, projectId));
+  private async computeCurrentKpi(projectId: string, releaseLabel?: string | null, sprintLabel?: string | null) {
+    const reqs = await this.db
+      .select({ id: requirements.id })
+      .from(requirements)
+      .where(
+        and(
+          eq(requirements.projectId, projectId),
+          releaseLabel ? eq(requirements.releaseLabel, releaseLabel) : undefined,
+          sprintLabel ? eq(requirements.sprintLabel, sprintLabel) : undefined
+        )
+      );
     const cases = await this.db
       .select({ id: testCases.id, type: testCases.type, projectId: testCases.projectId })
       .from(testCases)
-      .where(eq(testCases.projectId, projectId));
-    const runs = await this.db.select({ id: testRuns.id }).from(testRuns).where(eq(testRuns.projectId, projectId));
+      .where(
+        and(
+          eq(testCases.projectId, projectId),
+          releaseLabel ? eq(testCases.releaseLabel, releaseLabel) : undefined,
+          sprintLabel ? eq(testCases.sprintLabel, sprintLabel) : undefined
+        )
+      );
+    const runs = await this.db
+      .select({ id: testRuns.id })
+      .from(testRuns)
+      .where(
+        and(
+          eq(testRuns.projectId, projectId),
+          releaseLabel ? eq(testRuns.releaseLabel, releaseLabel) : undefined,
+          sprintLabel ? eq(testRuns.sprintLabel, sprintLabel) : undefined
+        )
+      );
 
     const manualIds = cases.filter((c) => c.type === "manual").map((c) => c.id);
     const automatedIds = cases.filter((c) => c.type === "automated").map((c) => c.id);
