@@ -3,7 +3,8 @@
 ## 1. CI Pipeline Overview
 
 - typecheck
-- lint
+- ESLint (`npm run ci:lint`)
+- architecture boundary check (`npm run ci:architecture:boundaries` — GraphQL / domain.services / db import rules)
 - unit tests
 - integration tests
 - report publication (Allure HTML + JUnit XML)

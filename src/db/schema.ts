@@ -16,6 +16,8 @@ export const requirements = sqliteTable(
     externalKey: text("external_key").notNull(),
     title: text("title").notNull(),
     description: text("description"),
+    releaseLabel: text("release_label"),
+    sprintLabel: text("sprint_label"),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull()
   },
@@ -60,6 +62,8 @@ export const testCases = sqliteTable("test_cases", {
   externalId: text("external_id"),
   type: text("type", { enum: ["manual", "automated"] }).notNull(),
   title: text("title").notNull(),
+  releaseLabel: text("release_label"),
+  sprintLabel: text("sprint_label"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull()
 });
@@ -110,6 +114,8 @@ export const testRuns = sqliteTable("test_runs", {
   id: text("id").primaryKey(),
   projectId: text("project_id").notNull(),
   name: text("name").notNull(),
+  releaseLabel: text("release_label"),
+  sprintLabel: text("sprint_label"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull()
 });
 

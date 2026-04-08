@@ -20,6 +20,8 @@ export function initSqlite(dbPath: string) {
       external_key TEXT NOT NULL,
       title TEXT NOT NULL,
       description TEXT,
+      release_label TEXT,
+      sprint_label TEXT,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
@@ -50,6 +52,8 @@ export function initSqlite(dbPath: string) {
       external_id TEXT,
       type TEXT NOT NULL,
       title TEXT NOT NULL,
+      release_label TEXT,
+      sprint_label TEXT,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
@@ -87,6 +91,8 @@ export function initSqlite(dbPath: string) {
       id TEXT PRIMARY KEY,
       project_id TEXT NOT NULL,
       name TEXT NOT NULL,
+      release_label TEXT,
+      sprint_label TEXT,
       created_at INTEGER NOT NULL
     );
 
