@@ -1,5 +1,6 @@
-# notes
-.notes
+# notes (local scratch; keep backlog tracked)
+.notes/*
+!.notes/TRACKED_BACKLOG.md
 
 # dependencies
 node_modules/

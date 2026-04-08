@@ -9,22 +9,27 @@ function now() {
   return new Date();
 }
 
-export async function upsertRequirementDesignLink(
-  db: Db,
-  input: {
-    projectId: string;
-    provider: string;
-    requirementId?: string;
-    requirementKey?: string;
-    designProjectId?: string;
-    designFileId?: string;
-    designPageId?: string;
-    designNodeId?: string;
-    shareUrl: string;
-    title?: string;
-    lastSyncedAt?: string;
-  }
-) {
+type DesignLinkUpsertInput = {
+  projectId: string;
+  provider: string;
+  requirementId?: string;
+  requirementKey?: string;
+  designProjectId?: string;
+  designFileId?: string;
+  designPageId?: string;
+  designNodeId?: string;
+  shareUrl: string;
+  title?: string;
+  lastSyncedAt?: string;
+};
+
+/**
+ * Synchronous upsert for use inside better-sqlite3 `db.transaction` (single atomic batch with imports).
+ */
+export function upsertRequirementDesignLinkSync(
+  tx: Db,
+  input: DesignLinkUpsertInput
+): { inserted: boolean; row: Record<string, unknown> } {
   if (input.provider !== "penpot") {
     throw new AppError("VALIDATION_ERROR", "Unsupported design provider.", "Use provider 'penpot' for MVP.", { provider: input.provider });
   }
@@ -34,10 +39,11 @@ export async function upsertRequirementDesignLink(
 
   let requirementId = input.requirementId ?? null;
   if (!requirementId && input.requirementKey) {
-    const byKey = await db
+    const byKey = tx
       .select({ id: requirements.id })
       .from(requirements)
-      .where(and(eq(requirements.projectId, input.projectId), eq(requirements.externalKey, input.requirementKey)));
+      .where(and(eq(requirements.projectId, input.projectId), eq(requirements.externalKey, input.requirementKey)))
+      .all();
     if (byKey.length > 0) requirementId = byKey[0].id;
   }
   if (!requirementId) {
@@ -49,7 +55,11 @@ export async function upsertRequirementDesignLink(
     );
   }
 
-  const req = await db.select({ id: requirements.id, projectId: requirements.projectId }).from(requirements).where(eq(requirements.id, requirementId));
+  const req = tx
+    .select({ id: requirements.id, projectId: requirements.projectId })
+    .from(requirements)
+    .where(eq(requirements.id, requirementId))
+    .all();
   if (req.length === 0 || req[0].projectId !== input.projectId) {
     throw new AppError(
       "ENTITY_NOT_FOUND",
@@ -59,7 +69,7 @@ export async function upsertRequirementDesignLink(
     );
   }
 
-  const candidates = await db
+  const candidates = tx
     .select({ id: requirementDesignLinks.id, designNodeId: requirementDesignLinks.designNodeId })
     .from(requirementDesignLinks)
     .where(
@@ -68,7 +78,8 @@ export async function upsertRequirementDesignLink(
         eq(requirementDesignLinks.provider, input.provider),
         eq(requirementDesignLinks.shareUrl, input.shareUrl)
       )
-    );
+    )
+    .all();
   const existing = candidates.filter((c) => (c.designNodeId ?? null) === (input.designNodeId ?? null));
   const parsedSyncedAt = input.lastSyncedAt ? new Date(input.lastSyncedAt) : null;
   if (existing.length === 0) {
@@ -87,8 +98,8 @@ export async function upsertRequirementDesignLink(
       createdAt: now(),
       updatedAt: now()
     };
-    await db.insert(requirementDesignLinks).values(row);
-    return row;
+    tx.insert(requirementDesignLinks).values(row).run();
+    return { inserted: true, row };
   }
 
   const updated = {
@@ -100,8 +111,18 @@ export async function upsertRequirementDesignLink(
     lastSyncedAt: parsedSyncedAt,
     updatedAt: now()
   };
-  await db.update(requirementDesignLinks).set(updated).where(eq(requirementDesignLinks.id, existing[0].id));
-  return { id: existing[0].id, projectId: input.projectId, requirementId, provider: input.provider, shareUrl: input.shareUrl, ...updated };
+  tx.update(requirementDesignLinks).set(updated).where(eq(requirementDesignLinks.id, existing[0].id)).run();
+  return {
+    inserted: false,
+    row: { id: existing[0].id, projectId: input.projectId, requirementId, provider: input.provider, shareUrl: input.shareUrl, ...updated }
+  };
+}
+
+export async function upsertRequirementDesignLink(db: Db, input: DesignLinkUpsertInput) {
+  return db.transaction((tx) => {
+    const { row } = upsertRequirementDesignLinkSync(tx as unknown as Db, input);
+    return row;
+  });
 }
 
 export async function unlinkRequirementDesignLink(
@@ -163,44 +184,58 @@ export async function importRequirementDesignLinks(
     }>;
   }
 ) {
-  let createdCount = 0;
-  let updatedCount = 0;
-  let skippedCount = 0;
-  const errors: Array<{ index: number; code: string; message: string; fixHint: string }> = [];
+  return db.transaction((tx) => {
+    const t = tx as unknown as Db;
+    let createdCount = 0;
+    let updatedCount = 0;
+    let skippedCount = 0;
+    const errors: Array<{ index: number; code: string; message: string; fixHint: string }> = [];
 
-  for (let i = 0; i < input.links.length; i += 1) {
-    const link = input.links[i];
-    if (!link.shareUrl) {
-      skippedCount += 1;
-      errors.push({ index: i, code: "DESIGN_LINK_INVALID", message: "Missing shareUrl for design link.", fixHint: "Provide shareUrl for each imported design link." });
-      continue;
-    }
-    const before = await getRequirementDesignLinks(db, { projectId: input.projectId, requirementId: link.requirementId });
-    try {
-      await upsertRequirementDesignLink(db, {
-        projectId: input.projectId,
-        provider: input.provider,
-        requirementId: link.requirementId,
-        requirementKey: link.requirementKey,
-        designProjectId: link.designProjectId,
-        designFileId: link.designFileId,
-        designPageId: link.designPageId,
-        designNodeId: link.designNodeId,
-        shareUrl: link.shareUrl,
-        title: link.title,
-        lastSyncedAt: link.lastSyncedAt
-      });
-      const after = await getRequirementDesignLinks(db, { projectId: input.projectId, requirementId: link.requirementId });
-      if (after.length > before.length) createdCount += 1;
-      else updatedCount += 1;
-    } catch (err) {
-      skippedCount += 1;
-      if (err instanceof AppError) {
-        errors.push({ index: i, code: err.code, message: err.message, fixHint: err.fixHint });
-      } else {
-        errors.push({ index: i, code: "DESIGN_LINK_INVALID", message: "Failed to import design link.", fixHint: "Check link payload and provider fields." });
+    for (let i = 0; i < input.links.length; i += 1) {
+      const link = input.links[i];
+      if (!link.shareUrl) {
+        skippedCount += 1;
+        errors.push({
+          index: i,
+          code: "DESIGN_LINK_INVALID",
+          message: "Missing shareUrl for design link.",
+          fixHint: "Provide shareUrl for each imported design link."
+        });
+        continue;
+      }
+      try {
+        const { inserted } = upsertRequirementDesignLinkSync(t, {
+          projectId: input.projectId,
+          provider: input.provider,
+          requirementId: link.requirementId,
+          requirementKey: link.requirementKey,
+          designProjectId: link.designProjectId,
+          designFileId: link.designFileId,
+          designPageId: link.designPageId,
+          designNodeId: link.designNodeId,
+          shareUrl: link.shareUrl,
+          title: link.title,
+          lastSyncedAt: link.lastSyncedAt
+        });
+        if (inserted) {
+          createdCount += 1;
+        } else {
+          updatedCount += 1;
+        }
+      } catch (err) {
+        skippedCount += 1;
+        if (err instanceof AppError) {
+          errors.push({ index: i, code: err.code, message: err.message, fixHint: err.fixHint });
+        } else {
+          errors.push({
+            index: i,
+            code: "DESIGN_LINK_INVALID",
+            message: "Failed to import design link.",
+            fixHint: "Check link payload and provider fields."
+          });
+        }
       }
     }
-  }
-  return { createdCount, updatedCount, skippedCount, errors };
+    return { createdCount, updatedCount, skippedCount, errors };
+  });
 }
