@@ -1,2 +1,43 @@
 # notes
 .notes
+
+# dependencies
+node_modules/
+
+# build artifacts
+dist/
+
+# runtime data
+data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# temp files
+tmp/
+temp/
+*.tmp
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# test artifacts
+coverage/
+.nyc_output/
+allure-results/
+allure-report/
+
+# environment
+.env
+.env.local
+.env.*.local
+
+# editor/OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
