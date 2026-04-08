@@ -1,23 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { mkdtempSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { createDb } from "../../src/db/client";
-import { initSqlite } from "../../src/db/init";
-import { TcmsService } from "../../src/domain/service";
-
-function createService() {
-  const dir = mkdtempSync(join(tmpdir(), "tcms-unit-"));
-  const dbPath = join(dir, "db.sqlite");
-  initSqlite(dbPath);
-  const db = createDb(dbPath);
-  const service = new TcmsService(db);
-  return { service, dir };
-}
+import { createTestService } from "../helpers/test-service";
 
 describe("TcmsService", () => {
   it("blocks manual testcase without requirement parent", async () => {
-    const { service } = createService();
+    const { service } = createTestService("tcms-unit-");
     const p = await service.createProject("Demo App");
 
     await expect(
@@ -32,7 +18,7 @@ describe("TcmsService", () => {
   });
 
   it("blocks automated testcase without manual links", async () => {
-    const { service } = createService();
+    const { service } = createTestService("tcms-unit-");
     const p = await service.createProject("Demo App");
 
     await expect(

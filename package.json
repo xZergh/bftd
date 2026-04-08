@@ -12,13 +12,15 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "ci:typecheck": "npm run typecheck",
+    "ci:lint": "eslint .",
+    "ci:architecture:boundaries": "tsx scripts/ci/check-architecture-boundaries.ts",
     "ci:test": "npm test",
     "ci:migration:fresh": "tsx scripts/ci/check-migrations-fresh.ts",
     "ci:migration:upgrade": "tsx scripts/ci/check-migrations-upgrade.ts",
     "ci:schema:check": "tsx scripts/ci/check-schema-contract.ts",
     "ci:schema:update": "tsx scripts/ci/update-schema-snapshot.ts",
     "ci:security:nonblocking": "tsx scripts/ci/check-security-nonblocking.ts",
-    "ci:hardening": "npm run ci:typecheck && npm run ci:test && npm run ci:migration:fresh && npm run ci:migration:upgrade && npm run ci:schema:check && npm run ci:security:nonblocking"
+    "ci:hardening": "npm run ci:typecheck && npm run ci:lint && npm run ci:architecture:boundaries && npm run ci:test && npm run ci:migration:fresh && npm run ci:migration:upgrade && npm run ci:schema:check && npm run ci:security:nonblocking"
   },
   "keywords": [],
   "author": "",
@@ -35,13 +37,16 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.5.2",
     "@types/supertest": "^7.2.0",
     "drizzle-kit": "^0.31.10",
+    "eslint": "^10.2.0",
     "supertest": "^7.2.2",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
+    "typescript-eslint": "^8.58.1",
     "vitest": "^4.1.3"
   }
 }
