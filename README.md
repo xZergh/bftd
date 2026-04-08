@@ -17,6 +17,7 @@ Standalone backend-first Test Case Management System (TCMS) for small QA teams.
 - API contracts: `docs/API_CONTRACTS.md`
 - Reporting and KPI: `docs/REPORTING_AND_KPI.md`
 - Operations and CI: `docs/OPERATIONS.md`
+- Sample Allure report (single HTML, regenerate with `npm run allure:generate` after tests): `docs/reports/allure-report.html`
 
 ## Project Goals (MVP)
 
