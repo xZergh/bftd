@@ -1,15 +1,19 @@
 import { defineConfig } from "vitest/config";
 
+const skipAllure = process.env.CI_SKIP_ALLURE === "1";
+
 export default defineConfig({
   test: {
     retry: process.env.CI ? 2 : 0,
-    setupFiles: ["allure-vitest/setup"],
+    setupFiles: skipAllure ? [] : ["allure-vitest/setup"],
     include: ["tests/**/*.test.ts"],
-    reporters: [
-      "default",
-      "junit",
-      ["allure-vitest/reporter", { resultsDir: "artifacts/allure-results" }]
-    ],
+    reporters: skipAllure
+      ? ["default", "junit"]
+      : [
+          "default",
+          "junit",
+          ["allure-vitest/reporter", { resultsDir: "artifacts/allure-results" }]
+        ],
     outputFile: {
       junit: "artifacts/junit.xml"
     },
