@@ -7,7 +7,7 @@ describe("GraphQL integration - core", () => {
 
     const pRes = await t.agent.post("/graphql").send({
       query: `mutation($input: CreateProjectInput!) {
-        createProject(input: $input) { project { id name } error { code message fixHint } }
+        createProject(input: $input) { project { id key name } error { code message fixHint } }
       }`,
       variables: { input: { name: "App A" } }
     });
@@ -46,7 +46,9 @@ describe("GraphQL integration - core", () => {
           error { code message fixHint }
         }
       }`,
-      variables: { input: { projectId, title: "Manual bad", requirementIds: [] } }
+      variables: {
+        input: { projectId, title: "Manual bad", requirementIds: [], steps: [{ name: "S1" }] }
+      }
     });
 
     expect(res.body.data.createManualTestCase.testCase).toBeNull();

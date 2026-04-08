@@ -1,5 +1,6 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, gt, gte, inArray, lte, or } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
+import { AppError } from "../errors";
 import {
   automatedManualLinks,
   kpiDailySnapshots,
@@ -79,6 +80,35 @@ function now() {
   return new Date();
 }
 
+export function assertIsoDate(value: string | undefined, field: string) {
+  if (value === undefined) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new AppError(
+      "KPI_RANGE_INVALID",
+      `Invalid ${field} (expected YYYY-MM-DD).`,
+      "Use ISO calendar dates for KPI ranges.",
+      { [field]: value }
+    );
+  }
+}
+
+export function assertKpiDateRange(fromDate?: string, toDate?: string) {
+  assertIsoDate(fromDate, "fromDate");
+  assertIsoDate(toDate, "toDate");
+  if (fromDate && toDate && fromDate > toDate) {
+    throw new AppError(
+      "KPI_RANGE_INVALID",
+      "fromDate must be on or before toDate.",
+      "Swap the dates or clear one side of the range.",
+      { fromDate, toDate }
+    );
+  }
+}
+
+function endOfUtcDay(dateStr: string): Date {
+  return new Date(`${dateStr}T23:59:59.999Z`);
+}
+
 export async function computeRunStats(db: Db, runId: string) {
   const runs = await db.select({ id: testRuns.id, createdAt: testRuns.createdAt }).from(testRuns).where(eq(testRuns.id, runId));
   const rows = await db.select({ status: testResults.status }).from(testResults).where(eq(testResults.runId, runId));
@@ -99,7 +129,14 @@ export async function computeRunStats(db: Db, runId: string) {
   };
 }
 
-export async function computeCurrentKpi(db: Db, projectId: string, releaseLabel?: string | null, sprintLabel?: string | null) {
+export async function computeCurrentKpi(
+  db: Db,
+  projectId: string,
+  releaseLabel?: string | null,
+  sprintLabel?: string | null,
+  opts?: { asOfEnd?: Date }
+) {
+  const asOf = opts?.asOfEnd;
   const reqs = await db
     .select({ id: requirements.id })
     .from(requirements)
@@ -107,17 +144,31 @@ export async function computeCurrentKpi(db: Db, projectId: string, releaseLabel?
       and(
         eq(requirements.projectId, projectId),
         releaseLabel ? eq(requirements.releaseLabel, releaseLabel) : undefined,
-        sprintLabel ? eq(requirements.sprintLabel, sprintLabel) : undefined
+        sprintLabel ? eq(requirements.sprintLabel, sprintLabel) : undefined,
+        asOf ? lte(requirements.createdAt, asOf) : undefined
       )
     );
   const cases = await db
-    .select({ id: testCases.id, type: testCases.type, projectId: testCases.projectId })
+    .select({
+      id: testCases.id,
+      type: testCases.type,
+      projectId: testCases.projectId,
+      createdAt: testCases.createdAt,
+      isDeleted: testCases.isDeleted,
+      deletedAt: testCases.deletedAt
+    })
     .from(testCases)
     .where(
       and(
         eq(testCases.projectId, projectId),
         releaseLabel ? eq(testCases.releaseLabel, releaseLabel) : undefined,
-        sprintLabel ? eq(testCases.sprintLabel, sprintLabel) : undefined
+        sprintLabel ? eq(testCases.sprintLabel, sprintLabel) : undefined,
+        asOf
+          ? and(
+              lte(testCases.createdAt, asOf),
+              or(eq(testCases.isDeleted, false), gt(testCases.deletedAt, asOf))
+            )
+          : eq(testCases.isDeleted, false)
       )
     );
   const runs = await db
@@ -127,7 +178,8 @@ export async function computeCurrentKpi(db: Db, projectId: string, releaseLabel?
       and(
         eq(testRuns.projectId, projectId),
         releaseLabel ? eq(testRuns.releaseLabel, releaseLabel) : undefined,
-        sprintLabel ? eq(testRuns.sprintLabel, sprintLabel) : undefined
+        sprintLabel ? eq(testRuns.sprintLabel, sprintLabel) : undefined,
+        asOf ? lte(testRuns.createdAt, asOf) : undefined
       )
     );
 
@@ -222,10 +274,28 @@ export async function computeCurrentKpi(db: Db, projectId: string, releaseLabel?
   };
 }
 
-export async function recalculateKpiSnapshots(db: Db, input: { projectId: string; fromDate?: string; toDate?: string }) {
+export async function recalculateKpiSnapshots(
+  db: Db,
+  input: { projectId: string; fromDate?: string; toDate?: string; fullRebuild?: boolean }
+) {
+  assertKpiDateRange(input.fromDate, input.toDate);
   const current = await computeCurrentKpi(db, input.projectId);
   const today = new Date().toISOString().slice(0, 10);
   const nowTs = now();
+
+  if (input.fullRebuild && (input.fromDate || input.toDate)) {
+    const from = input.fromDate ?? "0000-01-01";
+    const to = input.toDate ?? "9999-12-31";
+    await db
+      .delete(kpiDailySnapshots)
+      .where(
+        and(
+          eq(kpiDailySnapshots.projectId, input.projectId),
+          gte(kpiDailySnapshots.snapshotDate, from),
+          lte(kpiDailySnapshots.snapshotDate, to)
+        )
+      );
+  }
 
   const existingProject = await db
     .select({ id: kpiProjectSnapshots.id })
@@ -247,8 +317,16 @@ export async function recalculateKpiSnapshots(db: Db, input: { projectId: string
   }
 
   const runs = await db.select({ id: testRuns.id, createdAt: testRuns.createdAt }).from(testRuns).where(eq(testRuns.projectId, input.projectId));
+  const runsInRange = runs.filter((r) => {
+    const d = r.createdAt.toISOString().slice(0, 10);
+    if (input.fromDate && d < input.fromDate) return false;
+    if (input.toDate && d > input.toDate) return false;
+    return true;
+  });
+  const runsToProcess = input.fromDate || input.toDate ? runsInRange : runs;
+
   let runSnapshotsUpdated = 0;
-  for (const run of runs) {
+  for (const run of runsToProcess) {
     const stats = await computeRunStats(db, run.id);
     const existing = await db
       .select({ id: kpiRunSnapshots.id })
@@ -274,11 +352,15 @@ export async function recalculateKpiSnapshots(db: Db, input: { projectId: string
   const dateMap = new Map<string, number>();
   for (const r of runs) {
     const d = r.createdAt.toISOString().slice(0, 10);
+    if (input.fromDate && d < input.fromDate) continue;
+    if (input.toDate && d > input.toDate) continue;
     dateMap.set(d, (dateMap.get(d) ?? 0) + 1);
   }
   let dailySnapshotsUpdated = 0;
   for (const [date, totalTestRuns] of dateMap) {
-    const payload = { date, coverage: current.coverage, totalTestRuns };
+    const asOf = endOfUtcDay(date);
+    const dayKpi = await computeCurrentKpi(db, input.projectId, undefined, undefined, { asOfEnd: asOf });
+    const payload = { date, coverage: dayKpi.coverage, totalTestRuns };
     const existing = await db
       .select({ id: kpiDailySnapshots.id })
       .from(kpiDailySnapshots)

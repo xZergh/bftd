@@ -1,9 +1,10 @@
-import { eq, inArray } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { AppError } from "../errors";
 import {
   automatedManualLinks,
   requirementTestCaseLinks,
+  requirements,
   runTraceabilityEdges,
   runTraceabilitySnapshots,
   testCases,
@@ -20,15 +21,29 @@ function now() {
 
 export async function createTestRun(
   db: Db,
-  input: { projectId: string; name: string; releaseLabel?: string; sprintLabel?: string }
+  input: {
+    projectId: string;
+    name: string;
+    releaseLabel?: string;
+    sprintLabel?: string;
+    environment?: string;
+    buildVersion?: string;
+    trigger?: string;
+    finishedAt?: string;
+  }
 ) {
+  const finishedAt = input.finishedAt ? new Date(input.finishedAt) : null;
   const run = {
     id: randomUUID(),
     projectId: input.projectId,
     name: input.name,
     releaseLabel: normalizeLabel(input.releaseLabel),
     sprintLabel: normalizeLabel(input.sprintLabel),
-    createdAt: now()
+    environment: input.environment ?? null,
+    buildVersion: input.buildVersion ?? null,
+    trigger: input.trigger ?? null,
+    createdAt: now(),
+    finishedAt
   };
   await db.insert(testRuns).values(run);
   await captureRunSnapshot(db, run.id, input.projectId);
@@ -42,6 +57,7 @@ export async function submitTestResult(
     testCaseId: string;
     status: "passed" | "failed" | "skipped" | "blocked";
     durationMs?: number;
+    attachments?: Array<{ kind: string; ref: string }>;
   }
 ) {
   const run = await db.select({ id: testRuns.id, projectId: testRuns.projectId }).from(testRuns).where(eq(testRuns.id, input.runId));
@@ -63,10 +79,52 @@ export async function submitTestResult(
     testCaseId: input.testCaseId,
     status: input.status,
     durationMs: input.durationMs ?? 0,
+    attachmentsJson:
+      input.attachments && input.attachments.length > 0 ? JSON.stringify(input.attachments) : null,
     createdAt: now()
   };
   await db.insert(testResults).values(result);
   return result;
+}
+
+export async function listTestRuns(db: Db, input: { projectId: string }) {
+  const rows = await db.select().from(testRuns).where(eq(testRuns.projectId, input.projectId));
+  return rows.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
+export async function getTestRun(db: Db, input: { runId: string; projectId?: string }) {
+  const rows = await db.select().from(testRuns).where(eq(testRuns.id, input.runId));
+  if (rows.length === 0) return null;
+  const run = rows[0];
+  if (input.projectId && run.projectId !== input.projectId) return null;
+  const results = await db
+    .select()
+    .from(testResults)
+    .where(eq(testResults.runId, input.runId))
+    .orderBy(asc(testResults.createdAt));
+  return {
+    ...run,
+    results: results.map((r) => ({
+      ...r,
+      attachments: r.attachmentsJson ? (JSON.parse(r.attachmentsJson) as unknown[]) : []
+    }))
+  };
+}
+
+export async function getRunAggregate(db: Db, input: { runId: string }) {
+  const run = await getTestRun(db, { runId: input.runId });
+  if (!run) {
+    throw new AppError("ENTITY_NOT_FOUND", "Test run not found.", "Use a valid run id.", { runId: input.runId });
+  }
+  const rows = run.results as Array<{ status: string; durationMs: number }>;
+  const total = rows.length;
+  const passed = rows.filter((r) => r.status === "passed").length;
+  const failed = rows.filter((r) => r.status === "failed").length;
+  const skipped = rows.filter((r) => r.status === "skipped").length;
+  const blocked = rows.filter((r) => r.status === "blocked").length;
+  const durationMs = rows.reduce((s, r) => s + (r.durationMs ?? 0), 0);
+  const passRatePct = total === 0 ? 0 : Math.round((passed / total) * 10000) / 100;
+  return { runId: input.runId, total, passed, failed, skipped, blocked, passRatePct, durationMs };
 }
 
 export async function getRunTraceabilityReport(
@@ -132,18 +190,30 @@ async function captureRunSnapshot(db: Db, runId: string, projectId: string) {
     capturedAt: now()
   });
 
-  const reqManualRows = await db
-    .select({ requirementId: requirementTestCaseLinks.requirementId, manualTestCaseId: requirementTestCaseLinks.manualTestCaseId })
-    .from(requirementTestCaseLinks);
-  if (reqManualRows.length === 0) return;
+  const projectReqRows = await db
+    .select({ id: requirements.id })
+    .from(requirements)
+    .where(eq(requirements.projectId, projectId));
+  const reqInProject = new Set(projectReqRows.map((r) => r.id));
 
-  const manualIds = [...new Set(reqManualRows.map((r) => r.manualTestCaseId))];
+  const reqManualRows = await db
+    .select({
+      requirementId: requirementTestCaseLinks.requirementId,
+      manualTestCaseId: requirementTestCaseLinks.manualTestCaseId
+    })
+    .from(requirementTestCaseLinks);
+  const scopedReqManual = reqManualRows.filter((r) => reqInProject.has(r.requirementId));
+  if (scopedReqManual.length === 0) return;
+
+  const manualIds = [...new Set(scopedReqManual.map((r) => r.manualTestCaseId))];
   const manuals = await db
-    .select({ id: testCases.id, projectId: testCases.projectId, type: testCases.type })
+    .select({ id: testCases.id, projectId: testCases.projectId, type: testCases.type, isDeleted: testCases.isDeleted })
     .from(testCases)
     .where(inArray(testCases.id, manualIds));
-  const manualSet = new Set(manuals.filter((m) => m.projectId === projectId && m.type === "manual").map((m) => m.id));
-  const reqManualInProject = reqManualRows.filter((r) => manualSet.has(r.manualTestCaseId));
+  const manualSet = new Set(
+    manuals.filter((m) => m.projectId === projectId && m.type === "manual" && !m.isDeleted).map((m) => m.id)
+  );
+  const reqManualInProject = scopedReqManual.filter((r) => manualSet.has(r.manualTestCaseId));
   if (reqManualInProject.length === 0) return;
 
   const autoLinks = await db
@@ -153,11 +223,13 @@ async function captureRunSnapshot(db: Db, runId: string, projectId: string) {
   const automatedIds = [...new Set(autoLinks.map((a) => a.automatedTestCaseId))];
   const autos = automatedIds.length
     ? await db
-        .select({ id: testCases.id, projectId: testCases.projectId, type: testCases.type })
+        .select({ id: testCases.id, projectId: testCases.projectId, type: testCases.type, isDeleted: testCases.isDeleted })
         .from(testCases)
         .where(inArray(testCases.id, automatedIds))
     : [];
-  const autoSet = new Set(autos.filter((a) => a.projectId === projectId && a.type === "automated").map((a) => a.id));
+  const autoSet = new Set(
+    autos.filter((a) => a.projectId === projectId && a.type === "automated" && !a.isDeleted).map((a) => a.id)
+  );
 
   const rows: Array<{
     id: string;

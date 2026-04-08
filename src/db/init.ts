@@ -1,6 +1,120 @@
 import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { randomBytes } from "node:crypto";
+
+function slugifyBase(name: string): string {
+  const s = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  return s.length > 0 ? s : "project";
+}
+
+function tableColumns(db: Database.Database, table: string): Set<string> {
+  const rows = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  return new Set(rows.map((r) => r.name));
+}
+
+function ensureColumn(db: Database.Database, table: string, column: string, ddl: string) {
+  const cols = tableColumns(db, table);
+  if (!cols.has(column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${ddl}`);
+  }
+}
+
+function indexExists(db: Database.Database, name: string): boolean {
+  const rows = db
+    .prepare(`SELECT name FROM sqlite_master WHERE type='index' AND name=?`)
+    .all(name) as Array<{ name: string }>;
+  return rows.length > 0;
+}
+
+function backfillProjectKeys(db: Database.Database) {
+  const projects = db.prepare(`SELECT id, name, key FROM projects`).all() as Array<{
+    id: string;
+    name: string;
+    key: string | null;
+  }>;
+  const used = new Set(
+    projects.map((p) => p.key).filter((k): k is string => k != null && k.length > 0)
+  );
+  const upd = db.prepare(`UPDATE projects SET key = ? WHERE id = ?`);
+  for (const p of projects) {
+    if (p.key && p.key.length > 0) continue;
+    const base = slugifyBase(p.name);
+    let candidate = base;
+    let n = 0;
+    while (used.has(candidate)) {
+      n += 1;
+      candidate = `${base}-${n}`;
+    }
+    if (candidate.length === 0) {
+      candidate = `p-${randomBytes(4).toString("hex")}`;
+    }
+    used.add(candidate);
+    upd.run(candidate, p.id);
+  }
+}
+
+function applyAdditiveMigrations(db: Database.Database) {
+  const tables = db
+    .prepare(`SELECT name FROM sqlite_master WHERE type='table'`)
+    .all() as Array<{ name: string }>;
+  const names = new Set(tables.map((t) => t.name));
+
+  if (names.has("projects")) {
+    ensureColumn(db, "projects", "key", "TEXT");
+    backfillProjectKeys(db);
+  }
+
+  if (names.has("requirements")) {
+    ensureColumn(db, "requirements", "description", "TEXT");
+    ensureColumn(db, "requirements", "release_label", "TEXT");
+    ensureColumn(db, "requirements", "sprint_label", "TEXT");
+    ensureColumn(db, "requirements", "requirement_type", "TEXT");
+    ensureColumn(db, "requirements", "status", "TEXT");
+    ensureColumn(db, "requirements", "priority", "TEXT");
+    ensureColumn(db, "requirements", "tags_json", "TEXT");
+    ensureColumn(db, "requirements", "parent_requirement_id", "TEXT");
+  }
+
+  if (names.has("test_cases")) {
+    ensureColumn(db, "test_cases", "release_label", "TEXT");
+    ensureColumn(db, "test_cases", "sprint_label", "TEXT");
+    ensureColumn(db, "test_cases", "is_deleted", "INTEGER NOT NULL DEFAULT 0");
+    ensureColumn(db, "test_cases", "deleted_at", "INTEGER");
+  }
+
+  if (names.has("test_case_steps")) {
+    ensureColumn(db, "test_case_steps", "parent_step_id", "TEXT");
+    ensureColumn(db, "test_case_steps", "meta_json", "TEXT");
+  }
+
+  if (names.has("test_runs")) {
+    ensureColumn(db, "test_runs", "release_label", "TEXT");
+    ensureColumn(db, "test_runs", "sprint_label", "TEXT");
+    ensureColumn(db, "test_runs", "environment", "TEXT");
+    ensureColumn(db, "test_runs", "build_version", "TEXT");
+    ensureColumn(db, "test_runs", "trigger", "TEXT");
+    ensureColumn(db, "test_runs", "finished_at", "INTEGER");
+  }
+
+  if (names.has("test_results")) {
+    ensureColumn(db, "test_results", "attachments_json", "TEXT");
+  }
+
+  db.exec(`DROP INDEX IF EXISTS req_provider_node_url_uniq`);
+  if (!indexExists(db, "req_design_link_uniq")) {
+    db.exec(`
+      CREATE UNIQUE INDEX IF NOT EXISTS req_design_link_uniq
+      ON requirement_design_links(requirement_id, provider, coalesce(design_node_id, ''), share_url)
+    `);
+  }
+  if (names.has("projects") && !indexExists(db, "project_key_uniq")) {
+    db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS project_key_uniq ON projects(key)`);
+  }
+}
 
 export function initSqlite(dbPath: string) {
   mkdirSync(dirname(dbPath), { recursive: true });
@@ -8,6 +122,7 @@ export function initSqlite(dbPath: string) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS projects (
       id TEXT PRIMARY KEY,
+      key TEXT NOT NULL,
       name TEXT NOT NULL,
       is_archived INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL,
@@ -22,6 +137,11 @@ export function initSqlite(dbPath: string) {
       description TEXT,
       release_label TEXT,
       sprint_label TEXT,
+      requirement_type TEXT,
+      status TEXT,
+      priority TEXT,
+      tags_json TEXT,
+      parent_requirement_id TEXT,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
@@ -43,8 +163,6 @@ export function initSqlite(dbPath: string) {
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
-    CREATE UNIQUE INDEX IF NOT EXISTS req_provider_node_url_uniq
-    ON requirement_design_links(requirement_id, provider, design_node_id, share_url);
 
     CREATE TABLE IF NOT EXISTS test_cases (
       id TEXT PRIMARY KEY,
@@ -54,6 +172,8 @@ export function initSqlite(dbPath: string) {
       title TEXT NOT NULL,
       release_label TEXT,
       sprint_label TEXT,
+      is_deleted INTEGER NOT NULL DEFAULT 0,
+      deleted_at INTEGER,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
@@ -66,10 +186,41 @@ export function initSqlite(dbPath: string) {
       step_order INTEGER NOT NULL,
       name TEXT NOT NULL,
       expected_result TEXT,
-      source_step_id TEXT
+      source_step_id TEXT,
+      parent_step_id TEXT,
+      meta_json TEXT
     );
     CREATE UNIQUE INDEX IF NOT EXISTS test_case_step_uniq
     ON test_case_steps(test_case_id, step_order);
+
+    CREATE TABLE IF NOT EXISTS test_case_versions (
+      id TEXT PRIMARY KEY,
+      test_case_id TEXT NOT NULL,
+      version_seq INTEGER NOT NULL,
+      created_at INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      type TEXT NOT NULL,
+      external_id TEXT,
+      release_label TEXT,
+      sprint_label TEXT,
+      is_tombstone INTEGER NOT NULL DEFAULT 0,
+      links_json TEXT NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS test_case_version_seq_uniq
+    ON test_case_versions(test_case_id, version_seq);
+
+    CREATE TABLE IF NOT EXISTS test_case_version_steps (
+      id TEXT PRIMARY KEY,
+      version_id TEXT NOT NULL,
+      step_order INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      expected_result TEXT,
+      parent_step_id TEXT,
+      source_step_id TEXT,
+      meta_json TEXT
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS test_case_version_step_uniq
+    ON test_case_version_steps(version_id, step_order);
 
     CREATE TABLE IF NOT EXISTS requirement_test_case_links (
       id TEXT PRIMARY KEY,
@@ -93,7 +244,11 @@ export function initSqlite(dbPath: string) {
       name TEXT NOT NULL,
       release_label TEXT,
       sprint_label TEXT,
-      created_at INTEGER NOT NULL
+      environment TEXT,
+      build_version TEXT,
+      trigger TEXT,
+      created_at INTEGER NOT NULL,
+      finished_at INTEGER
     );
 
     CREATE TABLE IF NOT EXISTS test_results (
@@ -102,6 +257,7 @@ export function initSqlite(dbPath: string) {
       test_case_id TEXT NOT NULL,
       status TEXT NOT NULL,
       duration_ms INTEGER NOT NULL DEFAULT 0,
+      attachments_json TEXT,
       created_at INTEGER NOT NULL
     );
 
@@ -154,5 +310,15 @@ export function initSqlite(dbPath: string) {
     CREATE UNIQUE INDEX IF NOT EXISTS kpi_daily_snapshot_uniq
     ON kpi_daily_snapshots(project_id, snapshot_date);
   `);
+
+  applyAdditiveMigrations(db);
+
+  if (!indexExists(db, "req_design_link_uniq")) {
+    db.exec(`
+      CREATE UNIQUE INDEX IF NOT EXISTS req_design_link_uniq
+      ON requirement_design_links(requirement_id, provider, coalesce(design_node_id, ''), share_url)
+    `);
+  }
+
   db.close();
 }

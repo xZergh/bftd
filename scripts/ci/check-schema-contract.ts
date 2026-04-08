@@ -18,7 +18,12 @@ function main() {
     const allowBreaking = process.env.ALLOW_BREAKING_SCHEMA === "1";
     if (!allowBreaking) {
       throw new Error(
-        "GraphQL schema diff detected. Update snapshot with `npm run ci:schema:update` and include approval artifacts for breaking changes."
+        [
+          "GraphQL schema diff detected.",
+          "Update the snapshot: npm run ci:schema:update",
+          "Document intentional breaking API changes in docs/BREAKING_CHANGES.md and commit the snapshot with that review.",
+          "CI override (not for merge): ALLOW_BREAKING_SCHEMA=1"
+        ].join(" ")
       );
     }
     console.warn("Schema diff detected but ALLOW_BREAKING_SCHEMA=1 set; continuing.");

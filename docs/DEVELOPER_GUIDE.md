@@ -17,9 +17,9 @@ GraphQL (resolvers + inputs + type-defs) → TcmsService (facade) → domain/ser
 | Request validation     | `src/graphql/inputs.ts`    | Zod input schemas                                                                   |
 | Transport / controller | `src/graphql/resolvers.ts` | Parse input, call `ctx.service`, map `AppError` to payloads. **No business rules.** |
 | Application facade     | `src/domain/service.ts`    | Thin orchestration; delegates to `src/domain/services/`*.                           |
-| Domain logic           | `src/domain/services/*`    | Business rules, queries, deterministic errors (`AppError`).                         |
+| Domain logic           | `src/domain/services/`*    | Business rules, queries, deterministic errors (`AppError`).                         |
 | Errors                 | `src/domain/errors.ts`     | Shared error type and codes                                                         |
-| Persistence            | `src/db/*`                 | Schema, init, client. **No domain rules.**                                          |
+| Persistence            | `src/db/`*                 | Schema, init, client. **No domain rules.**                                          |
 
 
 **Enforced in CI:** `scripts/ci/check-architecture-boundaries.ts` — GraphQL must not import `db`; `domain/services` must not import `graphql`; `db` must not import `domain`.
@@ -130,6 +130,14 @@ npm ci
 - Runtime uses `initSqlite` from [src/db/init.ts](../src/db/init.ts) for bootstrap.
 - Drizzle Kit config: [drizzle.config.ts](../drizzle.config.ts)
 - CI migration checks: `npm run ci:migration:fresh`, `npm run ci:migration:upgrade`
+
+#### 4.4.1 SQLite indexes (spec §7 checklist)
+
+When you add or change tables or unique constraints in [src/db/schema.ts](../src/db/schema.ts), keep persistence aligned:
+
+1. Update [src/db/init.ts](../src/db/init.ts) (`CREATE TABLE` / `CREATE INDEX` / additive `ALTER` paths in `applyAdditiveMigrations`).
+2. Run `npm run ci:migration:fresh` and `npm run ci:migration:upgrade`.
+3. If you rename or replace a unique index, add a `DROP INDEX IF EXISTS ...` in the migration path so upgraded databases converge.
 
 ### 4.5 Start the service
 

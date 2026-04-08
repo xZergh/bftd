@@ -16,6 +16,35 @@ on:
   workflow_dispatch:
 
 jobs:
+  mutation:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Stryker mutation tests
+        run: npm run ci:mutation
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: mutation-report
+          path: artifacts/mutation/**
+          if-no-files-found: warn
+
   fast-checks:
     if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/feature/')
     runs-on: ubuntu-latest
@@ -46,6 +75,17 @@ jobs:
       - name: Unit and integration tests
         run: npm run ci:test
 
+      - name: Setup Java (Allure CLI)
+        if: always()
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Generate Allure HTML report
+        if: always()
+        run: npm run allure:generate
+
       - name: GraphQL schema contract check
         run: npm run ci:schema:check
 
@@ -59,9 +99,9 @@ jobs:
           name: test-artifacts-fast
           path: |
             artifacts/junit.xml
-            coverage/**
-            allure-results/**
-            allure-report/**
+            artifacts/coverage/**
+            artifacts/allure-results/**
+            artifacts/allure-report/**
           if-no-files-found: warn
 
   hardening:
@@ -94,6 +134,17 @@ jobs:
       - name: Unit and integration tests
         run: npm run ci:test
 
+      - name: Setup Java (Allure CLI)
+        if: always()
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Generate Allure HTML report
+        if: always()
+        run: npm run allure:generate
+
       - name: Migration check (fresh)
         run: npm run ci:migration:fresh
 
@@ -116,7 +167,7 @@ jobs:
           name: test-artifacts-hardening
           path: |
             artifacts/junit.xml
-            coverage/**
-            allure-results/**
-            allure-report/**
+            artifacts/coverage/**
+            artifacts/allure-results/**
+            artifacts/allure-report/**
           if-no-files-found: warn

@@ -1,12 +1,20 @@
 import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 
-export const projects = sqliteTable("projects", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  isArchived: integer("is_archived", { mode: "boolean" }).notNull().default(false),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull()
-});
+export const projects = sqliteTable(
+  "projects",
+  {
+    id: text("id").primaryKey(),
+    key: text("key").notNull(),
+    name: text("name").notNull(),
+    isArchived: integer("is_archived", { mode: "boolean" }).notNull().default(false),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull()
+  },
+  (t) => ({
+    projectKeyUniq: uniqueIndex("project_key_uniq").on(t.key)
+  })
+);
 
 export const requirements = sqliteTable(
   "requirements",
@@ -18,14 +26,16 @@ export const requirements = sqliteTable(
     description: text("description"),
     releaseLabel: text("release_label"),
     sprintLabel: text("sprint_label"),
+    requirementType: text("requirement_type"),
+    status: text("status"),
+    priority: text("priority"),
+    tagsJson: text("tags_json"),
+    parentRequirementId: text("parent_requirement_id"),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull()
   },
   (t) => ({
-    projectExternalKeyUniq: uniqueIndex("req_project_external_key_uniq").on(
-      t.projectId,
-      t.externalKey
-    )
+    projectExternalKeyUniq: uniqueIndex("req_project_external_key_uniq").on(t.projectId, t.externalKey)
   })
 );
 
@@ -47,10 +57,10 @@ export const requirementDesignLinks = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull()
   },
   (t) => ({
-    reqProviderNodeUrlUniq: uniqueIndex("req_provider_node_url_uniq").on(
+    reqProviderNodeUrlUniq: uniqueIndex("req_design_link_uniq").on(
       t.requirementId,
       t.provider,
-      t.designNodeId,
+      sql`coalesce(${t.designNodeId}, '')`,
       t.shareUrl
     )
   })
@@ -64,6 +74,8 @@ export const testCases = sqliteTable("test_cases", {
   title: text("title").notNull(),
   releaseLabel: text("release_label"),
   sprintLabel: text("sprint_label"),
+  isDeleted: integer("is_deleted", { mode: "boolean" }).notNull().default(false),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull()
 });
@@ -76,10 +88,49 @@ export const testCaseSteps = sqliteTable(
     stepOrder: integer("step_order").notNull(),
     name: text("name").notNull(),
     expectedResult: text("expected_result"),
-    sourceStepId: text("source_step_id")
+    sourceStepId: text("source_step_id"),
+    parentStepId: text("parent_step_id"),
+    metaJson: text("meta_json")
   },
   (t) => ({
     stepUniq: uniqueIndex("test_case_step_uniq").on(t.testCaseId, t.stepOrder)
+  })
+);
+
+export const testCaseVersions = sqliteTable(
+  "test_case_versions",
+  {
+    id: text("id").primaryKey(),
+    testCaseId: text("test_case_id").notNull(),
+    versionSeq: integer("version_seq").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    title: text("title").notNull(),
+    type: text("type", { enum: ["manual", "automated"] }).notNull(),
+    externalId: text("external_id"),
+    releaseLabel: text("release_label"),
+    sprintLabel: text("sprint_label"),
+    isTombstone: integer("is_tombstone", { mode: "boolean" }).notNull().default(false),
+    linksJson: text("links_json").notNull()
+  },
+  (t) => ({
+    caseVersionSeqUniq: uniqueIndex("test_case_version_seq_uniq").on(t.testCaseId, t.versionSeq)
+  })
+);
+
+export const testCaseVersionSteps = sqliteTable(
+  "test_case_version_steps",
+  {
+    id: text("id").primaryKey(),
+    versionId: text("version_id").notNull(),
+    stepOrder: integer("step_order").notNull(),
+    name: text("name").notNull(),
+    expectedResult: text("expected_result"),
+    parentStepId: text("parent_step_id"),
+    sourceStepId: text("source_step_id"),
+    metaJson: text("meta_json")
+  },
+  (t) => ({
+    versionStepUniq: uniqueIndex("test_case_version_step_uniq").on(t.versionId, t.stepOrder)
   })
 );
 
@@ -103,10 +154,7 @@ export const automatedManualLinks = sqliteTable(
     manualTestCaseId: text("manual_test_case_id").notNull()
   },
   (t) => ({
-    autoManualUniq: uniqueIndex("auto_manual_uniq").on(
-      t.automatedTestCaseId,
-      t.manualTestCaseId
-    )
+    autoManualUniq: uniqueIndex("auto_manual_uniq").on(t.automatedTestCaseId, t.manualTestCaseId)
   })
 );
 
@@ -116,7 +164,11 @@ export const testRuns = sqliteTable("test_runs", {
   name: text("name").notNull(),
   releaseLabel: text("release_label"),
   sprintLabel: text("sprint_label"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull()
+  environment: text("environment"),
+  buildVersion: text("build_version"),
+  trigger: text("trigger"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  finishedAt: integer("finished_at", { mode: "timestamp" })
 });
 
 export const testResults = sqliteTable("test_results", {
@@ -125,6 +177,7 @@ export const testResults = sqliteTable("test_results", {
   testCaseId: text("test_case_id").notNull(),
   status: text("status", { enum: ["passed", "failed", "skipped", "blocked"] }).notNull(),
   durationMs: integer("duration_ms").notNull().default(0),
+  attachmentsJson: text("attachments_json"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull()
 });
 

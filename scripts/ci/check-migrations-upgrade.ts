@@ -7,6 +7,8 @@ import { initSqlite } from "../../src/db/init";
 const NEW_TABLES = [
   "requirement_design_links",
   "test_case_steps",
+  "test_case_versions",
+  "test_case_version_steps",
   "run_traceability_snapshots",
   "run_traceability_edges",
   "kpi_project_snapshots",

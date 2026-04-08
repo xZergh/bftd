@@ -50,6 +50,21 @@ All metrics are deduplicated by unique IDs in project scope.
 - KPI snapshots are immutable by default.
 - Admin can trigger explicit full historical rebuild.
 
+### 5.1 Daily trend vs “current” (ADR / X1)
+
+**Problem:** Reusing the same “current” coverage vector for every calendar day in the trend chart is misleading when requirements and test cases change over time.
+
+**Approach in this codebase:**
+
+- **Current** KPI (`kpi_project_snapshots` / live `computeCurrentKpi`) reflects the latest project state (active entities, today’s labels unfiltered unless callers filter).
+- **Per-day trend** rows (`kpi_daily_snapshots`) store coverage computed with an **as-of end-of-day (UTC)** view: entities must exist at that instant (`createdAt <= end of day`) and test cases must not have been tombstoned yet (`isDeleted = false` or `deletedAt` after that instant). Run counts per day still come from runs whose `createdAt` falls on that calendar day in UTC.
+- **Caveat:** Traceability links are not historically time-stamped; as-of coverage uses **current** link rows intersected with the entity sets that were active on that day. That is a deliberate approximation until link-level history exists.
+
+**Recalculate API:**
+
+- `fromDate` / `toDate` (YYYY-MM-DD) narrow which **run** snapshots are refreshed and which **daily** keys are recomputed.
+- `fullRebuild: true` with a range deletes existing daily snapshots in that range before rewriting them (use after backfills or formula changes).
+
 ## 6. KPI Validation and Troubleshooting
 
 - Check formula metadata IDs match formula value IDs.

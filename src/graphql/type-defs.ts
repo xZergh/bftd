@@ -1,4 +1,7 @@
 export const typeDefs = /* GraphQL */ `
+  scalar Date
+  scalar DateTime
+
   type AppError {
     code: String!
     message: String!
@@ -8,7 +11,11 @@ export const typeDefs = /* GraphQL */ `
 
   type Project {
     id: ID!
+    key: String!
     name: String!
+    isArchived: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
   }
 
   type Requirement {
@@ -16,8 +23,27 @@ export const typeDefs = /* GraphQL */ `
     projectId: ID!
     externalKey: String!
     title: String!
+    description: String
     releaseLabel: String
     sprintLabel: String
+    requirementType: String
+    status: String
+    priority: String
+    tags: [String!]!
+    parentRequirementId: ID
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type TestCaseStep {
+    id: ID!
+    testCaseId: ID!
+    stepOrder: Int!
+    name: String!
+    expectedResult: String
+    sourceStepId: String
+    parentStepId: String
+    metaJson: String
   }
 
   type TestCase {
@@ -25,8 +51,14 @@ export const typeDefs = /* GraphQL */ `
     projectId: ID!
     type: String!
     title: String!
+    externalId: String
     releaseLabel: String
     sprintLabel: String
+    isDeleted: Boolean!
+    deletedAt: DateTime
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    steps: [TestCaseStep!]!
   }
 
   type TestRun {
@@ -35,6 +67,16 @@ export const typeDefs = /* GraphQL */ `
     name: String!
     releaseLabel: String
     sprintLabel: String
+    environment: String
+    buildVersion: String
+    trigger: String
+    createdAt: DateTime!
+    finishedAt: DateTime
+  }
+
+  type ResultAttachment {
+    kind: String!
+    ref: String!
   }
 
   type TestResult {
@@ -42,6 +84,24 @@ export const typeDefs = /* GraphQL */ `
     runId: ID!
     testCaseId: ID!
     status: String!
+    durationMs: Int!
+    attachments: [ResultAttachment!]!
+    createdAt: DateTime!
+  }
+
+  type TestRunDetail {
+    run: TestRun!
+    results: [TestResult!]!
+  }
+
+  type RunAggregate {
+    runId: ID!
+    total: Int!
+    passed: Int!
+    failed: Int!
+    skipped: Int!
+    blocked: Int!
+    passRatePct: Float!
     durationMs: Int!
   }
 
@@ -186,8 +246,50 @@ export const typeDefs = /* GraphQL */ `
     errors: [ImportErrorItem!]!
   }
 
+  type TestCaseVersionStep {
+    id: ID!
+    versionId: ID!
+    stepOrder: Int!
+    name: String!
+    expectedResult: String
+    parentStepId: String
+    sourceStepId: String
+    metaJson: String
+  }
+
+  type TestCaseVersion {
+    id: ID!
+    testCaseId: ID!
+    versionSeq: Int!
+    createdAt: DateTime!
+    title: String!
+    type: String!
+    externalId: String
+    releaseLabel: String
+    sprintLabel: String
+    isTombstone: Boolean!
+    requirementIds: [ID!]!
+    manualTestCaseIds: [ID!]!
+    steps: [TestCaseVersionStep!]!
+  }
+
+  type LinkMutationResult {
+    linked: Boolean!
+  }
+
+  type DeleteTestCaseResult {
+    success: Boolean!
+    tombstoned: Boolean
+  }
+
+  input ManualStepInput {
+    name: String!
+    expectedResult: String
+  }
+
   input CreateProjectInput {
     name: String!
+    key: String
   }
 
   input CreateRequirementInput {
@@ -197,12 +299,18 @@ export const typeDefs = /* GraphQL */ `
     description: String
     releaseLabel: String
     sprintLabel: String
+    requirementType: String
+    status: String
+    priority: String
+    tags: [String!]
+    parentRequirementId: ID
   }
 
   input CreateManualTestCaseInput {
     projectId: ID!
     title: String!
     requirementIds: [ID!]!
+    steps: [ManualStepInput!]!
     releaseLabel: String
     sprintLabel: String
   }
@@ -220,6 +328,10 @@ export const typeDefs = /* GraphQL */ `
     name: String!
     releaseLabel: String
     sprintLabel: String
+    environment: String
+    buildVersion: String
+    trigger: String
+    finishedAt: DateTime
   }
 
   input ProjectSummaryInput {
@@ -239,6 +351,12 @@ export const typeDefs = /* GraphQL */ `
     testCaseId: ID!
     status: String!
     durationMs: Int
+    attachments: [ResultAttachmentInput!]
+  }
+
+  input ResultAttachmentInput {
+    kind: String!
+    ref: String!
   }
 
   input RequirementImportItemInput {
@@ -247,10 +365,16 @@ export const typeDefs = /* GraphQL */ `
     description: String
     releaseLabel: String
     sprintLabel: String
+    requirementType: String
+    status: String
+    priority: String
+    tags: [String!]
+    parentExternalKey: String
   }
 
   input ImportRequirementsInput {
-    projectId: ID!
+    projectId: ID
+    projectKey: String
     releaseLabel: String
     sprintLabel: String
     requirements: [RequirementImportItemInput!]!
@@ -261,6 +385,8 @@ export const typeDefs = /* GraphQL */ `
     name: String!
     expectedResult: String
     sourceStepId: String
+    parentStepId: String
+    metaJson: String
   }
 
   input TrrAutomatedTestInput {
@@ -274,7 +400,8 @@ export const typeDefs = /* GraphQL */ `
   }
 
   input ImportAutomatedFromTrrInput {
-    projectId: ID!
+    projectId: ID
+    projectKey: String
     releaseLabel: String
     sprintLabel: String
     automatedTests: [TrrAutomatedTestInput!]!
@@ -284,12 +411,15 @@ export const typeDefs = /* GraphQL */ `
     projectId: ID!
     releaseLabel: String
     sprintLabel: String
+    fromDate: Date
+    toDate: Date
   }
 
   input RecalculateKpiInput {
     projectId: ID!
-    fromDate: String
-    toDate: String
+    fromDate: Date
+    toDate: Date
+    fullRebuild: Boolean
   }
 
   input RequirementDesignLinkInput {
@@ -336,6 +466,135 @@ export const typeDefs = /* GraphQL */ `
     links: [ImportRequirementDesignLinkItemInput!]!
   }
 
+  input ListProjectsInput {
+    includeArchived: Boolean
+  }
+
+  input ProjectByInput {
+    id: ID
+    key: String
+  }
+
+  input UpdateProjectInput {
+    id: ID
+    key: String
+    name: String
+    keyNew: String
+  }
+
+  input ArchiveProjectInput {
+    id: ID
+    key: String
+    archived: Boolean!
+  }
+
+  input RequirementsListInput {
+    projectId: ID!
+  }
+
+  input RequirementByInput {
+    id: ID!
+    projectId: ID
+  }
+
+  input UpdateRequirementInput {
+    id: ID!
+    title: String
+    description: String
+    releaseLabel: String
+    sprintLabel: String
+    requirementType: String
+    status: String
+    priority: String
+    tags: [String!]
+    parentRequirementId: ID
+  }
+
+  input DeleteRequirementInput {
+    id: ID!
+  }
+
+  input TestCasesListInput {
+    projectId: ID!
+    type: String
+    includeDeleted: Boolean
+  }
+
+  input TestCaseByInput {
+    id: ID!
+    projectId: ID
+    includeDeleted: Boolean
+  }
+
+  input UpdateManualTestCaseInput {
+    id: ID!
+    title: String
+    releaseLabel: String
+    sprintLabel: String
+    steps: [ManualStepInput!]
+  }
+
+  input UpdateAutomatedTestCaseInput {
+    id: ID!
+    title: String
+    externalId: String
+    releaseLabel: String
+    sprintLabel: String
+    manualTestCaseIds: [ID!]
+  }
+
+  input DeleteTestCaseInput {
+    id: ID!
+  }
+
+  input LinkRequirementManualInput {
+    projectId: ID!
+    requirementId: ID!
+    manualTestCaseId: ID!
+  }
+
+  input UnlinkRequirementManualInput {
+    requirementId: ID!
+    manualTestCaseId: ID!
+  }
+
+  input LinkAutomatedManualInput {
+    projectId: ID!
+    automatedTestCaseId: ID!
+    manualTestCaseId: ID!
+  }
+
+  input UnlinkAutomatedManualInput {
+    automatedTestCaseId: ID!
+    manualTestCaseId: ID!
+  }
+
+  input TestCaseVersionHistoryInput {
+    testCaseId: ID!
+    includeDeleted: Boolean
+  }
+
+  input TombstoneTestCaseInput {
+    testCaseId: ID!
+  }
+
+  input RestoreTestCaseInput {
+    testCaseId: ID!
+  }
+
+  input TestRunsListInput {
+    projectId: ID!
+  }
+
+  input TestRunByInput {
+    runId: ID!
+    projectId: ID
+  }
+
+  input RunAggregateInput {
+    runId: ID!
+  }
+
   type CreateProjectPayload {
     project: Project
     error: AppError
@@ -361,18 +620,57 @@ export const typeDefs = /* GraphQL */ `
     error: AppError
   }
 
+  type UpdateProjectPayload {
+    project: Project
+    error: AppError
+  }
+
+  type UpdateRequirementPayload {
+    requirement: Requirement
+    error: AppError
+  }
+
+  type UpdateTestCasePayload {
+    testCase: TestCase
+    error: AppError
+  }
+
   type Query {
+    projects(input: ListProjectsInput): [Project!]!
+    project(input: ProjectByInput!): Project
     projectSummary(input: ProjectSummaryInput!): ProjectSummary!
+    requirements(input: RequirementsListInput!): [Requirement!]!
+    requirement(input: RequirementByInput!): Requirement
+    testCases(input: TestCasesListInput!): [TestCase!]!
+    testCase(input: TestCaseByInput!): TestCase
+    testRuns(input: TestRunsListInput!): [TestRun!]!
+    testRun(input: TestRunByInput!): TestRunDetail
+    runAggregate(input: RunAggregateInput!): RunAggregate!
     runTraceabilityReport(input: RunTraceabilityReportInput!): RunTraceabilityReport!
     kpiDashboard(input: KpiDashboardInput!): KpiDashboard!
     requirementDesignLinks(input: RequirementDesignLinksQueryInput!): [RequirementDesignLink!]!
+    testCaseVersionHistory(input: TestCaseVersionHistoryInput!): [TestCaseVersion!]!
   }
 
   type Mutation {
     createProject(input: CreateProjectInput!): CreateProjectPayload!
+    updateProject(input: UpdateProjectInput!): UpdateProjectPayload!
+    archiveProject(input: ArchiveProjectInput!): UpdateProjectPayload!
     createRequirement(input: CreateRequirementInput!): CreateRequirementPayload!
+    updateRequirement(input: UpdateRequirementInput!): UpdateRequirementPayload!
+    deleteRequirement(input: DeleteRequirementInput!): UnlinkResult!
     createManualTestCase(input: CreateManualTestCaseInput!): CreateTestCasePayload!
     createAutomatedTestCase(input: CreateAutomatedTestCaseInput!): CreateTestCasePayload!
+    updateManualTestCase(input: UpdateManualTestCaseInput!): UpdateTestCasePayload!
+    updateAutomatedTestCase(input: UpdateAutomatedTestCaseInput!): UpdateTestCasePayload!
+    deleteManualTestCase(input: DeleteTestCaseInput!): UnlinkResult!
+    deleteAutomatedTestCase(input: DeleteTestCaseInput!): DeleteTestCaseResult!
+    linkRequirementManualTestCase(input: LinkRequirementManualInput!): LinkMutationResult!
+    unlinkRequirementManualTestCase(input: UnlinkRequirementManualInput!): UnlinkResult!
+    linkAutomatedManualTestCase(input: LinkAutomatedManualInput!): LinkMutationResult!
+    unlinkAutomatedManualTestCase(input: UnlinkAutomatedManualInput!): UnlinkResult!
+    tombstoneTestCase(input: TombstoneTestCaseInput!): UnlinkResult!
+    restoreTestCase(input: RestoreTestCaseInput!): UnlinkResult!
     createTestRun(input: CreateTestRunInput!): CreateTestRunPayload!
     submitTestResult(input: SubmitTestResultInput!): SubmitTestResultPayload!
     importRequirements(input: ImportRequirementsInput!): ImportRequirementsResult!

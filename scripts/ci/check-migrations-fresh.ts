@@ -10,6 +10,8 @@ const REQUIRED_TABLES = [
   "requirement_design_links",
   "test_cases",
   "test_case_steps",
+  "test_case_versions",
+  "test_case_version_steps",
   "requirement_test_case_links",
   "automated_manual_links",
   "test_runs",
