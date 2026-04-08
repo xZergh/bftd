@@ -47,7 +47,14 @@ describe("GraphQL integration - imports", () => {
     const requirementId = reqRes.body.data.createRequirement.requirement.id as string;
     const manualRes = await t.agent.post("/graphql").send({
       query: `mutation($input: CreateManualTestCaseInput!) { createManualTestCase(input: $input) { testCase { id } } }`,
-      variables: { input: { projectId, title: "Manual for TRR", requirementIds: [requirementId] } }
+      variables: {
+        input: {
+          projectId,
+          title: "Manual for TRR",
+          requirementIds: [requirementId],
+          steps: [{ name: "S1" }]
+        }
+      }
     });
     const manualId = manualRes.body.data.createManualTestCase.testCase.id as string;
 

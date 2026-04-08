@@ -10,7 +10,8 @@ describe("TcmsService", () => {
       service.createManualTestCase({
         projectId: p.id,
         title: "Manual case",
-        requirementIds: []
+        requirementIds: [],
+        steps: [{ name: "Step 1" }]
       })
     ).rejects.toMatchObject({
       code: "REQUIREMENT_PARENT_REQUIRED"

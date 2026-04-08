@@ -2,13 +2,28 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
+    retry: process.env.CI ? 2 : 0,
+    setupFiles: ["allure-vitest/setup"],
     include: ["tests/**/*.test.ts"],
-    reporters: ["default", "junit"],
+    reporters: [
+      "default",
+      "junit",
+      ["allure-vitest/reporter", { resultsDir: "artifacts/allure-results" }]
+    ],
     outputFile: {
       junit: "artifacts/junit.xml"
     },
     coverage: {
-      enabled: false
+      enabled: true,
+      provider: "v8",
+      reporter: ["text", "json-summary"],
+      reportsDirectory: "artifacts/coverage",
+      thresholds: {
+        lines: 40,
+        functions: 35,
+        branches: 30,
+        statements: 40
+      }
     }
   }
 });

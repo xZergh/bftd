@@ -14,7 +14,8 @@ export default tseslint.config(
       "artifacts/**",
       "**/*.js",
       "**/*.mjs",
-      "vitest.config.ts"
+      "vitest.config.ts",
+      "vitest.stryker.config.ts"
     ]
   },
   {

@@ -4,6 +4,8 @@ Standalone backend-first Test Case Management System (TCMS) for small QA teams.
 
 ## Status
 
+- **Tracked backlog (implementation source of truth):** [.notes/TRACKED_BACKLOG.md](.notes/TRACKED_BACKLOG.md)
+- **Canonical product spec (per backlog):** `detailed.spec.backup.md` — add or rename in-repo when you vendor the full spec; the backlog table references it.
 - Spec draft: `TCMS_MVP_SPEC.md`
 - Funding one-pager: `FUNDING_ONE_PAGER.md`
 - Documentation guides: `docs/`

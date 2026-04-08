@@ -11,6 +11,7 @@ function main() {
   mkdirSync(dirname(SNAPSHOT_PATH), { recursive: true });
   writeFileSync(SNAPSHOT_PATH, `${sdl}\n`, "utf8");
   console.log(`Updated schema snapshot at ${SNAPSHOT_PATH}`);
+  console.log("If this change is breaking for API clients, add a row to docs/BREAKING_CHANGES.md.");
 }
 
 main();

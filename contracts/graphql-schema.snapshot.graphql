@@ -1,3 +1,9 @@
+"""ISO-8601 calendar date (YYYY-MM-DD)"""
+scalar Date
+
+"""ISO-8601 timestamp"""
+scalar DateTime
+
 type AppError {
   code: String!
   message: String!
@@ -7,7 +13,11 @@ type AppError {
 
 type Project {
   id: ID!
+  key: String!
   name: String!
+  isArchived: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type Requirement {
@@ -15,6 +25,27 @@ type Requirement {
   projectId: ID!
   externalKey: String!
   title: String!
+  description: String
+  releaseLabel: String
+  sprintLabel: String
+  requirementType: String
+  status: String
+  priority: String
+  tags: [String!]!
+  parentRequirementId: ID
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type TestCaseStep {
+  id: ID!
+  testCaseId: ID!
+  stepOrder: Int!
+  name: String!
+  expectedResult: String
+  sourceStepId: String
+  parentStepId: String
+  metaJson: String
 }
 
 type TestCase {
@@ -22,12 +53,32 @@ type TestCase {
   projectId: ID!
   type: String!
   title: String!
+  externalId: String
+  releaseLabel: String
+  sprintLabel: String
+  isDeleted: Boolean!
+  deletedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  steps: [TestCaseStep!]!
 }
 
 type TestRun {
   id: ID!
   projectId: ID!
   name: String!
+  releaseLabel: String
+  sprintLabel: String
+  environment: String
+  buildVersion: String
+  trigger: String
+  createdAt: DateTime!
+  finishedAt: DateTime
+}
+
+type ResultAttachment {
+  kind: String!
+  ref: String!
 }
 
 type TestResult {
@@ -35,6 +86,24 @@ type TestResult {
   runId: ID!
   testCaseId: ID!
   status: String!
+  durationMs: Int!
+  attachments: [ResultAttachment!]!
+  createdAt: DateTime!
+}
+
+type TestRunDetail {
+  run: TestRun!
+  results: [TestResult!]!
+}
+
+type RunAggregate {
+  runId: ID!
+  total: Int!
+  passed: Int!
+  failed: Int!
+  skipped: Int!
+  blocked: Int!
+  passRatePct: Float!
   durationMs: Int!
 }
 
@@ -179,8 +248,50 @@ type ImportRequirementDesignLinksResult {
   errors: [ImportErrorItem!]!
 }
 
+type TestCaseVersionStep {
+  id: ID!
+  versionId: ID!
+  stepOrder: Int!
+  name: String!
+  expectedResult: String
+  parentStepId: String
+  sourceStepId: String
+  metaJson: String
+}
+
+type TestCaseVersion {
+  id: ID!
+  testCaseId: ID!
+  versionSeq: Int!
+  createdAt: DateTime!
+  title: String!
+  type: String!
+  externalId: String
+  releaseLabel: String
+  sprintLabel: String
+  isTombstone: Boolean!
+  requirementIds: [ID!]!
+  manualTestCaseIds: [ID!]!
+  steps: [TestCaseVersionStep!]!
+}
+
+type LinkMutationResult {
+  linked: Boolean!
+}
+
+type DeleteTestCaseResult {
+  success: Boolean!
+  tombstoned: Boolean
+}
+
+input ManualStepInput {
+  name: String!
+  expectedResult: String
+}
+
 input CreateProjectInput {
   name: String!
+  key: String
 }
 
 input CreateRequirementInput {
@@ -188,23 +299,53 @@ input CreateRequirementInput {
   externalKey: String!
   title: String!
   description: String
+  releaseLabel: String
+  sprintLabel: String
+  requirementType: String
+  status: String
+  priority: String
+  tags: [String!]
+  parentRequirementId: ID
 }
 
 input CreateManualTestCaseInput {
   projectId: ID!
   title: String!
   requirementIds: [ID!]!
+  steps: [ManualStepInput!]!
+  releaseLabel: String
+  sprintLabel: String
 }
 
 input CreateAutomatedTestCaseInput {
   projectId: ID!
   title: String!
   manualTestCaseIds: [ID!]!
+  releaseLabel: String
+  sprintLabel: String
 }
 
 input CreateTestRunInput {
   projectId: ID!
   name: String!
+  releaseLabel: String
+  sprintLabel: String
+  environment: String
+  buildVersion: String
+  trigger: String
+  finishedAt: DateTime
+}
+
+input ProjectSummaryInput {
+  projectId: ID!
+  releaseLabel: String
+  sprintLabel: String
+}
+
+input RunTraceabilityReportInput {
+  runId: ID!
+  releaseLabel: String
+  sprintLabel: String
 }
 
 input SubmitTestResultInput {
@@ -212,16 +353,32 @@ input SubmitTestResultInput {
   testCaseId: ID!
   status: String!
   durationMs: Int
+  attachments: [ResultAttachmentInput!]
+}
+
+input ResultAttachmentInput {
+  kind: String!
+  ref: String!
 }
 
 input RequirementImportItemInput {
   externalKey: String
   title: String
   description: String
+  releaseLabel: String
+  sprintLabel: String
+  requirementType: String
+  status: String
+  priority: String
+  tags: [String!]
+  parentExternalKey: String
 }
 
 input ImportRequirementsInput {
-  projectId: ID!
+  projectId: ID
+  projectKey: String
+  releaseLabel: String
+  sprintLabel: String
   requirements: [RequirementImportItemInput!]!
 }
 
@@ -230,29 +387,41 @@ input TrrStepInput {
   name: String!
   expectedResult: String
   sourceStepId: String
+  parentStepId: String
+  metaJson: String
 }
 
 input TrrAutomatedTestInput {
   internalTestCaseId: ID
   externalId: String
   title: String
+  releaseLabel: String
+  sprintLabel: String
   linkedManualCaseIds: [ID!]
   steps: [TrrStepInput!]
 }
 
 input ImportAutomatedFromTrrInput {
-  projectId: ID!
+  projectId: ID
+  projectKey: String
+  releaseLabel: String
+  sprintLabel: String
   automatedTests: [TrrAutomatedTestInput!]!
 }
 
 input KpiDashboardInput {
   projectId: ID!
+  releaseLabel: String
+  sprintLabel: String
+  fromDate: Date
+  toDate: Date
 }
 
 input RecalculateKpiInput {
   projectId: ID!
-  fromDate: String
-  toDate: String
+  fromDate: Date
+  toDate: Date
+  fullRebuild: Boolean
 }
 
 input RequirementDesignLinkInput {
@@ -299,6 +468,135 @@ input ImportRequirementDesignLinksInput {
   links: [ImportRequirementDesignLinkItemInput!]!
 }
 
+input ListProjectsInput {
+  includeArchived: Boolean
+}
+
+input ProjectByInput {
+  id: ID
+  key: String
+}
+
+input UpdateProjectInput {
+  id: ID
+  key: String
+  name: String
+  keyNew: String
+}
+
+input ArchiveProjectInput {
+  id: ID
+  key: String
+  archived: Boolean!
+}
+
+input RequirementsListInput {
+  projectId: ID!
+}
+
+input RequirementByInput {
+  id: ID!
+  projectId: ID
+}
+
+input UpdateRequirementInput {
+  id: ID!
+  title: String
+  description: String
+  releaseLabel: String
+  sprintLabel: String
+  requirementType: String
+  status: String
+  priority: String
+  tags: [String!]
+  parentRequirementId: ID
+}
+
+input DeleteRequirementInput {
+  id: ID!
+}
+
+input TestCasesListInput {
+  projectId: ID!
+  type: String
+  includeDeleted: Boolean
+}
+
+input TestCaseByInput {
+  id: ID!
+  projectId: ID
+  includeDeleted: Boolean
+}
+
+input UpdateManualTestCaseInput {
+  id: ID!
+  title: String
+  releaseLabel: String
+  sprintLabel: String
+  steps: [ManualStepInput!]
+}
+
+input UpdateAutomatedTestCaseInput {
+  id: ID!
+  title: String
+  externalId: String
+  releaseLabel: String
+  sprintLabel: String
+  manualTestCaseIds: [ID!]
+}
+
+input DeleteTestCaseInput {
+  id: ID!
+}
+
+input LinkRequirementManualInput {
+  projectId: ID!
+  requirementId: ID!
+  manualTestCaseId: ID!
+}
+
+input UnlinkRequirementManualInput {
+  requirementId: ID!
+  manualTestCaseId: ID!
+}
+
+input LinkAutomatedManualInput {
+  projectId: ID!
+  automatedTestCaseId: ID!
+  manualTestCaseId: ID!
+}
+
+input UnlinkAutomatedManualInput {
+  automatedTestCaseId: ID!
+  manualTestCaseId: ID!
+}
+
+input TestCaseVersionHistoryInput {
+  testCaseId: ID!
+  includeDeleted: Boolean
+}
+
+input TombstoneTestCaseInput {
+  testCaseId: ID!
+}
+
+input RestoreTestCaseInput {
+  testCaseId: ID!
+}
+
+input TestRunsListInput {
+  projectId: ID!
+}
+
+input TestRunByInput {
+  runId: ID!
+  projectId: ID
+}
+
+input RunAggregateInput {
+  runId: ID!
+}
+
 type CreateProjectPayload {
   project: Project
   error: AppError
@@ -324,18 +622,57 @@ type SubmitTestResultPayload {
   error: AppError
 }
 
+type UpdateProjectPayload {
+  project: Project
+  error: AppError
+}
+
+type UpdateRequirementPayload {
+  requirement: Requirement
+  error: AppError
+}
+
+type UpdateTestCasePayload {
+  testCase: TestCase
+  error: AppError
+}
+
 type Query {
-  projectSummary(projectId: ID!): ProjectSummary!
-  runTraceabilityReport(runId: ID!): RunTraceabilityReport!
+  projects(input: ListProjectsInput): [Project!]!
+  project(input: ProjectByInput!): Project
+  projectSummary(input: ProjectSummaryInput!): ProjectSummary!
+  requirements(input: RequirementsListInput!): [Requirement!]!
+  requirement(input: RequirementByInput!): Requirement
+  testCases(input: TestCasesListInput!): [TestCase!]!
+  testCase(input: TestCaseByInput!): TestCase
+  testRuns(input: TestRunsListInput!): [TestRun!]!
+  testRun(input: TestRunByInput!): TestRunDetail
+  runAggregate(input: RunAggregateInput!): RunAggregate!
+  runTraceabilityReport(input: RunTraceabilityReportInput!): RunTraceabilityReport!
   kpiDashboard(input: KpiDashboardInput!): KpiDashboard!
   requirementDesignLinks(input: RequirementDesignLinksQueryInput!): [RequirementDesignLink!]!
+  testCaseVersionHistory(input: TestCaseVersionHistoryInput!): [TestCaseVersion!]!
 }
 
 type Mutation {
   createProject(input: CreateProjectInput!): CreateProjectPayload!
+  updateProject(input: UpdateProjectInput!): UpdateProjectPayload!
+  archiveProject(input: ArchiveProjectInput!): UpdateProjectPayload!
   createRequirement(input: CreateRequirementInput!): CreateRequirementPayload!
+  updateRequirement(input: UpdateRequirementInput!): UpdateRequirementPayload!
+  deleteRequirement(input: DeleteRequirementInput!): UnlinkResult!
   createManualTestCase(input: CreateManualTestCaseInput!): CreateTestCasePayload!
   createAutomatedTestCase(input: CreateAutomatedTestCaseInput!): CreateTestCasePayload!
+  updateManualTestCase(input: UpdateManualTestCaseInput!): UpdateTestCasePayload!
+  updateAutomatedTestCase(input: UpdateAutomatedTestCaseInput!): UpdateTestCasePayload!
+  deleteManualTestCase(input: DeleteTestCaseInput!): UnlinkResult!
+  deleteAutomatedTestCase(input: DeleteTestCaseInput!): DeleteTestCaseResult!
+  linkRequirementManualTestCase(input: LinkRequirementManualInput!): LinkMutationResult!
+  unlinkRequirementManualTestCase(input: UnlinkRequirementManualInput!): UnlinkResult!
+  linkAutomatedManualTestCase(input: LinkAutomatedManualInput!): LinkMutationResult!
+  unlinkAutomatedManualTestCase(input: UnlinkAutomatedManualInput!): UnlinkResult!
+  tombstoneTestCase(input: TombstoneTestCaseInput!): UnlinkResult!
+  restoreTestCase(input: RestoreTestCaseInput!): UnlinkResult!
   createTestRun(input: CreateTestRunInput!): CreateTestRunPayload!
   submitTestResult(input: SubmitTestResultInput!): SubmitTestResultPayload!
   importRequirements(input: ImportRequirementsInput!): ImportRequirementsResult!

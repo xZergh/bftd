@@ -23,11 +23,15 @@ describe("GraphQL integration - KPI and labels", () => {
 
     const m1 = await t.agent.post("/graphql").send({
       query: `mutation($input: CreateManualTestCaseInput!) { createManualTestCase(input: $input) { testCase { id } } }`,
-      variables: { input: { projectId, title: "Manual 1", requirementIds: [reqId1] } }
+      variables: {
+        input: { projectId, title: "Manual 1", requirementIds: [reqId1], steps: [{ name: "S1" }] }
+      }
     });
     await t.agent.post("/graphql").send({
       query: `mutation($input: CreateManualTestCaseInput!) { createManualTestCase(input: $input) { testCase { id } } }`,
-      variables: { input: { projectId, title: "Manual 2", requirementIds: [reqId2] } }
+      variables: {
+        input: { projectId, title: "Manual 2", requirementIds: [reqId2], steps: [{ name: "S1" }] }
+      }
     });
     const manual1 = m1.body.data.createManualTestCase.testCase.id as string;
 
@@ -85,13 +89,27 @@ describe("GraphQL integration - KPI and labels", () => {
     await t.agent.post("/graphql").send({
       query: `mutation($input: CreateManualTestCaseInput!) { createManualTestCase(input: $input) { testCase { id } } }`,
       variables: {
-        input: { projectId, title: "Manual R1S1", requirementIds: [req1.body.data.createRequirement.requirement.id], releaseLabel: "R1", sprintLabel: "S1" }
+        input: {
+          projectId,
+          title: "Manual R1S1",
+          requirementIds: [req1.body.data.createRequirement.requirement.id],
+          steps: [{ name: "S1" }],
+          releaseLabel: "R1",
+          sprintLabel: "S1"
+        }
       }
     });
     await t.agent.post("/graphql").send({
       query: `mutation($input: CreateManualTestCaseInput!) { createManualTestCase(input: $input) { testCase { id } } }`,
       variables: {
-        input: { projectId, title: "Manual R2S2", requirementIds: [req2.body.data.createRequirement.requirement.id], releaseLabel: "R2", sprintLabel: "S2" }
+        input: {
+          projectId,
+          title: "Manual R2S2",
+          requirementIds: [req2.body.data.createRequirement.requirement.id],
+          steps: [{ name: "S1" }],
+          releaseLabel: "R2",
+          sprintLabel: "S2"
+        }
       }
     });
 

@@ -25,7 +25,14 @@ describe("GraphQL integration - traceability", () => {
       query: `mutation($input: CreateManualTestCaseInput!) {
         createManualTestCase(input: $input) { testCase { id } }
       }`,
-      variables: { input: { projectId, title: "Manual 1", requirementIds: [requirementId] } }
+      variables: {
+        input: {
+          projectId,
+          title: "Manual 1",
+          requirementIds: [requirementId],
+          steps: [{ name: "Step 1", expectedResult: "OK" }]
+        }
+      }
     });
     const manualId = manualRes.body.data.createManualTestCase.testCase.id as string;
 
