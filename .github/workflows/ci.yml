@@ -44,3 +44,15 @@ jobs:
 
       - name: Security and quality checks (non-blocking policy)
         run: npm run ci:security:nonblocking
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts
+          path: |
+            artifacts/junit.xml
+            coverage/**
+            allure-results/**
+            allure-report/**
+          if-no-files-found: warn
