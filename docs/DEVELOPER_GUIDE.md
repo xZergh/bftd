@@ -145,7 +145,7 @@ When you add or change tables or unique constraints in [src/db/schema.ts](../src
 npm run dev
 ```
 
-GraphQL endpoint: `http://localhost:<PORT>/graphql` (see [src/server.ts](../src/server.ts)).
+GraphQL endpoint: `http://localhost:<PORT>/graphql` (see [src/server.ts](../src/server.ts)). OpenAPI description: `GET /openapi.yaml`; Swagger UI: `GET /api-docs` (see [docs/API_CONTRACTS.md](API_CONTRACTS.md)).
 
 ### 4.6 Local CI-style checks
 
@@ -155,6 +155,7 @@ npm run ci:lint
 npm run ci:architecture:boundaries
 npm test
 npm run ci:schema:check
+npm run ci:schema:indexes
 ```
 
 ---

@@ -86,6 +86,37 @@ describe("GraphQL integration - traceability", () => {
       variables: { input: { runId } }
     });
     expect(reportAfter.body.data.runTraceabilityReport.edges.length).toBe(1);
+
+    const graphRes = await t.agent.post("/graphql").send({
+      query: `query($input: TraceabilityGraphInput!) {
+        traceabilityGraph(input: $input) {
+          projectId
+          nodes { id kind title }
+          edges { id kind sourceId targetId }
+          coverageByRequirementStatus { status requirementCount withManualLinkCount }
+        }
+      }`,
+      variables: { input: { projectId } }
+    });
+    expect(graphRes.body.errors).toBeUndefined();
+    const g = graphRes.body.data.traceabilityGraph;
+    expect(g.projectId).toBe(projectId);
+    expect(g.nodes.some((n: { id: string }) => n.id === `req:${requirementId}`)).toBe(true);
+    expect(g.nodes.some((n: { id: string }) => n.id === `man:${manualId}`)).toBe(true);
+    expect(g.nodes.some((n: { id: string }) => n.id === `auto:${autoId}`)).toBe(true);
+    expect(g.edges.some((e: { kind: string }) => e.kind === "REQ_MANUAL")).toBe(true);
+    expect(g.edges.some((e: { kind: string }) => e.kind === "MANUAL_AUTO")).toBe(true);
+    const cov = g.coverageByRequirementStatus.find((r: { status: string }) => r.status === "draft");
+    expect(cov?.withManualLinkCount).toBeGreaterThanOrEqual(1);
+
+    const badGraph = await t.agent.post("/graphql").send({
+      query: `query($input: TraceabilityGraphInput!) {
+        traceabilityGraph(input: $input) { projectId }
+      }`,
+      variables: { input: { projectId: "missing-project-id" } }
+    });
+    expect(badGraph.body.errors?.[0]?.extensions?.code).toBe("ENTITY_NOT_FOUND");
+
     await t.close();
   });
 });

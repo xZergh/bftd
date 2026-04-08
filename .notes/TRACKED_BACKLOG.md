@@ -6,30 +6,32 @@
 
 **Status:** `[ ]` open · `[~]` in progress · `[x]` done
 
-**Implementation note (2026-04-09):** MVP slice (Phases A–E) is largely implemented in code. **B4:** bulk **requirements**, **TRR automated**, and **design-link** imports each run in a **single synchronous SQLite transaction** (rollback on failure). GraphQL Yoga `maskedErrors` passes through domain `GraphQLError` messages. **CI / reporting:** Allure (`artifacts/…`, `docs/reports/allure-report.html`), Stryker (`workflow_dispatch`), Vitest **`retry`** when `CI=true`, schema snapshot + `docs/BREAKING_CHANGES.md`. **Remaining major gap:** **B10** (post-MVP live graph). **Canonical spec file** (`detailed.spec.v2.md`) may still be vendored separately—see README. **Reconciled per-ID status** (code audit 2026-04-09) is in the table below; checkbox rows in phase sections are being aligned to these flags.
+**Implementation note (2026-04-09):** MVP slice (Phases A–E) is largely implemented in code. **B4:** bulk **requirements**, **TRR automated**, and **design-link** imports each run in a **single synchronous SQLite transaction** (rollback on failure). GraphQL Yoga `maskedErrors` passes through domain `GraphQLError` messages. **CI / reporting:** Allure (`artifacts/…`, `docs/reports/allure-report.html`), Stryker (`workflow_dispatch`), Vitest `**retry`** when `CI=true`, schema snapshot + `docs/BREAKING_CHANGES.md`. **Remaining major gap:** **B10** (post-MVP live graph). **Canonical spec file** (`detailed.spec.v2.md`) may still be vendored separately—see README. **Reconciled per-ID status** (code audit 2026-04-09) is in the table below; checkbox rows in phase sections are being aligned to these flags.
 
 ### Reconciled implementation status (2026-04-09)
 
-| ID | Status | Notes |
-| --- | --- | --- |
-| A1–A6, A8 | [x] | Schema + GraphQL + reads |
-| A7 | [~] | Error codes: extend as new surfaces appear |
-| A9 | [~] | Indexes in `schema.ts`; optional CI checklist |
-| A10 | [~] | Integration tests cover lifecycle + reads |
-| B1–B3 | [x] | |
-| B4 | [x] | Requirements + TRR + **design-link** bulk imports: one `db.transaction` each |
-| B5–B9, B11 | [x] | |
-| B12 | [~] | Traceability/import/design tests: expand edge cases |
-| B10 | [ ] | Post-MVP live graph (per product decision #4) |
-| C1–C4 | [x] | |
-| C5–C9 | [~] | TRR/nested/attachments: MVP subset |
-| D1–D4 | [x] | |
-| D5 | [~] | Tests: extend tombstone/history edge cases |
-| E0–E2, E5 | [x] | E0 run snapshot scoped by `projectId` |
-| E3, E4, E6 | [~] | KPI/recalc; align with **X1** over time |
-| X1 | [~] | See `REPORTING_AND_KPI.md` |
-| F1–F5 | [x] | Coverage thresholds in Vitest |
-| F6 | [~] | README + `docs/reports/allure-report.html` |
+
+| ID         | Status | Notes                                                                        |
+| ---------- | ------ | ---------------------------------------------------------------------------- |
+| A1–A6, A8  | [x]    | Schema + GraphQL + reads                                                     |
+| A7         | [~]    | Error codes: extend as new surfaces appear                                   |
+| A9         | [~]    | Indexes in `schema.ts`; optional CI checklist                                |
+| A10        | [~]    | Integration tests cover lifecycle + reads                                    |
+| B1–B3      | [x]    |                                                                              |
+| B4         | [x]    | Requirements + TRR + **design-link** bulk imports: one `db.transaction` each |
+| B5–B9, B11 | [x]    |                                                                              |
+| B12        | [~]    | Traceability/import/design tests: expand edge cases                          |
+| B10        | [ ]    | Post-MVP live graph (per product decision #4)                                |
+| C1–C4      | [x]    |                                                                              |
+| C5–C9      | [~]    | TRR/nested/attachments: MVP subset                                           |
+| D1–D4      | [x]    |                                                                              |
+| D5         | [~]    | Tests: extend tombstone/history edge cases                                   |
+| E0–E2, E5  | [x]    | E0 run snapshot scoped by `projectId`                                        |
+| E3, E4, E6 | [~]    | KPI/recalc; align with **X1** over time                                      |
+| X1         | [~]    | See `REPORTING_AND_KPI.md`                                                   |
+| F1–F5      | [x]    | Coverage thresholds in Vitest                                                |
+| F6         | [~]    | README + `docs/reports/allure-report.html`                                   |
+
 
 **Legend:** `[x]` done · `[~]` partial / follow-up · `[ ]` out of MVP scope.
 

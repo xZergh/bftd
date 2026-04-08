@@ -52,6 +52,8 @@ All metrics are deduplicated by unique IDs in project scope.
 
 ### 5.1 Daily trend vs “current” (ADR / X1)
 
+Formal decision record: [ADR 0001: Daily KPI trend vs current snapshot semantics](adr/0001-daily-kpi-semantics.md).
+
 **Problem:** Reusing the same “current” coverage vector for every calendar day in the trend chart is misleading when requirements and test cases change over time.
 
 **Approach in this codebase:**

@@ -24,6 +24,7 @@ import {
   runAggregateInput,
   runInput,
   runTraceabilityInput,
+  traceabilityGraphInput,
   testCaseByInput,
   testCasesListInput,
   testCaseVersionHistoryInput,
@@ -189,6 +190,14 @@ export const resolvers = {
     runTraceabilityReport: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       const input = runTraceabilityInput.parse(args.input);
       return ctx.service.getRunTraceabilityReport(input);
+    },
+    traceabilityGraph: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      const input = traceabilityGraphInput.parse(args.input);
+      try {
+        return await ctx.service.getTraceabilityGraph(input);
+      } catch (e) {
+        rethrowDomainErrorAsGraphQLError(e);
+      }
     },
     kpiDashboard: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       const input = kpiDashboardInput.parse(args.input);

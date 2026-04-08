@@ -118,6 +118,43 @@ export const typeDefs = /* GraphQL */ `
     edges: [TraceabilityEdge!]!
   }
 
+  enum TraceabilityGraphNodeKind {
+    REQUIREMENT
+    MANUAL
+    AUTOMATED
+  }
+
+  enum TraceabilityGraphEdgeKind {
+    REQ_MANUAL
+    MANUAL_AUTO
+  }
+
+  type TraceabilityGraphNode {
+    id: ID!
+    kind: TraceabilityGraphNodeKind!
+    title: String!
+  }
+
+  type TraceabilityGraphEdge {
+    id: ID!
+    kind: TraceabilityGraphEdgeKind!
+    sourceId: ID!
+    targetId: ID!
+  }
+
+  type RequirementStatusCoverageRow {
+    status: String!
+    requirementCount: Int!
+    withManualLinkCount: Int!
+  }
+
+  type TraceabilityGraph {
+    projectId: ID!
+    nodes: [TraceabilityGraphNode!]!
+    edges: [TraceabilityGraphEdge!]!
+    coverageByRequirementStatus: [RequirementStatusCoverageRow!]!
+  }
+
   type ProjectSummary {
     totalRequirements: Int!
     totalManualCases: Int!
@@ -344,6 +381,10 @@ export const typeDefs = /* GraphQL */ `
     runId: ID!
     releaseLabel: String
     sprintLabel: String
+  }
+
+  input TraceabilityGraphInput {
+    projectId: ID!
   }
 
   input SubmitTestResultInput {
@@ -647,6 +688,7 @@ export const typeDefs = /* GraphQL */ `
     testRun(input: TestRunByInput!): TestRunDetail
     runAggregate(input: RunAggregateInput!): RunAggregate!
     runTraceabilityReport(input: RunTraceabilityReportInput!): RunTraceabilityReport!
+    traceabilityGraph(input: TraceabilityGraphInput!): TraceabilityGraph!
     kpiDashboard(input: KpiDashboardInput!): KpiDashboard!
     requirementDesignLinks(input: RequirementDesignLinksQueryInput!): [RequirementDesignLink!]!
     testCaseVersionHistory(input: TestCaseVersionHistoryInput!): [TestCaseVersion!]!

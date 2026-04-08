@@ -7,6 +7,7 @@
 - architecture boundary check (`npm run ci:architecture:boundaries` — GraphQL / domain.services / db import rules)
 - unit tests
 - integration tests
+- GraphQL schema contract + SQLite index alignment (`npm run ci:schema:check`, `npm run ci:schema:indexes`)
 - report publication (Allure HTML + JUnit XML; committed single-file snapshot at `docs/reports/allure-report.html`, updated by `npm run allure:generate` after a full test run with Allure enabled)
 - extended mutation suite
 - migration checks

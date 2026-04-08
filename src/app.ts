@@ -4,6 +4,7 @@ import { createDb } from "./db/client";
 import { initSqlite } from "./db/init";
 import { TcmsService } from "./domain/service";
 import { buildSchema } from "./graphql/schema";
+import { tryServeSwagger } from "./http/swagger";
 
 export function createApp(dbPath: string) {
   initSqlite(dbPath);
@@ -30,6 +31,11 @@ export function createApp(dbPath: string) {
     }
   });
 
-  const server = createServer(yoga);
+  const server = createServer((req, res) => {
+    if (tryServeSwagger(req, res)) {
+      return;
+    }
+    return yoga(req, res);
+  });
   return { server };
 }

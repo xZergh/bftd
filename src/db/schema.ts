@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 export const projects = sqliteTable(
@@ -66,19 +66,25 @@ export const requirementDesignLinks = sqliteTable(
   })
 );
 
-export const testCases = sqliteTable("test_cases", {
-  id: text("id").primaryKey(),
-  projectId: text("project_id").notNull(),
-  externalId: text("external_id"),
-  type: text("type", { enum: ["manual", "automated"] }).notNull(),
-  title: text("title").notNull(),
-  releaseLabel: text("release_label"),
-  sprintLabel: text("sprint_label"),
-  isDeleted: integer("is_deleted", { mode: "boolean" }).notNull().default(false),
-  deletedAt: integer("deleted_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull()
-});
+export const testCases = sqliteTable(
+  "test_cases",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id").notNull(),
+    externalId: text("external_id"),
+    type: text("type", { enum: ["manual", "automated"] }).notNull(),
+    title: text("title").notNull(),
+    releaseLabel: text("release_label"),
+    sprintLabel: text("sprint_label"),
+    isDeleted: integer("is_deleted", { mode: "boolean" }).notNull().default(false),
+    deletedAt: integer("deleted_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull()
+  },
+  (t) => ({
+    projectExternalUniq: uniqueIndex("test_case_project_external_uniq").on(t.projectId, t.externalId)
+  })
+);
 
 export const testCaseSteps = sqliteTable(
   "test_case_steps",
@@ -181,12 +187,18 @@ export const testResults = sqliteTable("test_results", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull()
 });
 
-export const runTraceabilitySnapshots = sqliteTable("run_traceability_snapshots", {
-  id: text("id").primaryKey(),
-  runId: text("run_id").notNull(),
-  projectId: text("project_id").notNull(),
-  capturedAt: integer("captured_at", { mode: "timestamp" }).notNull()
-});
+export const runTraceabilitySnapshots = sqliteTable(
+  "run_traceability_snapshots",
+  {
+    id: text("id").primaryKey(),
+    runId: text("run_id").notNull(),
+    projectId: text("project_id").notNull(),
+    capturedAt: integer("captured_at", { mode: "timestamp" }).notNull()
+  },
+  (t) => ({
+    runSnapshotRunIdx: index("run_snapshot_run_idx").on(t.runId)
+  })
+);
 
 export const runTraceabilityEdges = sqliteTable(
   "run_traceability_edges",
@@ -207,26 +219,44 @@ export const runTraceabilityEdges = sqliteTable(
   })
 );
 
-export const kpiProjectSnapshots = sqliteTable("kpi_project_snapshots", {
-  id: text("id").primaryKey(),
-  projectId: text("project_id").notNull(),
-  snapshotDate: text("snapshot_date").notNull(),
-  generatedAt: integer("generated_at", { mode: "timestamp" }).notNull(),
-  payloadJson: text("payload_json").notNull()
-});
+export const kpiProjectSnapshots = sqliteTable(
+  "kpi_project_snapshots",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id").notNull(),
+    snapshotDate: text("snapshot_date").notNull(),
+    generatedAt: integer("generated_at", { mode: "timestamp" }).notNull(),
+    payloadJson: text("payload_json").notNull()
+  },
+  (t) => ({
+    kpiProjectSnapshotUniq: uniqueIndex("kpi_project_snapshot_uniq").on(t.projectId, t.snapshotDate)
+  })
+);
 
-export const kpiRunSnapshots = sqliteTable("kpi_run_snapshots", {
-  id: text("id").primaryKey(),
-  projectId: text("project_id").notNull(),
-  runId: text("run_id").notNull(),
-  generatedAt: integer("generated_at", { mode: "timestamp" }).notNull(),
-  payloadJson: text("payload_json").notNull()
-});
+export const kpiRunSnapshots = sqliteTable(
+  "kpi_run_snapshots",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id").notNull(),
+    runId: text("run_id").notNull(),
+    generatedAt: integer("generated_at", { mode: "timestamp" }).notNull(),
+    payloadJson: text("payload_json").notNull()
+  },
+  (t) => ({
+    kpiRunSnapshotUniq: uniqueIndex("kpi_run_snapshot_uniq").on(t.projectId, t.runId)
+  })
+);
 
-export const kpiDailySnapshots = sqliteTable("kpi_daily_snapshots", {
-  id: text("id").primaryKey(),
-  projectId: text("project_id").notNull(),
-  snapshotDate: text("snapshot_date").notNull(),
-  generatedAt: integer("generated_at", { mode: "timestamp" }).notNull(),
-  payloadJson: text("payload_json").notNull()
-});
+export const kpiDailySnapshots = sqliteTable(
+  "kpi_daily_snapshots",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id").notNull(),
+    snapshotDate: text("snapshot_date").notNull(),
+    generatedAt: integer("generated_at", { mode: "timestamp" }).notNull(),
+    payloadJson: text("payload_json").notNull()
+  },
+  (t) => ({
+    kpiDailySnapshotUniq: uniqueIndex("kpi_daily_snapshot_uniq").on(t.projectId, t.snapshotDate)
+  })
+);

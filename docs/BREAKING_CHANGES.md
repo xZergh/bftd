@@ -7,8 +7,8 @@ This document records **intentional, reviewed** breaking changes to the public G
 1. The committed contract lives at `contracts/graphql-schema.snapshot.graphql`.
 2. `npm run ci:schema:check` compares the live schema from `buildSchema()` to that file.
 3. If you change types, fields, or arguments in a **breaking** way, update the snapshot **after** this review:
-   - Run `npm run ci:schema:update` (or the equivalent script your team uses).
-   - Commit the updated `contracts/graphql-schema.snapshot.graphql` together with this entry.
+  - Run `npm run ci:schema:update` (or the equivalent script your team uses).
+  - Commit the updated `contracts/graphql-schema.snapshot.graphql` together with this entry.
 
 ## When a change counts as breaking
 
@@ -26,8 +26,10 @@ If CI must proceed while a schema diff is still under review, set `ALLOW_BREAKIN
 
 ## Log
 
-| Date (UTC) | PR / change | Summary |
-| ---------- | ----------- | ------- |
-| _—_ | _—_ | _No entries yet._ |
 
-_Add new rows above the placeholder row. Remove the placeholder row when the first real entry exists._
+| Date (UTC) | PR / change | Summary           |
+| ---------- | ----------- | ----------------- |
+| *—*        | *—*         | *No entries yet.* |
+
+
+*Add new rows above the placeholder row. Remove the placeholder row when the first real entry exists.*

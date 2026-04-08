@@ -56,6 +56,9 @@ export const runTraceabilityInput = z.object({
   releaseLabel: z.string().optional(),
   sprintLabel: z.string().optional()
 });
+export const traceabilityGraphInput = z.object({
+  projectId: z.string().min(1)
+});
 export const resultInput = z.object({
   runId: z.string().min(1),
   testCaseId: z.string().min(1),

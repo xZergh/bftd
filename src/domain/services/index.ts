@@ -55,6 +55,7 @@ export {
   unlinkAutomatedManualTestCase,
   unlinkRequirementManualTestCase
 } from "./traceability";
+export { getTraceabilityGraph } from "./traceability-graph";
 export {
   appendTestCaseVersion,
   listTestCaseVersionHistory,
