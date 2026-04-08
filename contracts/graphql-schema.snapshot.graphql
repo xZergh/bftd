@@ -1,0 +1,347 @@
+type AppError {
+  code: String!
+  message: String!
+  fixHint: String!
+  context: String
+}
+
+type Project {
+  id: ID!
+  name: String!
+}
+
+type Requirement {
+  id: ID!
+  projectId: ID!
+  externalKey: String!
+  title: String!
+}
+
+type TestCase {
+  id: ID!
+  projectId: ID!
+  type: String!
+  title: String!
+}
+
+type TestRun {
+  id: ID!
+  projectId: ID!
+  name: String!
+}
+
+type TestResult {
+  id: ID!
+  runId: ID!
+  testCaseId: ID!
+  status: String!
+  durationMs: Int!
+}
+
+type TraceabilityEdge {
+  requirementId: ID!
+  manualTestCaseId: ID!
+  automatedTestCaseId: ID
+}
+
+type RunTraceabilityReport {
+  runId: ID!
+  projectId: ID!
+  capturedAt: String!
+  edges: [TraceabilityEdge!]!
+}
+
+type ProjectSummary {
+  totalRequirements: Int!
+  totalManualCases: Int!
+  totalAutomatedCases: Int!
+}
+
+type ImportErrorItem {
+  index: Int!
+  code: String!
+  message: String!
+  fixHint: String!
+}
+
+type ImportWarningItem {
+  index: Int!
+  message: String!
+}
+
+type ImportRequirementsResult {
+  createdCount: Int!
+  updatedCount: Int!
+  skippedCount: Int!
+  errors: [ImportErrorItem!]!
+  warnings: [ImportWarningItem!]!
+}
+
+type ImportAutomatedFromTrrResult {
+  createdCount: Int!
+  updatedCount: Int!
+  skippedCount: Int!
+  errors: [ImportErrorItem!]!
+}
+
+type CoverageFormulaInfo {
+  formulaId: String!
+  label: String!
+  description: String!
+  numeratorLabel: String!
+  denominatorLabel: String!
+  expression: String!
+  scope: String!
+}
+
+type CoverageMetricValue {
+  formulaId: String!
+  valuePct: Float!
+  numerator: Int!
+  denominator: Int!
+}
+
+type KpiCurrent {
+  totalRequirements: Int!
+  totalManualCases: Int!
+  totalTestRuns: Int!
+  requirementsWithManualLinks: Int!
+  requirementsWithAutomatedLinksViaManual: Int!
+  automatedCasesReachableFromRequirements: Int!
+  orphanManualCases: Int!
+  orphanAutomatedCases: Int!
+  coverage: [CoverageMetricValue!]!
+}
+
+type KpiRunPoint {
+  runId: ID!
+  runStartedAt: String!
+  totalTests: Int!
+  passed: Int!
+  failed: Int!
+  skipped: Int!
+  blocked: Int!
+  passRatePct: Float!
+}
+
+type KpiDailyPoint {
+  date: String!
+  coverage: [CoverageMetricValue!]!
+  totalTestRuns: Int!
+}
+
+type KpiDashboard {
+  projectId: ID!
+  generatedAt: String!
+  coverageFormulaInfo: [CoverageFormulaInfo!]!
+  current: KpiCurrent!
+  perRun: [KpiRunPoint!]!
+  dailyTrend: [KpiDailyPoint!]!
+}
+
+type RecalculateKpiResult {
+  projectId: ID!
+  fromDate: String
+  toDate: String
+  projectSnapshotsUpdated: Int!
+  runSnapshotsUpdated: Int!
+  dailySnapshotsUpdated: Int!
+  completedAt: String!
+}
+
+type RequirementDesignLink {
+  id: ID!
+  projectId: ID!
+  requirementId: ID!
+  provider: String!
+  designProjectId: String
+  designFileId: String
+  designPageId: String
+  designNodeId: String
+  shareUrl: String!
+  title: String
+  lastSyncedAt: String
+}
+
+type RequirementDesignLinkPayload {
+  link: RequirementDesignLink
+  error: AppError
+}
+
+type UnlinkResult {
+  success: Boolean!
+}
+
+type ImportRequirementDesignLinksResult {
+  createdCount: Int!
+  updatedCount: Int!
+  skippedCount: Int!
+  errors: [ImportErrorItem!]!
+}
+
+input CreateProjectInput {
+  name: String!
+}
+
+input CreateRequirementInput {
+  projectId: ID!
+  externalKey: String!
+  title: String!
+  description: String
+}
+
+input CreateManualTestCaseInput {
+  projectId: ID!
+  title: String!
+  requirementIds: [ID!]!
+}
+
+input CreateAutomatedTestCaseInput {
+  projectId: ID!
+  title: String!
+  manualTestCaseIds: [ID!]!
+}
+
+input CreateTestRunInput {
+  projectId: ID!
+  name: String!
+}
+
+input SubmitTestResultInput {
+  runId: ID!
+  testCaseId: ID!
+  status: String!
+  durationMs: Int
+}
+
+input RequirementImportItemInput {
+  externalKey: String
+  title: String
+  description: String
+}
+
+input ImportRequirementsInput {
+  projectId: ID!
+  requirements: [RequirementImportItemInput!]!
+}
+
+input TrrStepInput {
+  order: Int!
+  name: String!
+  expectedResult: String
+  sourceStepId: String
+}
+
+input TrrAutomatedTestInput {
+  internalTestCaseId: ID
+  externalId: String
+  title: String
+  linkedManualCaseIds: [ID!]
+  steps: [TrrStepInput!]
+}
+
+input ImportAutomatedFromTrrInput {
+  projectId: ID!
+  automatedTests: [TrrAutomatedTestInput!]!
+}
+
+input KpiDashboardInput {
+  projectId: ID!
+}
+
+input RecalculateKpiInput {
+  projectId: ID!
+  fromDate: String
+  toDate: String
+}
+
+input RequirementDesignLinkInput {
+  projectId: ID!
+  requirementId: ID
+  requirementKey: String
+  provider: String!
+  designProjectId: String
+  designFileId: String
+  designPageId: String
+  designNodeId: String
+  shareUrl: String!
+  title: String
+  lastSyncedAt: String
+}
+
+input UnlinkRequirementDesignLinkInput {
+  projectId: ID!
+  requirementId: ID!
+  provider: String!
+  shareUrl: String!
+}
+
+input RequirementDesignLinksQueryInput {
+  projectId: ID!
+  requirementId: ID
+}
+
+input ImportRequirementDesignLinkItemInput {
+  requirementId: ID
+  requirementKey: String
+  designProjectId: String
+  designFileId: String
+  designPageId: String
+  designNodeId: String
+  shareUrl: String
+  title: String
+  lastSyncedAt: String
+}
+
+input ImportRequirementDesignLinksInput {
+  projectId: ID!
+  provider: String!
+  links: [ImportRequirementDesignLinkItemInput!]!
+}
+
+type CreateProjectPayload {
+  project: Project
+  error: AppError
+}
+
+type CreateRequirementPayload {
+  requirement: Requirement
+  error: AppError
+}
+
+type CreateTestCasePayload {
+  testCase: TestCase
+  error: AppError
+}
+
+type CreateTestRunPayload {
+  run: TestRun
+  error: AppError
+}
+
+type SubmitTestResultPayload {
+  result: TestResult
+  error: AppError
+}
+
+type Query {
+  projectSummary(projectId: ID!): ProjectSummary!
+  runTraceabilityReport(runId: ID!): RunTraceabilityReport!
+  kpiDashboard(input: KpiDashboardInput!): KpiDashboard!
+  requirementDesignLinks(input: RequirementDesignLinksQueryInput!): [RequirementDesignLink!]!
+}
+
+type Mutation {
+  createProject(input: CreateProjectInput!): CreateProjectPayload!
+  createRequirement(input: CreateRequirementInput!): CreateRequirementPayload!
+  createManualTestCase(input: CreateManualTestCaseInput!): CreateTestCasePayload!
+  createAutomatedTestCase(input: CreateAutomatedTestCaseInput!): CreateTestCasePayload!
+  createTestRun(input: CreateTestRunInput!): CreateTestRunPayload!
+  submitTestResult(input: SubmitTestResultInput!): SubmitTestResultPayload!
+  importRequirements(input: ImportRequirementsInput!): ImportRequirementsResult!
+  importAutomatedFromTrr(input: ImportAutomatedFromTrrInput!): ImportAutomatedFromTrrResult!
+  recalculateKpiSnapshots(input: RecalculateKpiInput!): RecalculateKpiResult!
+  upsertRequirementDesignLink(input: RequirementDesignLinkInput!): RequirementDesignLinkPayload!
+  unlinkRequirementDesignLink(input: UnlinkRequirementDesignLinkInput!): UnlinkResult!
+  importRequirementDesignLinks(input: ImportRequirementDesignLinksInput!): ImportRequirementDesignLinksResult!
+}

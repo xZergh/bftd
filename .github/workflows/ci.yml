@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - "feature/**"
+  pull_request:
+
+jobs:
+  hardening:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run ci:typecheck
+
+      - name: Unit and integration tests
+        run: npm run ci:test
+
+      - name: Migration check (fresh)
+        run: npm run ci:migration:fresh
+
+      - name: Migration check (upgrade path)
+        run: npm run ci:migration:upgrade
+
+      - name: GraphQL schema contract check
+        run: npm run ci:schema:check
+
+      - name: Security and quality checks (non-blocking policy)
+        run: npm run ci:security:nonblocking
