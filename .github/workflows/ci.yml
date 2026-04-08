@@ -80,6 +80,9 @@ jobs:
       - name: GraphQL schema contract check
         run: npm run ci:schema:check
 
+      - name: SQLite schema/index alignment (Drizzle vs init)
+        run: npm run ci:schema:indexes
+
       - name: Upload test artifacts
         if: always()
         # NOTE: GitHub currently reports a Node 20 deprecation warning for this action.
@@ -142,6 +145,9 @@ jobs:
 
       - name: GraphQL schema contract check
         run: npm run ci:schema:check
+
+      - name: SQLite schema/index alignment (Drizzle vs init)
+        run: npm run ci:schema:indexes
 
       - name: Security and quality checks (non-blocking policy)
         run: npm run ci:security:nonblocking

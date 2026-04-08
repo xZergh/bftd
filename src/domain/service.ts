@@ -19,6 +19,7 @@ import {
   getRequirementDesignLinks as getRequirementDesignLinksRecords,
   getRunAggregate as getRunAggregateRecord,
   getRunTraceabilityReport as getRunTraceabilityReportRecord,
+  getTraceabilityGraph as getTraceabilityGraphRecord,
   getTestCase as getTestCaseRecord,
   getTestRun as getTestRunRecord,
   importAutomatedFromTrr as importAutomatedFromTrrBatch,
@@ -219,6 +220,10 @@ export class TcmsService {
 
   async getRunTraceabilityReport(input: { runId: string; releaseLabel?: string; sprintLabel?: string }) {
     return getRunTraceabilityReportRecord(this.db, input);
+  }
+
+  async getTraceabilityGraph(input: { projectId: string }) {
+    return getTraceabilityGraphRecord(this.db, input);
   }
 
   async importRequirements(input: {

@@ -85,4 +85,65 @@ describe("GraphQL integration - traceability link mutations", () => {
 
     await t.close();
   });
+
+  it("excludes tombstoned manual cases from the live traceability graph (D5)", async () => {
+    const t = await createTestAgent("tcms-trace-tomb-");
+
+    const pRes = await t.agent.post("/graphql").send({
+      query: `mutation($input: CreateProjectInput!) { createProject(input: $input) { project { id } } }`,
+      variables: { input: { name: "Tomb Graph" } }
+    });
+    const projectId = pRes.body.data.createProject.project.id as string;
+
+    const r1 = await t.agent.post("/graphql").send({
+      query: `mutation($input: CreateRequirementInput!) { createRequirement(input: $input) { requirement { id } } }`,
+      variables: { input: { projectId, externalKey: "TG-1", title: "Req" } }
+    });
+    const reqId = r1.body.data.createRequirement.requirement.id as string;
+
+    const m1 = await t.agent.post("/graphql").send({
+      query: `mutation($input: CreateManualTestCaseInput!) { createManualTestCase(input: $input) { testCase { id } } }`,
+      variables: {
+        input: { projectId, title: "Manual TG", requirementIds: [reqId], steps: [{ name: "A" }] }
+      }
+    });
+    const manualId = m1.body.data.createManualTestCase.testCase.id as string;
+
+    const before = await t.agent.post("/graphql").send({
+      query: `query($input: TraceabilityGraphInput!) {
+        traceabilityGraph(input: $input) {
+          nodes { id kind }
+          coverageByRequirementStatus { status withManualLinkCount }
+        }
+      }`,
+      variables: { input: { projectId } }
+    });
+    expect(before.body.errors).toBeUndefined();
+    expect(before.body.data.traceabilityGraph.nodes.some((n: { id: string }) => n.id === `man:${manualId}`)).toBe(true);
+
+    await t.agent.post("/graphql").send({
+      query: `mutation($input: TombstoneTestCaseInput!) {
+        tombstoneTestCase(input: $input) { success }
+      }`,
+      variables: { input: { testCaseId: manualId } }
+    });
+
+    const after = await t.agent.post("/graphql").send({
+      query: `query($input: TraceabilityGraphInput!) {
+        traceabilityGraph(input: $input) {
+          nodes { id kind }
+          coverageByRequirementStatus { status withManualLinkCount }
+        }
+      }`,
+      variables: { input: { projectId } }
+    });
+    expect(after.body.errors).toBeUndefined();
+    expect(after.body.data.traceabilityGraph.nodes.some((n: { id: string }) => n.id === `man:${manualId}`)).toBe(false);
+    const row = after.body.data.traceabilityGraph.coverageByRequirementStatus.find(
+      (x: { status: string }) => x.status === "draft"
+    );
+    expect(row?.withManualLinkCount).toBe(0);
+
+    await t.close();
+  });
 });

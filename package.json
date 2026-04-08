@@ -18,11 +18,12 @@
     "ci:migration:fresh": "tsx scripts/ci/check-migrations-fresh.ts",
     "ci:migration:upgrade": "tsx scripts/ci/check-migrations-upgrade.ts",
     "ci:schema:check": "tsx scripts/ci/check-schema-contract.ts",
+    "ci:schema:indexes": "tsx scripts/ci/check-schema-indexes.ts",
     "ci:schema:update": "tsx scripts/ci/update-schema-snapshot.ts",
     "ci:security:nonblocking": "tsx scripts/ci/check-security-nonblocking.ts",
     "allure:generate": "node scripts/allure-generate.cjs",
     "ci:mutation": "stryker run",
-    "ci:hardening": "npm run ci:typecheck && npm run ci:lint && npm run ci:architecture:boundaries && npm run ci:test && npm run ci:migration:fresh && npm run ci:migration:upgrade && npm run ci:schema:check && npm run ci:security:nonblocking"
+    "ci:hardening": "npm run ci:typecheck && npm run ci:lint && npm run ci:architecture:boundaries && npm run ci:test && npm run ci:migration:fresh && npm run ci:migration:upgrade && npm run ci:schema:check && npm run ci:schema:indexes && npm run ci:security:nonblocking"
   },
   "keywords": [],
   "author": "",
@@ -36,6 +37,7 @@
     "drizzle-orm": "^0.45.2",
     "graphql": "^16.13.2",
     "graphql-yoga": "^5.21.0",
+    "swagger-ui-dist": "^5.32.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {

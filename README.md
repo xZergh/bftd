@@ -5,7 +5,7 @@ Standalone backend-first Test Case Management System (TCMS) for small QA teams.
 ## Status
 
 - **Tracked backlog (implementation source of truth):** [.notes/TRACKED_BACKLOG.md](.notes/TRACKED_BACKLOG.md)
-- **Canonical product spec (per backlog):** `detailed.spec.backup.md` — add or rename in-repo when you vendor the full spec; the backlog table references it.
+- **Canonical product spec (vendored):** [docs/detailed.spec.v2.md](docs/detailed.spec.v2.md) (copy of `.notes/detailed.spec.v2.md`; edit in `.notes/` then re-copy when the spec changes).
 - Spec draft: `TCMS_MVP_SPEC.md`
 - Funding one-pager: `FUNDING_ONE_PAGER.md`
 - Documentation guides: `docs/`
@@ -14,7 +14,7 @@ Standalone backend-first Test Case Management System (TCMS) for small QA teams.
 
 - Developer guide: `docs/DEVELOPER_GUIDE.md`
 - User guide: `docs/USER_GUIDE.md`
-- API contracts: `docs/API_CONTRACTS.md`
+- API contracts: `docs/API_CONTRACTS.md` (includes OpenAPI `/openapi.yaml` and Swagger UI `/api-docs`)
 - Reporting and KPI: `docs/REPORTING_AND_KPI.md`
 - Operations and CI: `docs/OPERATIONS.md`
 - Sample Allure report (single HTML, regenerate with `npm run allure:generate` after tests): `docs/reports/allure-report.html`

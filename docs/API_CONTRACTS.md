@@ -1,5 +1,11 @@
 # API Contracts
 
+## HTTP surface
+
+- **GraphQL:** `POST /graphql` with JSON body `{ "query": "...", "variables": { } }`.
+- **OpenAPI:** Machine-readable contract at `GET /openapi.yaml` ([`contracts/openapi.yaml`](../contracts/openapi.yaml)).
+- **Swagger UI:** Interactive docs at `GET /api-docs` (also `GET /swagger`).
+
 ## 1. GraphQL Contract Principles
 
 - Deterministic responses for validation failures.
