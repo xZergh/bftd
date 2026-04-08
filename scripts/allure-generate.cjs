@@ -62,16 +62,35 @@ ensureJavaForAllure();
 
 const allure = require("allure-commandline");
 
+const resultsDir = "artifacts/allure-results";
+const outDir = "artifacts/allure-report";
+const committedSingle = path.join("docs", "reports", "allure-report.html");
+
 const cp = allure([
   "generate",
-  "artifacts/allure-results",
+  resultsDir,
   "-o",
-  "artifacts/allure-report",
-  "--clean"
+  outDir,
+  "--clean",
+  "--single-file"
 ]);
 
 cp.on("close", (code) => {
-  process.exit(typeof code === "number" ? code : 1);
+  if (typeof code !== "number" || code !== 0) {
+    process.exit(typeof code === "number" ? code : 1);
+  }
+  try {
+    const indexHtml = path.join(outDir, "index.html");
+    if (fs.existsSync(indexHtml)) {
+      fs.mkdirSync(path.dirname(committedSingle), { recursive: true });
+      fs.copyFileSync(indexHtml, committedSingle);
+      console.log(`Copied single-file report to ${committedSingle}`);
+    }
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
+  process.exit(0);
 });
 
 cp.on("error", (err) => {

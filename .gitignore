@@ -32,7 +32,8 @@ allure-results/
 allure-report/
 artifacts/
 .stryker-tmp/
-reports/
+# Stryker default HTML at repo root only (do not ignore docs/reports/)
+/reports/
 
 # environment
 .env

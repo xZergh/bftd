@@ -159,4 +159,5 @@ jobs:
             artifacts/coverage/**
             artifacts/allure-results/**
             artifacts/allure-report/**
+            docs/reports/allure-report.html
           if-no-files-found: warn
