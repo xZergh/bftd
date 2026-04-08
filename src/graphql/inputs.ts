@@ -34,6 +34,20 @@ export const projectSummaryInput = z.object({
   releaseLabel: z.string().optional(),
   sprintLabel: z.string().optional()
 });
+
+/** Shared project scope + optional release/sprint filter (Q1 parity for list queries). */
+export const projectLabelFilterInput = z.object({
+  projectId: z.string().min(1),
+  releaseLabel: z.string().optional(),
+  sprintLabel: z.string().optional()
+});
+
+export const testCasesQueryInput = z.object({
+  projectId: z.string().min(1),
+  type: z.enum(["manual", "automated"]).optional(),
+  releaseLabel: z.string().optional(),
+  sprintLabel: z.string().optional()
+});
 export const runTraceabilityInput = z.object({
   runId: z.string().min(1),
   releaseLabel: z.string().optional(),

@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { AppError } from "../errors";
 import {
@@ -16,6 +16,25 @@ type Db = ReturnType<typeof import("../../db/client").createDb>;
 
 function now() {
   return new Date();
+}
+
+export async function listTestRuns(
+  db: Db,
+  input: { projectId: string; releaseLabel?: string; sprintLabel?: string }
+) {
+  const releaseLabel = normalizeLabel(input.releaseLabel);
+  const sprintLabel = normalizeLabel(input.sprintLabel);
+  return db
+    .select()
+    .from(testRuns)
+    .where(
+      and(
+        eq(testRuns.projectId, input.projectId),
+        releaseLabel ? eq(testRuns.releaseLabel, releaseLabel) : undefined,
+        sprintLabel ? eq(testRuns.sprintLabel, sprintLabel) : undefined
+      )
+    )
+    .orderBy(desc(testRuns.createdAt));
 }
 
 export async function createTestRun(

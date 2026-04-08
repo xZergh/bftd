@@ -6,6 +6,7 @@ import {
   kpiDashboardInput,
   manualInput,
   projectInput,
+  projectLabelFilterInput,
   projectSummaryInput,
   recalcKpiInput,
   requirementDesignLinkInput,
@@ -15,6 +16,7 @@ import {
   resultInput,
   runInput,
   runTraceabilityInput,
+  testCasesQueryInput,
   trrImportInput,
   unlinkRequirementDesignLinkInput
 } from "./inputs";
@@ -43,6 +45,18 @@ export const resolvers = {
     projectSummary: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       const input = projectSummaryInput.parse(args.input);
       return ctx.service.getProjectSummary(input);
+    },
+    requirements: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      const input = projectLabelFilterInput.parse(args.input);
+      return ctx.service.listRequirements(input);
+    },
+    testCases: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      const input = testCasesQueryInput.parse(args.input);
+      return ctx.service.listTestCases(input);
+    },
+    testRuns: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      const input = projectLabelFilterInput.parse(args.input);
+      return ctx.service.listTestRuns(input);
     },
     runTraceabilityReport: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       const input = runTraceabilityInput.parse(args.input);

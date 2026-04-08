@@ -29,6 +29,94 @@ describe("GraphQL integration - core", () => {
     await t.close();
   });
 
+  it("lists requirements, test cases, and runs with optional release/sprint filters", async () => {
+    const t = await createTestAgent("tcms-int-");
+
+    const pRes = await t.agent.post("/graphql").send({
+      query: `mutation { createProject(input: { name: "Catalog App" }) { project { id } } }`
+    });
+    const projectId = pRes.body.data.createProject.project.id as string;
+
+    await t.agent.post("/graphql").send({
+      query: `mutation($input: CreateRequirementInput!) { createRequirement(input: $input) { requirement { id externalKey } } }`,
+      variables: {
+        input: {
+          projectId,
+          externalKey: "REQ-A",
+          title: "A",
+          releaseLabel: "R1",
+          sprintLabel: "S1"
+        }
+      }
+    });
+    await t.agent.post("/graphql").send({
+      query: `mutation($input: CreateRequirementInput!) { createRequirement(input: $input) { requirement { id } } }`,
+      variables: {
+        input: {
+          projectId,
+          externalKey: "REQ-B",
+          title: "B",
+          releaseLabel: "R2",
+          sprintLabel: "S2"
+        }
+      }
+    });
+
+    const listAll = await t.agent.post("/graphql").send({
+      query: `query($input: ProjectLabelFilterInput!) {
+        requirements(input: $input) { id externalKey releaseLabel sprintLabel }
+      }`,
+      variables: { input: { projectId } }
+    });
+    expect(listAll.body.data.requirements).toHaveLength(2);
+
+    const listR1 = await t.agent.post("/graphql").send({
+      query: `query($input: ProjectLabelFilterInput!) {
+        requirements(input: $input) { externalKey }
+      }`,
+      variables: { input: { projectId, releaseLabel: "R1", sprintLabel: "S1" } }
+    });
+    expect(listR1.body.data.requirements.map((r: { externalKey: string }) => r.externalKey)).toEqual(["REQ-A"]);
+
+    const reqAId = listAll.body.data.requirements.find((r: { externalKey: string }) => r.externalKey === "REQ-A").id;
+    await t.agent.post("/graphql").send({
+      query: `mutation($input: CreateManualTestCaseInput!) { createManualTestCase(input: $input) { testCase { id title releaseLabel } } }`,
+      variables: {
+        input: {
+          projectId,
+          title: "M1",
+          requirementIds: [reqAId],
+          releaseLabel: "R1",
+          sprintLabel: "S1"
+        }
+      }
+    });
+
+    const casesManual = await t.agent.post("/graphql").send({
+      query: `query($input: TestCasesQueryInput!) {
+        testCases(input: $input) { title type }
+      }`,
+      variables: { input: { projectId, type: "manual" } }
+    });
+    expect(casesManual.body.data.testCases).toEqual([{ title: "M1", type: "manual" }]);
+
+    await t.agent.post("/graphql").send({
+      query: `mutation { createTestRun(input: { projectId: "${projectId}", name: "Run 1", releaseLabel: "R1", sprintLabel: "S1" }) { run { id } } }`
+    });
+
+    const runs = await t.agent.post("/graphql").send({
+      query: `query($input: ProjectLabelFilterInput!) {
+        testRuns(input: $input) { name releaseLabel sprintLabel }
+      }`,
+      variables: { input: { projectId, releaseLabel: "R1" } }
+    });
+    expect(runs.body.data.testRuns).toEqual([
+      { name: "Run 1", releaseLabel: "R1", sprintLabel: "S1" }
+    ]);
+
+    await t.close();
+  });
+
   it("returns deterministic fixHint for invalid manual testcase creation", async () => {
     const t = await createTestAgent("tcms-int-");
     const pRes = await t.agent.post("/graphql").send({

@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { requirements, testCases, projects } from "../../db/schema";
 import { normalizeLabel } from "./labels";
@@ -45,6 +45,25 @@ export async function createRequirement(
   };
   await db.insert(requirements).values(req);
   return req;
+}
+
+export async function listRequirements(
+  db: Db,
+  input: { projectId: string; releaseLabel?: string; sprintLabel?: string }
+) {
+  const releaseLabel = normalizeLabel(input.releaseLabel);
+  const sprintLabel = normalizeLabel(input.sprintLabel);
+  return db
+    .select()
+    .from(requirements)
+    .where(
+      and(
+        eq(requirements.projectId, input.projectId),
+        releaseLabel ? eq(requirements.releaseLabel, releaseLabel) : undefined,
+        sprintLabel ? eq(requirements.sprintLabel, sprintLabel) : undefined
+      )
+    )
+    .orderBy(asc(requirements.externalKey));
 }
 
 export async function getProjectSummary(

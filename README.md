@@ -7,6 +7,8 @@ Standalone backend-first Test Case Management System (TCMS) for small QA teams.
 - Spec draft: `TCMS_MVP_SPEC.md`
 - Funding one-pager: `FUNDING_ONE_PAGER.md`
 - Documentation guides: `docs/`
+- **Q1 (shipped on main):** release/sprint labels on requirements, manual/automated test cases, and test runs; optional filters on `projectSummary`, KPI, and run traceability (see commit history / PR #4).
+- **Q2 (in progress):** app-oriented read APIs — project-scoped `requirements`, `testCases`, and `testRuns` queries with the same label filters (`docs/API_CONTRACTS.md` §4).
 
 ## Quick Links
 

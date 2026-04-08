@@ -7,6 +7,9 @@ import {
   createProject as createProjectRecord,
   createRequirement as createRequirementRecord,
   getProjectSummary as getProjectSummaryStats,
+  listRequirements as listRequirementsRecords,
+  listTestCases as listTestCasesRecords,
+  listTestRuns as listTestRunsRecords,
   createAutomatedTestCase as createAutomatedTestCaseRecord,
   createManualTestCase as createManualTestCaseRecord,
   importAutomatedFromTrr as importAutomatedFromTrrBatch,
@@ -68,6 +71,23 @@ export class TcmsService {
 
   async getProjectSummary(input: { projectId: string; releaseLabel?: string; sprintLabel?: string }) {
     return getProjectSummaryStats(this.db, input);
+  }
+
+  async listRequirements(input: { projectId: string; releaseLabel?: string; sprintLabel?: string }) {
+    return listRequirementsRecords(this.db, input);
+  }
+
+  async listTestCases(input: {
+    projectId: string;
+    type?: "manual" | "automated";
+    releaseLabel?: string;
+    sprintLabel?: string;
+  }) {
+    return listTestCasesRecords(this.db, input);
+  }
+
+  async listTestRuns(input: { projectId: string; releaseLabel?: string; sprintLabel?: string }) {
+    return listTestRunsRecords(this.db, input);
   }
 
   async createTestRun(input: { projectId: string; name: string; releaseLabel?: string; sprintLabel?: string }) {

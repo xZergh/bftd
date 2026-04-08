@@ -36,14 +36,22 @@ Blocking validation errors return:
   - `requirementId` preferred
   - fallback `requirementKey`
 
-## 4. KPI Contract
+## 4. Read APIs (project catalog)
+
+After Q1 release/sprint labels, list queries use the same optional `releaseLabel` / `sprintLabel` filters as `projectSummary` and KPI (omit both to include all labels in the project).
+
+- Query: `requirements(input: ProjectLabelFilterInput!)` — ordered by `externalKey`.
+- Query: `testCases(input: TestCasesQueryInput!)` — optional `type` (`manual` | `automated`); ordered by `title`.
+- Query: `testRuns(input: ProjectLabelFilterInput!)` — newest first.
+
+## 5. KPI Contract
 
 - Query: `kpiDashboard(...)`
 - Mutation: `recalculateKpiSnapshots(...)`
 - Formula metadata: `coverageFormulaInfo[]`
 - Formula values: `coverage[]`
 
-## 5. Schema Change Policy
+## 6. Schema Change Policy
 
 - Prototype phase may allow approved breaking changes.
 - After API lock milestone, additive-only schema changes.

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { AppError } from "../errors";
 import { automatedManualLinks, requirementTestCaseLinks, requirements, testCases } from "../../db/schema";
@@ -8,6 +8,31 @@ type Db = ReturnType<typeof import("../../db/client").createDb>;
 
 function now() {
   return new Date();
+}
+
+export async function listTestCases(
+  db: Db,
+  input: {
+    projectId: string;
+    type?: "manual" | "automated";
+    releaseLabel?: string;
+    sprintLabel?: string;
+  }
+) {
+  const releaseLabel = normalizeLabel(input.releaseLabel);
+  const sprintLabel = normalizeLabel(input.sprintLabel);
+  return db
+    .select()
+    .from(testCases)
+    .where(
+      and(
+        eq(testCases.projectId, input.projectId),
+        input.type ? eq(testCases.type, input.type) : undefined,
+        releaseLabel ? eq(testCases.releaseLabel, releaseLabel) : undefined,
+        sprintLabel ? eq(testCases.sprintLabel, sprintLabel) : undefined
+      )
+    )
+    .orderBy(asc(testCases.title));
 }
 
 export async function createManualTestCase(

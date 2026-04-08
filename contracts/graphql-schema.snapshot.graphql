@@ -15,6 +15,8 @@ type Requirement {
   projectId: ID!
   externalKey: String!
   title: String!
+  releaseLabel: String
+  sprintLabel: String
 }
 
 type TestCase {
@@ -22,12 +24,16 @@ type TestCase {
   projectId: ID!
   type: String!
   title: String!
+  releaseLabel: String
+  sprintLabel: String
 }
 
 type TestRun {
   id: ID!
   projectId: ID!
   name: String!
+  releaseLabel: String
+  sprintLabel: String
 }
 
 type TestResult {
@@ -188,23 +194,56 @@ input CreateRequirementInput {
   externalKey: String!
   title: String!
   description: String
+  releaseLabel: String
+  sprintLabel: String
 }
 
 input CreateManualTestCaseInput {
   projectId: ID!
   title: String!
   requirementIds: [ID!]!
+  releaseLabel: String
+  sprintLabel: String
 }
 
 input CreateAutomatedTestCaseInput {
   projectId: ID!
   title: String!
   manualTestCaseIds: [ID!]!
+  releaseLabel: String
+  sprintLabel: String
 }
 
 input CreateTestRunInput {
   projectId: ID!
   name: String!
+  releaseLabel: String
+  sprintLabel: String
+}
+
+input ProjectSummaryInput {
+  projectId: ID!
+  releaseLabel: String
+  sprintLabel: String
+}
+
+input ProjectLabelFilterInput {
+  projectId: ID!
+  releaseLabel: String
+  sprintLabel: String
+}
+
+input TestCasesQueryInput {
+  projectId: ID!
+  type: String
+  releaseLabel: String
+  sprintLabel: String
+}
+
+input RunTraceabilityReportInput {
+  runId: ID!
+  releaseLabel: String
+  sprintLabel: String
 }
 
 input SubmitTestResultInput {
@@ -218,10 +257,14 @@ input RequirementImportItemInput {
   externalKey: String
   title: String
   description: String
+  releaseLabel: String
+  sprintLabel: String
 }
 
 input ImportRequirementsInput {
   projectId: ID!
+  releaseLabel: String
+  sprintLabel: String
   requirements: [RequirementImportItemInput!]!
 }
 
@@ -236,17 +279,23 @@ input TrrAutomatedTestInput {
   internalTestCaseId: ID
   externalId: String
   title: String
+  releaseLabel: String
+  sprintLabel: String
   linkedManualCaseIds: [ID!]
   steps: [TrrStepInput!]
 }
 
 input ImportAutomatedFromTrrInput {
   projectId: ID!
+  releaseLabel: String
+  sprintLabel: String
   automatedTests: [TrrAutomatedTestInput!]!
 }
 
 input KpiDashboardInput {
   projectId: ID!
+  releaseLabel: String
+  sprintLabel: String
 }
 
 input RecalculateKpiInput {
@@ -325,8 +374,11 @@ type SubmitTestResultPayload {
 }
 
 type Query {
-  projectSummary(projectId: ID!): ProjectSummary!
-  runTraceabilityReport(runId: ID!): RunTraceabilityReport!
+  projectSummary(input: ProjectSummaryInput!): ProjectSummary!
+  requirements(input: ProjectLabelFilterInput!): [Requirement!]!
+  testCases(input: TestCasesQueryInput!): [TestCase!]!
+  testRuns(input: ProjectLabelFilterInput!): [TestRun!]!
+  runTraceabilityReport(input: RunTraceabilityReportInput!): RunTraceabilityReport!
   kpiDashboard(input: KpiDashboardInput!): KpiDashboard!
   requirementDesignLinks(input: RequirementDesignLinksQueryInput!): [RequirementDesignLink!]!
 }

@@ -228,6 +228,19 @@ export const typeDefs = /* GraphQL */ `
     sprintLabel: String
   }
 
+  input ProjectLabelFilterInput {
+    projectId: ID!
+    releaseLabel: String
+    sprintLabel: String
+  }
+
+  input TestCasesQueryInput {
+    projectId: ID!
+    type: String
+    releaseLabel: String
+    sprintLabel: String
+  }
+
   input RunTraceabilityReportInput {
     runId: ID!
     releaseLabel: String
@@ -363,6 +376,9 @@ export const typeDefs = /* GraphQL */ `
 
   type Query {
     projectSummary(input: ProjectSummaryInput!): ProjectSummary!
+    requirements(input: ProjectLabelFilterInput!): [Requirement!]!
+    testCases(input: TestCasesQueryInput!): [TestCase!]!
+    testRuns(input: ProjectLabelFilterInput!): [TestRun!]!
     runTraceabilityReport(input: RunTraceabilityReportInput!): RunTraceabilityReport!
     kpiDashboard(input: KpiDashboardInput!): KpiDashboard!
     requirementDesignLinks(input: RequirementDesignLinksQueryInput!): [RequirementDesignLink!]!
