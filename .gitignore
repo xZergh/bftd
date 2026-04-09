@@ -1,6 +1,8 @@
 # notes (local scratch; keep backlog tracked)
 .notes/*
 !.notes/TRACKED_BACKLOG.md
+!.notes/FE_MVP_SPEC.md
+!.notes/FE_TRACKED_BACKLOG.md
 
 # dependencies
 node_modules/
