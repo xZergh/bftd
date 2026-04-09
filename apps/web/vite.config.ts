@@ -12,9 +12,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       "/graphql": { target: apiTarget, changeOrigin: true },
-      "/api-docs": { target: apiTarget, changeOrigin: true },
-      "/openapi.yaml": { target: apiTarget, changeOrigin: true },
-      "/swagger": { target: apiTarget, changeOrigin: true }
+      "/health": { target: apiTarget, changeOrigin: true }
     }
   }
 });

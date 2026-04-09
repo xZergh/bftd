@@ -6,6 +6,8 @@ TCMS helps you manage requirements, manual and automated tests, and execution re
 
 ## 2. Quickstart
 
+Developers can explore the API in the browser with **GraphiQL** at `http://localhost:4000/graphql` (see [`docs/GRAPHIQL.md`](GRAPHIQL.md)).
+
 1. Create a project (application under test).
 2. Import requirements.
 3. Create manual testcases and link them to requirements.

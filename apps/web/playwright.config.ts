@@ -20,7 +20,7 @@ export default defineConfig({
       name: "tcms-api",
       command: "npm run start:e2e-api",
       cwd: repoRoot,
-      url: "http://127.0.0.1:4000/api-docs",
+      url: "http://127.0.0.1:4000/health",
       reuseExistingServer: !process.env.CI,
       timeout: 120_000
     },
