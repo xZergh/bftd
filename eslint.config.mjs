@@ -7,6 +7,7 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   {
     ignores: [
+      "apps/web/**",
       "dist/**",
       "node_modules/**",
       "drizzle/**",
