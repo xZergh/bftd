@@ -1,13 +1,13 @@
-# GraphiQL Explorer (TCMS)
+# GraphQL Explorer (TCMS)
 
-TCMS serves **GraphiQL** (the GraphQL IDE) from the same URL as the API. It is provided by [GraphQL Yoga](https://the-guild.dev/graphql/yoga-server) and uses the **Explorer** sidebar to browse the schema and build queries.
+TCMS serves the **GraphQL Explorer** (interactive query IDE) at the same URL as the API. It is provided by [GraphQL Yoga](https://the-guild.dev/graphql/yoga-server) and uses the **Explorer** sidebar to browse the schema and build queries.
 
-## Open GraphiQL
+## Open the Explorer
 
 1. Start the API (see [`README.md`](../README.md) or [`LOCAL_MANUAL_TESTING.md`](LOCAL_MANUAL_TESTING.md)).
 2. In a browser, open **`http://localhost:<PORT>/graphql`** (default port **4000**).
 
-Use a normal browser navigation (GET). Do not send `POST` with `application/json` from the address bar—GraphiQL is the HTML page returned when the client asks for HTML (browsers send `Accept: text/html`).
+Use a normal browser navigation (GET). Do not send `POST` with `application/json` from the address bar—the Explorer is the HTML page returned when the client asks for HTML (browsers send `Accept: text/html`).
 
 If you only need the JSON API, use `POST /graphql` with a JSON body (`query`, `variables`, `operationName`) as documented in [`API_CONTRACTS.md`](API_CONTRACTS.md).
 

@@ -15,7 +15,8 @@ Standalone backend-first Test Case Management System (TCMS) for small QA teams.
 
 - Developer guide: `docs/DEVELOPER_GUIDE.md`
 - User guide: `docs/USER_GUIDE.md`
-- API contracts: `docs/API_CONTRACTS.md` (includes OpenAPI `/openapi.yaml` and Swagger UI `/api-docs`)
+- API contracts: `docs/API_CONTRACTS.md`
+- GraphQL Explorer: `docs/GRAPHQL_EXPLORER.md` (open `GET /graphql` in a browser)
 - Reporting and KPI: `docs/REPORTING_AND_KPI.md`
 - Operations and CI: `docs/OPERATIONS.md`
 - Sample Allure report (single HTML, regenerate with `npm run allure:generate` after tests): `docs/reports/allure-report.html`

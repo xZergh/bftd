@@ -145,7 +145,7 @@ When you add or change tables or unique constraints in [src/db/schema.ts](../src
 npm run dev
 ```
 
-GraphQL endpoint: `http://localhost:<PORT>/graphql` (see [src/server.ts](../src/server.ts)). GraphiQL: `GET /graphql` in a browser ([docs/GRAPHIQL.md](GRAPHIQL.md)). Health: `GET /health`.
+GraphQL endpoint: `http://localhost:<PORT>/graphql` (see [src/server.ts](../src/server.ts)). GraphQL Explorer: `GET /graphql` in a browser ([docs/GRAPHQL_EXPLORER.md](GRAPHQL_EXPLORER.md)). Health: `GET /health`.
 
 ### 4.6 Local CI-style checks
 

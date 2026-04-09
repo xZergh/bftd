@@ -4,7 +4,6 @@ import { createDb } from "./db/client";
 import { initSqlite } from "./db/init";
 import { TcmsService } from "./domain/service";
 import { buildSchema } from "./graphql/schema";
-import { tryServeSwagger } from "./http/swagger";
 
 export function createApp(dbPath: string) {
   initSqlite(dbPath);
@@ -15,6 +14,10 @@ export function createApp(dbPath: string) {
     schema: buildSchema(),
     context: { service },
     graphqlEndpoint: "/graphql",
+    graphiql: {
+      title: "TCMS GraphQL",
+      defaultQuery: `query Projects {\n  projects {\n    id\n    key\n    name\n  }\n}`
+    },
     maskedErrors: {
       maskError(error, message, isDev) {
         const ext = error as { extensions?: { code?: unknown } };
@@ -32,9 +35,6 @@ export function createApp(dbPath: string) {
   });
 
   const server = createServer((req, res) => {
-    if (tryServeSwagger(req, res)) {
-      return;
-    }
     return yoga(req, res);
   });
   return { server };
