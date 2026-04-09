@@ -26,7 +26,7 @@ This installs the root package and workspace packages (including `apps/web`).
 | `DB_PATH` | `./data/tcms.sqlite` | SQLite file used by the API.                         |
 
 
-The web app uses **Vite dev server** on **127.0.0.1:5173** and **proxies** `/graphql`, `/api-docs`, `/openapi.yaml`, and `/swagger` to the API (see `[apps/web/vite.config.ts](../apps/web/vite.config.ts)`). Override proxy target with `**VITE_API_PROXY_TARGET`** if the API listens elsewhere.
+The web app uses **Vite dev server** on **127.0.0.1:5173** and **proxies** `/graphql` (and `/health` if you call it) to the API (see `[apps/web/vite.config.ts](../apps/web/vite.config.ts)`). Override proxy target with `**VITE_API_PROXY_TARGET`** if the API listens elsewhere.
 
 ## Run (two terminals)
 
@@ -51,10 +51,9 @@ npm run dev:web
 ## Open
 
 - **Web UI:** [http://127.0.0.1:5173/](http://127.0.0.1:5173/)
-- **GraphQL:** [http://127.0.0.1:5173/graphql](http://127.0.0.1:5173/graphql) (POST; proxied to API)
-- **Swagger UI:** [http://127.0.0.1:5173/api-docs](http://127.0.0.1:5173/api-docs) (proxied)
+- **GraphQL Explorer (browser):** [http://127.0.0.1:5173/graphql](http://127.0.0.1:5173/graphql) — same URL as the GraphQL endpoint; open in a browser for the interactive UI ([`docs/GRAPHQL_EXPLORER.md`](GRAPHQL_EXPLORER.md)).
 
-Direct API (no Vite): [http://127.0.0.1:4000/graphql](http://127.0.0.1:4000/graphql), [http://127.0.0.1:4000/api-docs](http://127.0.0.1:4000/api-docs).
+Direct API (no Vite): [http://127.0.0.1:4000/graphql](http://127.0.0.1:4000/graphql) (Explorer in browser or `POST` JSON), [http://127.0.0.1:4000/health](http://127.0.0.1:4000/health).
 
 ## Clean slate (new local DB)
 
@@ -71,7 +70,7 @@ $env:DB_PATH="./data/manual-clean.sqlite"; npm run dev
 
 ## What to exercise (product)
 
-Follow `[docs/USER_GUIDE.md](USER_GUIDE.md)` for domain workflows (requirements, tests, runs, KPI). Use **Swagger** or the UI **Check API** control to confirm the API responds.
+Follow [`docs/USER_GUIDE.md`](USER_GUIDE.md) for domain workflows (requirements, tests, runs, KPI). Use the **GraphQL Explorer** ([`docs/GRAPHQL_EXPLORER.md`](GRAPHQL_EXPLORER.md)) or the web UI **Check API** control to confirm the API responds.
 
 ## Troubleshooting
 

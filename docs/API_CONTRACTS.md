@@ -3,8 +3,8 @@
 ## HTTP surface
 
 - **GraphQL:** `POST /graphql` with JSON body `{ "query": "...", "variables": { } }`.
-- **OpenAPI:** Machine-readable contract at `GET /openapi.yaml` ([`contracts/openapi.yaml`](../contracts/openapi.yaml)).
-- **Swagger UI:** Interactive docs at `GET /api-docs` (also `GET /swagger`).
+- **GraphQL Explorer:** Browser IDE at **`GET /graphql`** (HTML). See [`docs/GRAPHQL_EXPLORER.md`](GRAPHQL_EXPLORER.md). Schema SDL snapshot: [`contracts/graphql-schema.snapshot.graphql`](../contracts/graphql-schema.snapshot.graphql).
+- **Health:** `GET /health` (readiness; empty body when OK).
 
 ## 1. GraphQL Contract Principles
 
