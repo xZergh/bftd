@@ -52,7 +52,9 @@ test.describe("FE-C requirements", () => {
 
     await expect(page.getByTestId("requirement-detail-page")).toBeVisible();
     await page.getByTestId("requirement-edit-title").fill(edited);
-    await page.getByTestId("requirement-save").click();
+    await expect(page.getByTestId("form-save-status")).toHaveAttribute("data-save-state", "saved", {
+      timeout: 8000
+    });
     await expect(page.getByTestId("requirement-edit-title")).toHaveValue(edited);
 
     await page.getByTestId("requirement-edit-title").clear();

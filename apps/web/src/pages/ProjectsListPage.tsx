@@ -3,16 +3,29 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
 import { CreateProjectMutation, ProjectsListQuery } from "../graphql/documents";
+import {
+  clearCreateProjectDraft,
+  LOCAL_CREATE_DRAFT_DEBOUNCE_MS,
+  readCreateProjectDraft,
+  writeCreateProjectDraft
+} from "../forms/localCreateDraftStorage";
 import { REQUIRED_MSG, trimmedNonEmpty } from "../forms/mandatoryFields";
 import type { ProjectListItem } from "../graphql/types";
+import { useDebouncedAutosaveEffect } from "../hooks/useDebouncedAutosaveEffect";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import "./ProjectsPage.css";
+
+function initialProjectCreateFields(): { name: string; key: string } {
+  const d = readCreateProjectDraft();
+  return { name: d?.name ?? "", key: d?.key ?? "" };
+}
 
 export function ProjectsListPage() {
   const { clearShellMessages, setTransportMessage, setPayloadAppError } = useShellErrors();
   const [includeArchived, setIncludeArchived] = useState(false);
-  const [name, setName] = useState("");
-  const [key, setKey] = useState("");
+  const initial = initialProjectCreateFields();
+  const [name, setName] = useState(initial.name);
+  const [key, setKey] = useState(initial.key);
   const [nameError, setNameError] = useState<string | null>(null);
   const [showValidationPayload, setShowValidationPayload] = useState(false);
 
@@ -23,6 +36,22 @@ export function ProjectsListPage() {
   });
 
   const [, createProject] = useMutation(CreateProjectMutation);
+
+  const cancelDraftWrite = useDebouncedAutosaveEffect(
+    name !== "" || key !== "",
+    `${name}\0${key}`,
+    () => {
+      writeCreateProjectDraft(name, key);
+    },
+    LOCAL_CREATE_DRAFT_DEBOUNCE_MS
+  );
+
+  useEffect(() => {
+    if (name !== "" || key !== "") {
+      return;
+    }
+    clearCreateProjectDraft();
+  }, [name, key]);
 
   useEffect(() => {
     if (!listResult.error) {
@@ -50,6 +79,7 @@ export function ProjectsListPage() {
   }, [key, name]);
 
   const onCreate = useCallback(async () => {
+    cancelDraftWrite();
     clearShellMessages();
     const trimmedName = name.trim();
     if (!trimmedNonEmpty(trimmedName)) {
@@ -79,9 +109,19 @@ export function ProjectsListPage() {
     }
     setName("");
     setKey("");
+    clearCreateProjectDraft();
     setShowValidationPayload(false);
     reexecuteList({ requestPolicy: "network-only" });
-  }, [clearShellMessages, createProject, key, name, reexecuteList, setPayloadAppError, setTransportMessage]);
+  }, [
+    cancelDraftWrite,
+    clearShellMessages,
+    createProject,
+    key,
+    name,
+    reexecuteList,
+    setPayloadAppError,
+    setTransportMessage
+  ]);
 
   const projects: ProjectListItem[] = listResult.data?.projects ?? [];
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
@@ -7,14 +7,22 @@ import {
   RequirementsListQuery
 } from "../graphql/documents";
 import { formatGraphQlTransportError } from "../graphql/formatGraphQlError";
+import {
+  clearCreateRequirementDraft,
+  LOCAL_CREATE_DRAFT_DEBOUNCE_MS,
+  readCreateRequirementDraft,
+  writeCreateRequirementDraft
+} from "../forms/localCreateDraftStorage";
 import { REQUIRED_MSG, trimmedNonEmpty } from "../forms/mandatoryFields";
 import type { RequirementListItem } from "../graphql/types";
+import { useDebouncedAutosaveEffect } from "../hooks/useDebouncedAutosaveEffect";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import "./ProjectsPage.css";
 
 export function RequirementsListPage() {
   const { projectId } = useParams();
   const { clearShellMessages, setTransportMessage, setPayloadAppError } = useShellErrors();
+  const [draftHydrated, setDraftHydrated] = useState(false);
   const [externalKey, setExternalKey] = useState("");
   const [title, setTitle] = useState("");
   const [externalKeyError, setExternalKeyError] = useState<string | null>(null);
@@ -29,6 +37,42 @@ export function RequirementsListPage() {
   });
 
   const [, createRequirement] = useMutation(CreateRequirementMutation);
+
+  useLayoutEffect(() => {
+    if (projectId === undefined || projectId === "") {
+      return;
+    }
+    setDraftHydrated(false);
+    const d = readCreateRequirementDraft(projectId);
+    setExternalKey(d?.externalKey ?? "");
+    setTitle(d?.title ?? "");
+    setDraftHydrated(true);
+  }, [projectId]);
+
+  const cancelDraftWrite = useDebouncedAutosaveEffect(
+    draftHydrated &&
+      projectId !== undefined &&
+      projectId !== "" &&
+      (externalKey !== "" || title !== ""),
+    `${projectId ?? ""}\0${externalKey}\0${title}`,
+    () => {
+      if (projectId === undefined || projectId === "") {
+        return;
+      }
+      writeCreateRequirementDraft(projectId, externalKey, title);
+    },
+    LOCAL_CREATE_DRAFT_DEBOUNCE_MS
+  );
+
+  useEffect(() => {
+    if (!draftHydrated || projectId === undefined || projectId === "") {
+      return;
+    }
+    if (externalKey !== "" || title !== "") {
+      return;
+    }
+    clearCreateRequirementDraft(projectId);
+  }, [draftHydrated, projectId, externalKey, title]);
 
   useEffect(() => {
     if (!listResult.error) {
@@ -59,6 +103,7 @@ export function RequirementsListPage() {
     if (projectId === undefined || projectId === "") {
       return;
     }
+    cancelDraftWrite();
     clearShellMessages();
     const key = externalKey.trim();
     const t = title.trim();
@@ -98,9 +143,11 @@ export function RequirementsListPage() {
     }
     setExternalKey("");
     setTitle("");
+    clearCreateRequirementDraft(projectId);
     setShowValidationPayload(false);
     reexecuteList({ requestPolicy: "network-only" });
   }, [
+    cancelDraftWrite,
     clearShellMessages,
     createRequirement,
     externalKey,

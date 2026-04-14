@@ -9,8 +9,11 @@ import {
 } from "../graphql/documents";
 import { formatGraphQlTransportError } from "../graphql/formatGraphQlError";
 import { REQUIRED_MSG, trimmedNonEmpty } from "../forms/mandatoryFields";
+import { useDebouncedAutosaveEffect } from "../hooks/useDebouncedAutosaveEffect";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import "./ProjectsPage.css";
+
+type RequirementBaseline = { title: string; description: string };
 
 export function RequirementDetailPage() {
   const { projectId, requirementId } = useParams();
@@ -19,8 +22,11 @@ export function RequirementDetailPage() {
 
   const [titleDraft, setTitleDraft] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [baseline, setBaseline] = useState<RequirementBaseline | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
   const [showValidationPayload, setShowValidationPayload] = useState(false);
+  const [savePhase, setSavePhase] = useState<"idle" | "saving">("idle");
+  const [failBump, setFailBump] = useState(0);
 
   const paused = requirementId === undefined || requirementId === "";
   const [detailResult, reexecuteDetail] = useQuery({
@@ -36,7 +42,6 @@ export function RequirementDetailPage() {
 
   /**
    * Hydrate drafts when navigating to a requirement (`requirementId` / `req.id` pair), not when `req` is replaced by refetch.
-   * Deps intentionally omit `req` object identity so clearing the title is not overwritten by background queries.
    */
   useEffect(() => {
     if (requirementId === undefined || requirementId === "") {
@@ -47,6 +52,7 @@ export function RequirementDetailPage() {
     }
     setTitleDraft(req.title);
     setDescriptionDraft(req.description ?? "");
+    setBaseline({ title: req.title, description: req.description ?? "" });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-hydrate on navigation / new entity id, not refetch
   }, [requirementId, req?.id]);
 
@@ -56,6 +62,12 @@ export function RequirementDetailPage() {
     }
     setTransportMessage(formatGraphQlTransportError(detailResult.error));
   }, [detailResult.error, setTransportMessage]);
+
+  const dirty =
+    baseline !== null &&
+    (titleDraft.trim() !== baseline.title.trim() ||
+      descriptionDraft.trim() !== baseline.description.trim());
+  const canAutosave = trimmedNonEmpty(titleDraft.trim());
 
   const updateRequirementClientPayload = useMemo(() => {
     const t = titleDraft.trim();
@@ -72,46 +84,82 @@ export function RequirementDetailPage() {
     };
   }, [descriptionDraft, requirementId, titleDraft]);
 
-  const onSave = useCallback(async () => {
-    if (requirementId === undefined || requirementId === "") {
-      return;
-    }
-    clearShellMessages();
-    const t = titleDraft.trim();
-    if (!trimmedNonEmpty(t)) {
-      setTitleError(REQUIRED_MSG);
-      setShowValidationPayload(true);
-      return;
-    }
-    setTitleError(null);
-    setShowValidationPayload(false);
-    const res = await updateRequirement({
-      input: {
-        id: requirementId,
-        title: t || undefined,
-        description: descriptionDraft.trim() === "" ? null : descriptionDraft.trim()
+  const performSave = useCallback(
+    async (validateClient: boolean): Promise<boolean> => {
+      if (requirementId === undefined || requirementId === "") {
+        return false;
       }
-    });
-    if (res.error) {
-      setTransportMessage(formatGraphQlTransportError(res.error));
-      return;
+      const t = titleDraft.trim();
+      if (!trimmedNonEmpty(t)) {
+        if (validateClient) {
+          clearShellMessages();
+          setTitleError(REQUIRED_MSG);
+          setShowValidationPayload(true);
+        }
+        return false;
+      }
+      if (validateClient) {
+        clearShellMessages();
+        setTitleError(null);
+        setShowValidationPayload(false);
+      }
+      setSavePhase("saving");
+      const res = await updateRequirement({
+        input: {
+          id: requirementId,
+          title: t || undefined,
+          description: descriptionDraft.trim() === "" ? null : descriptionDraft.trim()
+        }
+      });
+      setSavePhase("idle");
+      if (res.error) {
+        setTransportMessage(formatGraphQlTransportError(res.error));
+        setFailBump((n) => n + 1);
+        return false;
+      }
+      const appErr = res.data?.updateRequirement?.error;
+      if (appErr) {
+        setPayloadAppError(appErr);
+        setFailBump((n) => n + 1);
+        return false;
+      }
+      const r = res.data?.updateRequirement?.requirement;
+      if (r !== undefined && r !== null) {
+        setBaseline({ title: r.title, description: r.description ?? "" });
+      }
+      reexecuteDetail({ requestPolicy: "network-only" });
+      return true;
+    },
+    [
+      clearShellMessages,
+      descriptionDraft,
+      reexecuteDetail,
+      requirementId,
+      setPayloadAppError,
+      setTransportMessage,
+      titleDraft,
+      updateRequirement
+    ]
+  );
+
+  const autosaveResetKey = `${titleDraft}\0${descriptionDraft}\0${failBump}`;
+  const cancelAutosave = useDebouncedAutosaveEffect(
+    dirty && canAutosave,
+    autosaveResetKey,
+    () => {
+      void performSave(false);
     }
-    const appErr = res.data?.updateRequirement?.error;
-    if (appErr) {
-      setPayloadAppError(appErr);
-      return;
-    }
-    reexecuteDetail({ requestPolicy: "network-only" });
-  }, [
-    clearShellMessages,
-    descriptionDraft,
-    reexecuteDetail,
-    requirementId,
-    setPayloadAppError,
-    setTransportMessage,
-    titleDraft,
-    updateRequirement
-  ]);
+  );
+
+  const onSaveClick = useCallback(() => {
+    cancelAutosave();
+    void performSave(true);
+  }, [cancelAutosave, performSave]);
+
+  const saveState =
+    savePhase === "saving" ? "saving" : dirty ? "unsaved" : "saved";
+  const saveStatusLabel =
+    savePhase === "saving" ? "Saving…" : dirty ? "Unsaved changes" : "All changes saved";
 
   const onDelete = useCallback(async () => {
     if (requirementId === undefined || requirementId === "" || projectId === undefined) {
@@ -218,9 +266,18 @@ export function RequirementDetailPage() {
           </label>
         </div>
         <ValidationErrorPayloadPreview open={showValidationPayload} payload={updateRequirementClientPayload} />
-        <button type="button" onClick={onSave} data-testid="requirement-save">
-          Save
-        </button>
+        <div className="form-edit-actions">
+          <span
+            className={`form-save-status form-save-status--${saveState}`}
+            data-testid="form-save-status"
+            data-save-state={saveState}
+          >
+            {saveStatusLabel}
+          </span>
+          <button type="button" onClick={onSaveClick} data-testid="requirement-save">
+            Save
+          </button>
+        </div>
       </div>
 
       <div className="project-detail-actions">

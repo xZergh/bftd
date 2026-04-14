@@ -8,8 +8,11 @@ import {
   UpdateProjectMutation
 } from "../graphql/documents";
 import { REQUIRED_MSG, trimmedNonEmpty } from "../forms/mandatoryFields";
+import { useDebouncedAutosaveEffect } from "../hooks/useDebouncedAutosaveEffect";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import "./ProjectsPage.css";
+
+type ProjectBaseline = { name: string; keyNew: string };
 
 export function ProjectDetailPage() {
   const { projectId } = useParams();
@@ -18,8 +21,11 @@ export function ProjectDetailPage() {
 
   const [nameDraft, setNameDraft] = useState("");
   const [keyNewDraft, setKeyNewDraft] = useState("");
+  const [baseline, setBaseline] = useState<ProjectBaseline | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [showValidationPayload, setShowValidationPayload] = useState(false);
+  const [savePhase, setSavePhase] = useState<"idle" | "saving">("idle");
+  const [failBump, setFailBump] = useState(0);
 
   const [detailResult, reexecuteDetail] = useQuery({
     query: ProjectByIdQuery,
@@ -32,13 +38,21 @@ export function ProjectDetailPage() {
 
   const project = detailResult.data?.project;
 
+  /**
+   * Hydrate when opening a project (`projectId` / `project.id`), not when `project` is replaced by refetch.
+   */
   useEffect(() => {
-    if (project === undefined || project === null) {
+    if (projectId === undefined || projectId === "") {
+      return;
+    }
+    if (project === undefined || project === null || project.id !== projectId) {
       return;
     }
     setNameDraft(project.name);
     setKeyNewDraft("");
-  }, [project]);
+    setBaseline({ name: project.name, keyNew: "" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-hydrate on navigation / entity id, not refetch
+  }, [projectId, project?.id]);
 
   useEffect(() => {
     if (!detailResult.error) {
@@ -49,6 +63,11 @@ export function ProjectDetailPage() {
     const text = [...g, n].filter(Boolean).join("; ");
     setTransportMessage(text.length > 0 ? text : "Request failed");
   }, [detailResult.error, setTransportMessage]);
+
+  const dirty =
+    baseline !== null &&
+    (nameDraft.trim() !== baseline.name || keyNewDraft.trim() !== baseline.keyNew);
+  const canAutosave = trimmedNonEmpty(nameDraft.trim());
 
   const updateProjectClientPayload = useMemo(() => {
     const nm = nameDraft.trim();
@@ -63,50 +82,86 @@ export function ProjectDetailPage() {
     };
   }, [keyNewDraft, nameDraft, projectId]);
 
-  const onSave = useCallback(async () => {
-    if (projectId === undefined || projectId === "") {
-      return;
+  const performSave = useCallback(
+    async (validateClient: boolean): Promise<boolean> => {
+      if (projectId === undefined || projectId === "") {
+        return false;
+      }
+      const nm = nameDraft.trim();
+      if (!trimmedNonEmpty(nm)) {
+        if (validateClient) {
+          clearShellMessages();
+          setNameError(REQUIRED_MSG);
+          setShowValidationPayload(true);
+        }
+        return false;
+      }
+      if (validateClient) {
+        clearShellMessages();
+        setNameError(null);
+        setShowValidationPayload(false);
+      }
+      setSavePhase("saving");
+      const kn = keyNewDraft.trim();
+      const res = await updateProject({
+        id: projectId,
+        name: nm || undefined,
+        keyNew: kn === "" ? undefined : kn
+      });
+      setSavePhase("idle");
+      if (res.error) {
+        const parts = [
+          ...res.error.graphQLErrors.map((e) => e.message),
+          res.error.networkError?.message
+        ].filter(Boolean);
+        setTransportMessage(parts.join("; ") || "Request failed");
+        setFailBump((n) => n + 1);
+        return false;
+      }
+      const appErr = res.data?.updateProject?.error;
+      if (appErr) {
+        setPayloadAppError(appErr);
+        setFailBump((n) => n + 1);
+        return false;
+      }
+      const p = res.data?.updateProject?.project;
+      if (p !== undefined && p !== null) {
+        setBaseline({ name: p.name, keyNew: "" });
+      }
+      setKeyNewDraft("");
+      reexecuteDetail({ requestPolicy: "network-only" });
+      return true;
+    },
+    [
+      clearShellMessages,
+      keyNewDraft,
+      nameDraft,
+      projectId,
+      reexecuteDetail,
+      setPayloadAppError,
+      setTransportMessage,
+      updateProject
+    ]
+  );
+
+  const autosaveResetKey = `${nameDraft}\0${keyNewDraft}\0${failBump}`;
+  const cancelAutosave = useDebouncedAutosaveEffect(
+    dirty && canAutosave,
+    autosaveResetKey,
+    () => {
+      void performSave(false);
     }
-    clearShellMessages();
-    const nm = nameDraft.trim();
-    if (!trimmedNonEmpty(nm)) {
-      setNameError(REQUIRED_MSG);
-      setShowValidationPayload(true);
-      return;
-    }
-    setNameError(null);
-    setShowValidationPayload(false);
-    const kn = keyNewDraft.trim();
-    const res = await updateProject({
-      id: projectId,
-      name: nm || undefined,
-      keyNew: kn === "" ? undefined : kn
-    });
-    if (res.error) {
-      const parts = [
-        ...res.error.graphQLErrors.map((e) => e.message),
-        res.error.networkError?.message
-      ].filter(Boolean);
-      setTransportMessage(parts.join("; ") || "Request failed");
-      return;
-    }
-    const appErr = res.data?.updateProject?.error;
-    if (appErr) {
-      setPayloadAppError(appErr);
-      return;
-    }
-    setKeyNewDraft("");
-    reexecuteDetail({ requestPolicy: "network-only" });
-  }, [
-    clearShellMessages,
-    keyNewDraft,
-    nameDraft,
-    projectId,
-    reexecuteDetail,
-    setPayloadAppError,
-    setTransportMessage,
-    updateProject
-  ]);
+  );
+
+  const onSaveClick = useCallback(() => {
+    cancelAutosave();
+    void performSave(true);
+  }, [cancelAutosave, performSave]);
+
+  const saveState =
+    savePhase === "saving" ? "saving" : dirty ? "unsaved" : "saved";
+  const saveStatusLabel =
+    savePhase === "saving" ? "Saving…" : dirty ? "Unsaved changes" : "All changes saved";
 
   const setArchived = useCallback(
     async (archived: boolean) => {
@@ -223,9 +278,18 @@ export function ProjectDetailPage() {
           </label>
         </div>
         <ValidationErrorPayloadPreview open={showValidationPayload} payload={updateProjectClientPayload} />
-        <button type="button" onClick={onSave} data-testid="project-save">
-          Save changes
-        </button>
+        <div className="form-edit-actions">
+          <span
+            className={`form-save-status form-save-status--${saveState}`}
+            data-testid="form-save-status"
+            data-save-state={saveState}
+          >
+            {saveStatusLabel}
+          </span>
+          <button type="button" onClick={onSaveClick} data-testid="project-save">
+            Save changes
+          </button>
+        </div>
       </div>
 
       <div className="project-detail-actions">
