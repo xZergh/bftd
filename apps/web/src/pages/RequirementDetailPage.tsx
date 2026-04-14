@@ -34,13 +34,21 @@ export function RequirementDetailPage() {
 
   const req = detailResult.data?.requirement;
 
+  /**
+   * Hydrate drafts when navigating to a requirement (`requirementId` / `req.id` pair), not when `req` is replaced by refetch.
+   * Deps intentionally omit `req` object identity so clearing the title is not overwritten by background queries.
+   */
   useEffect(() => {
-    if (req === undefined || req === null) {
+    if (requirementId === undefined || requirementId === "") {
+      return;
+    }
+    if (req === undefined || req === null || req.id !== requirementId) {
       return;
     }
     setTitleDraft(req.title);
     setDescriptionDraft(req.description ?? "");
-  }, [req]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-hydrate on navigation / new entity id, not refetch
+  }, [requirementId, req?.id]);
 
   useEffect(() => {
     if (!detailResult.error) {
@@ -72,9 +80,11 @@ export function RequirementDetailPage() {
     const t = titleDraft.trim();
     if (!trimmedNonEmpty(t)) {
       setTitleError(REQUIRED_MSG);
+      setShowValidationPayload(true);
       return;
     }
     setTitleError(null);
+    setShowValidationPayload(false);
     const res = await updateRequirement({
       input: {
         id: requirementId,
@@ -120,6 +130,14 @@ export function RequirementDetailPage() {
 
   if (paused || projectId === undefined) {
     return null;
+  }
+
+  if (detailResult.fetching && detailResult.data === undefined) {
+    return (
+      <section className="projects-page" data-testid="requirement-detail-loading">
+        <p>Loading…</p>
+      </section>
+    );
   }
 
   if (!detailResult.fetching && detailResult.data !== undefined && req === null) {
@@ -171,7 +189,7 @@ export function RequirementDetailPage() {
                 setShowValidationPayload(false);
               }}
               data-testid="requirement-edit-title"
-              required
+              autoComplete="off"
               aria-invalid={titleError !== null}
               aria-describedby={titleError !== null ? "requirement-edit-title-err" : undefined}
             />

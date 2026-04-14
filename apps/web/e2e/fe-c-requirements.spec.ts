@@ -54,6 +54,13 @@ test.describe("FE-C requirements", () => {
     await page.getByTestId("requirement-edit-title").fill(edited);
     await page.getByTestId("requirement-save").click();
     await expect(page.getByTestId("requirement-edit-title")).toHaveValue(edited);
+
+    await page.getByTestId("requirement-edit-title").clear();
+    await expect(page.getByTestId("requirement-edit-title")).toHaveValue("");
+    await page.getByTestId("requirement-save").click();
+    await expect(page.getByTestId("requirement-edit-title-error")).toBeVisible();
+    await expect(page.getByTestId("validation-error-payload-preview")).toBeVisible();
+    await expect(page.getByTestId("validation-error-payload-json")).toContainText("UpdateRequirement");
   });
 
   test("delete blocked when manual testcase linked shows fixHint", async ({ page, request }) => {
