@@ -25,7 +25,7 @@
 
 | ID   | Item                                                                          | E2E spec                                                                                    | Scenarios                                                                                                    |
 | ---- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| FE-A | `[x]` Routing, layout, urql client, global `AppError` + GraphQL `errors[]`, loading | [`apps/web/e2e/fe-a-shell.spec.ts`](../apps/web/e2e/fe-a-shell.spec.ts) | Load app; `/projects` placeholder; transport GraphQL error; duplicate-key `AppError`; urql projects smoke |
+| FE-A | `[x]` Routing, layout, urql client, global `AppError` + GraphQL `errors[]`, loading | [`apps/web/e2e/fe-a-shell.spec.ts`](../apps/web/e2e/fe-a-shell.spec.ts) | Load app; `/projects` page shell; transport GraphQL error; duplicate-key `AppError`; urql projects smoke |
 
 
 ---
@@ -33,9 +33,9 @@
 ## FE-B — Projects
 
 
-| ID   | Item                                           | E2E spec (planned)                   | Scenarios (planned)                      |
-| ---- | ---------------------------------------------- | ------------------------------------ | ---------------------------------------- |
-| FE-B | List / create / edit / archive; project picker; **delivery:** Cursor rule — each new stage checks out `main`, uses a **new branch**, commit/push per stage ([`.cursor/rules/git-branch-per-stage.mdc`](../.cursor/rules/git-branch-per-stage.mdc)) | `apps/web/e2e/fe-b-projects.spec.ts` | Create project; visible in list; archive |
+| ID   | Item                                           | E2E spec                                                                                    | Scenarios                                                                                                   |
+| ---- | ---------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| FE-B | `[x]` List / create / edit / archive; project picker; **delivery:** Cursor rule — each new stage checks out `main`, uses a **new branch**, commit/push per stage ([`.cursor/rules/git-branch-per-stage.mdc`](../.cursor/rules/git-branch-per-stage.mdc)) | [`apps/web/e2e/fe-b-projects.spec.ts`](../apps/web/e2e/fe-b-projects.spec.ts) | Create, list, detail, archive (hidden until “Show archived”), picker navigates to `/projects/:projectId` |
 
 
 ---
