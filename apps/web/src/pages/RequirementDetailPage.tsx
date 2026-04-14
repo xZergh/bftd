@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
+import { ClientPayloadPreview } from "../components/ClientPayloadPreview";
 import {
   DeleteRequirementMutation,
   RequirementByIdQuery,
   UpdateRequirementMutation
 } from "../graphql/documents";
 import { formatGraphQlTransportError } from "../graphql/formatGraphQlError";
+import { REQUIRED_MSG, trimmedNonEmpty } from "../forms/mandatoryFields";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import "./ProjectsPage.css";
 
@@ -17,6 +19,7 @@ export function RequirementDetailPage() {
 
   const [titleDraft, setTitleDraft] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [titleError, setTitleError] = useState<string | null>(null);
 
   const paused = requirementId === undefined || requirementId === "";
   const [detailResult, reexecuteDetail] = useQuery({
@@ -45,15 +48,36 @@ export function RequirementDetailPage() {
     setTransportMessage(formatGraphQlTransportError(detailResult.error));
   }, [detailResult.error, setTransportMessage]);
 
+  const updateRequirementClientPayload = useMemo(() => {
+    const t = titleDraft.trim();
+    const d = descriptionDraft.trim();
+    return {
+      mutation: "UpdateRequirement",
+      variables: {
+        input: {
+          id: requirementId ?? null,
+          title: t.length > 0 ? t : null,
+          description: d === "" ? null : d
+        }
+      }
+    };
+  }, [descriptionDraft, requirementId, titleDraft]);
+
   const onSave = useCallback(async () => {
     if (requirementId === undefined || requirementId === "") {
       return;
     }
     clearShellMessages();
+    const t = titleDraft.trim();
+    if (!trimmedNonEmpty(t)) {
+      setTitleError(REQUIRED_MSG);
+      return;
+    }
+    setTitleError(null);
     const res = await updateRequirement({
       input: {
         id: requirementId,
-        title: titleDraft.trim() || undefined,
+        title: t || undefined,
         description: descriptionDraft.trim() === "" ? null : descriptionDraft.trim()
       }
     });
@@ -136,13 +160,29 @@ export function RequirementDetailPage() {
         <h3 className="projects-subheading">Edit</h3>
         <div className="projects-create-fields">
           <label>
-            Title
+            Title <span className="required-star" aria-hidden="true">*</span>
             <input
               type="text"
               value={titleDraft}
-              onChange={(e) => setTitleDraft(e.target.value)}
+              onChange={(e) => {
+                setTitleDraft(e.target.value);
+                setTitleError(null);
+              }}
               data-testid="requirement-edit-title"
+              required
+              aria-invalid={titleError !== null}
+              aria-describedby={titleError !== null ? "requirement-edit-title-err" : undefined}
             />
+            {titleError !== null && (
+              <p
+                id="requirement-edit-title-err"
+                className="field-error"
+                role="alert"
+                data-testid="requirement-edit-title-error"
+              >
+                {titleError}
+              </p>
+            )}
           </label>
           <label>
             Description
@@ -154,6 +194,7 @@ export function RequirementDetailPage() {
             />
           </label>
         </div>
+        <ClientPayloadPreview payload={updateRequirementClientPayload} />
         <button type="button" onClick={onSave} data-testid="requirement-save">
           Save
         </button>

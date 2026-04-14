@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
+import { ClientPayloadPreview } from "../components/ClientPayloadPreview";
 import { CreateProjectMutation, ProjectsListQuery } from "../graphql/documents";
+import { REQUIRED_MSG, trimmedNonEmpty } from "../forms/mandatoryFields";
 import type { ProjectListItem } from "../graphql/types";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import "./ProjectsPage.css";
@@ -11,6 +13,7 @@ export function ProjectsListPage() {
   const [includeArchived, setIncludeArchived] = useState(false);
   const [name, setName] = useState("");
   const [key, setKey] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
 
   const [listResult, reexecuteList] = useQuery({
     query: ProjectsListQuery,
@@ -33,12 +36,26 @@ export function ProjectsListPage() {
     });
   }, [listResult.error, setTransportMessage]);
 
+  const createProjectClientPayload = useMemo(() => {
+    const trimmedName = name.trim();
+    const trimmedKey = key.trim();
+    return {
+      mutation: "CreateProject",
+      variables: {
+        name: trimmedName.length > 0 ? trimmedName : null,
+        key: trimmedKey.length > 0 ? trimmedKey : undefined
+      }
+    };
+  }, [key, name]);
+
   const onCreate = useCallback(async () => {
     clearShellMessages();
     const trimmedName = name.trim();
-    if (trimmedName === "") {
+    if (!trimmedNonEmpty(trimmedName)) {
+      setNameError(REQUIRED_MSG);
       return;
     }
+    setNameError(null);
     const trimmedKey = key.trim();
     const res = await createProject({
       name: trimmedName,
@@ -72,14 +89,25 @@ export function ProjectsListPage() {
         <h3 className="projects-subheading">New project</h3>
         <div className="projects-create-fields">
           <label>
-            Name
+            Name <span className="required-star" aria-hidden="true">*</span>
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                setNameError(null);
+              }}
               data-testid="project-create-name"
               autoComplete="off"
+              required
+              aria-invalid={nameError !== null}
+              aria-describedby={nameError !== null ? "project-create-name-err" : undefined}
             />
+            {nameError !== null && (
+              <p id="project-create-name-err" className="field-error" role="alert" data-testid="project-create-name-error">
+                {nameError}
+              </p>
+            )}
           </label>
           <label>
             Key <span className="hint">(optional)</span>
@@ -92,6 +120,7 @@ export function ProjectsListPage() {
             />
           </label>
         </div>
+        <ClientPayloadPreview payload={createProjectClientPayload} />
         <button type="button" onClick={onCreate} data-testid="project-create-submit">
           Create
         </button>

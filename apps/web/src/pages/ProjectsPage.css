@@ -145,6 +145,17 @@
   resize: vertical;
 }
 
+.field-error {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: #b42318;
+}
+
+.required-star {
+  color: #b42318;
+  font-weight: 600;
+}
+
 .project-detail-meta {
   margin: 0 0 1.25rem;
   display: grid;

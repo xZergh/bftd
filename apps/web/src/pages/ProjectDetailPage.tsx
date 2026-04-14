@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
+import { ClientPayloadPreview } from "../components/ClientPayloadPreview";
 import {
   ArchiveProjectMutation,
   ProjectByIdQuery,
   UpdateProjectMutation
 } from "../graphql/documents";
+import { REQUIRED_MSG, trimmedNonEmpty } from "../forms/mandatoryFields";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import "./ProjectsPage.css";
 
@@ -16,6 +18,7 @@ export function ProjectDetailPage() {
 
   const [nameDraft, setNameDraft] = useState("");
   const [keyNewDraft, setKeyNewDraft] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
 
   const [detailResult, reexecuteDetail] = useQuery({
     query: ProjectByIdQuery,
@@ -46,15 +49,34 @@ export function ProjectDetailPage() {
     setTransportMessage(text.length > 0 ? text : "Request failed");
   }, [detailResult.error, setTransportMessage]);
 
+  const updateProjectClientPayload = useMemo(() => {
+    const nm = nameDraft.trim();
+    const kn = keyNewDraft.trim();
+    return {
+      mutation: "UpdateProject",
+      variables: {
+        id: projectId ?? null,
+        name: nm.length > 0 ? nm : null,
+        keyNew: kn.length > 0 ? kn : undefined
+      }
+    };
+  }, [keyNewDraft, nameDraft, projectId]);
+
   const onSave = useCallback(async () => {
     if (projectId === undefined || projectId === "") {
       return;
     }
     clearShellMessages();
+    const nm = nameDraft.trim();
+    if (!trimmedNonEmpty(nm)) {
+      setNameError(REQUIRED_MSG);
+      return;
+    }
+    setNameError(null);
     const kn = keyNewDraft.trim();
     const res = await updateProject({
       id: projectId,
-      name: nameDraft.trim() || undefined,
+      name: nm || undefined,
       keyNew: kn === "" ? undefined : kn
     });
     if (res.error) {
@@ -163,13 +185,24 @@ export function ProjectDetailPage() {
         <h3 className="projects-subheading">Edit</h3>
         <div className="projects-create-fields">
           <label>
-            Name
+            Name <span className="required-star" aria-hidden="true">*</span>
             <input
               type="text"
               value={nameDraft}
-              onChange={(e) => setNameDraft(e.target.value)}
+              onChange={(e) => {
+                setNameDraft(e.target.value);
+                setNameError(null);
+              }}
               data-testid="project-edit-name"
+              required
+              aria-invalid={nameError !== null}
+              aria-describedby={nameError !== null ? "project-edit-name-err" : undefined}
             />
+            {nameError !== null && (
+              <p id="project-edit-name-err" className="field-error" role="alert" data-testid="project-edit-name-error">
+                {nameError}
+              </p>
+            )}
           </label>
           <label>
             New key <span className="hint">(optional)</span>
@@ -182,6 +215,7 @@ export function ProjectDetailPage() {
             />
           </label>
         </div>
+        <ClientPayloadPreview payload={updateProjectClientPayload} />
         <button type="button" onClick={onSave} data-testid="project-save">
           Save changes
         </button>
