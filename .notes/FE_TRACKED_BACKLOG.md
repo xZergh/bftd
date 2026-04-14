@@ -23,9 +23,9 @@
 ## FE-A — App shell
 
 
-| ID   | Item                                                                          | E2E spec (planned)                | Scenarios (planned)                           |
-| ---- | ----------------------------------------------------------------------------- | --------------------------------- | --------------------------------------------- |
-| FE-A | Routing, layout, urql client, global `AppError` + GraphQL `errors[]`, loading | `apps/web/e2e/fe-a-shell.spec.ts` | Load app; navigate; forced API error surfaces |
+| ID   | Item                                                                          | E2E spec                                                                                    | Scenarios                                                                                                    |
+| ---- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| FE-A | `[x]` Routing, layout, urql client, global `AppError` + GraphQL `errors[]`, loading | [`apps/web/e2e/fe-a-shell.spec.ts`](../apps/web/e2e/fe-a-shell.spec.ts) | Load app; `/projects` placeholder; transport GraphQL error; duplicate-key `AppError`; urql projects smoke |
 
 
 ---

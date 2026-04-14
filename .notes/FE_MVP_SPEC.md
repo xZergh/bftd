@@ -43,9 +43,9 @@ Authoritative backlog: `[.notes/FE_TRACKED_BACKLOG.md](FE_TRACKED_BACKLOG.md)`. 
 
 ## 6) Error contract
 
-- **Payload errors:** mutations that return `AppError` must show `**code`**, `**message**`, and `**fixHint**` (and optional `context`) in UI.
+- **Payload errors:** mutations that return `AppError` must show `**code`**, `**message`**, and `**fixHint**` (and optional `context`) in UI.
 - **Transport errors:** GraphQL `**errors[]`** on the HTTP response must be surfaced in a **global** or **inline** error pattern (shell **FE-A** defines the default).
-- **Imports:** render `**errors[]`** / `**warnings[]**` with row `**index**` for bulk operations.
+- **Imports:** render `**errors[]`** / `**warnings[]`** with row `**index`** for bulk operations.
 
 ## 7) Traceability UI vs backend B10
 

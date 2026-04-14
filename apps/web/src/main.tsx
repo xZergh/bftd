@@ -1,9 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { Provider } from "urql";
-import { Client, fetchExchange } from "urql";
+import { BrowserRouter } from "react-router-dom";
+import { Client, fetchExchange, Provider } from "urql";
 import "./index.css";
 import App from "./App.tsx";
+import { ShellErrorsProvider } from "./shell/ShellErrorsContext";
 
 const graphqlClient = new Client({
   url: "/graphql",
@@ -12,8 +13,12 @@ const graphqlClient = new Client({
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Provider value={graphqlClient}>
-      <App />
-    </Provider>
+    <BrowserRouter>
+      <Provider value={graphqlClient}>
+        <ShellErrorsProvider>
+          <App />
+        </ShellErrorsProvider>
+      </Provider>
+    </BrowserRouter>
   </StrictMode>
 );
