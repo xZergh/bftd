@@ -1,0 +1,14 @@
+---
+description: New work stages branch from main; one branch per stage for commit/push
+alwaysApply: true
+---
+
+# Git workflow (branch per stage)
+
+When starting **a new stage** of work (a new chunk of features, fixes, or PR-sized delivery):
+
+1. **`git checkout main`** then **`git pull`** (or `git pull origin main`) so the stage starts from current `main`.
+2. **`git checkout -b <new-branch>`** — use a **new branch** for that stage. Do not keep pushing unrelated stages onto the same long-lived feature branch unless the user explicitly asks.
+3. **Commit and push** on that branch only; open or update a PR from it to `main` as appropriate.
+
+If the user asks to commit and push without naming a branch, assume they want this flow: confirm `main` is up to date, create a descriptive new branch for the staged changes, commit, push the new branch.

@@ -35,7 +35,7 @@
 
 | ID   | Item                                           | E2E spec (planned)                   | Scenarios (planned)                      |
 | ---- | ---------------------------------------------- | ------------------------------------ | ---------------------------------------- |
-| FE-B | List / create / edit / archive; project picker | `apps/web/e2e/fe-b-projects.spec.ts` | Create project; visible in list; archive |
+| FE-B | List / create / edit / archive; project picker; **delivery:** Cursor rule — each new stage checks out `main`, uses a **new branch**, commit/push per stage ([`.cursor/rules/git-branch-per-stage.mdc`](../.cursor/rules/git-branch-per-stage.mdc)) | `apps/web/e2e/fe-b-projects.spec.ts` | Create project; visible in list; archive |
 
 
 ---
