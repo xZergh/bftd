@@ -1,0 +1,169 @@
+import { useCallback, useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useMutation, useQuery } from "urql";
+import {
+  DeleteRequirementMutation,
+  RequirementByIdQuery,
+  UpdateRequirementMutation
+} from "../graphql/documents";
+import { formatGraphQlTransportError } from "../graphql/formatGraphQlError";
+import { useShellErrors } from "../shell/ShellErrorsContext";
+import "./ProjectsPage.css";
+
+export function RequirementDetailPage() {
+  const { projectId, requirementId } = useParams();
+  const navigate = useNavigate();
+  const { clearShellMessages, setTransportMessage, setPayloadAppError } = useShellErrors();
+
+  const [titleDraft, setTitleDraft] = useState("");
+  const [descriptionDraft, setDescriptionDraft] = useState("");
+
+  const paused = requirementId === undefined || requirementId === "";
+  const [detailResult, reexecuteDetail] = useQuery({
+    query: RequirementByIdQuery,
+    variables: { id: requirementId ?? "", projectId: projectId ?? undefined },
+    pause: paused
+  });
+
+  const [, updateRequirement] = useMutation(UpdateRequirementMutation);
+  const [, deleteRequirement] = useMutation(DeleteRequirementMutation);
+
+  const req = detailResult.data?.requirement;
+
+  useEffect(() => {
+    if (req === undefined || req === null) {
+      return;
+    }
+    setTitleDraft(req.title);
+    setDescriptionDraft(req.description ?? "");
+  }, [req]);
+
+  useEffect(() => {
+    if (!detailResult.error) {
+      return;
+    }
+    setTransportMessage(formatGraphQlTransportError(detailResult.error));
+  }, [detailResult.error, setTransportMessage]);
+
+  const onSave = useCallback(async () => {
+    if (requirementId === undefined || requirementId === "") {
+      return;
+    }
+    clearShellMessages();
+    const res = await updateRequirement({
+      input: {
+        id: requirementId,
+        title: titleDraft.trim() || undefined,
+        description: descriptionDraft.trim() === "" ? null : descriptionDraft.trim()
+      }
+    });
+    if (res.error) {
+      setTransportMessage(formatGraphQlTransportError(res.error));
+      return;
+    }
+    const appErr = res.data?.updateRequirement?.error;
+    if (appErr) {
+      setPayloadAppError(appErr);
+      return;
+    }
+    reexecuteDetail({ requestPolicy: "network-only" });
+  }, [
+    clearShellMessages,
+    descriptionDraft,
+    reexecuteDetail,
+    requirementId,
+    setPayloadAppError,
+    setTransportMessage,
+    titleDraft,
+    updateRequirement
+  ]);
+
+  const onDelete = useCallback(async () => {
+    if (requirementId === undefined || requirementId === "" || projectId === undefined) {
+      return;
+    }
+    clearShellMessages();
+    const res = await deleteRequirement({ id: requirementId });
+    if (res.error) {
+      setTransportMessage(formatGraphQlTransportError(res.error));
+      return;
+    }
+    if (res.data?.deleteRequirement?.success === true) {
+      navigate(`/projects/${projectId}/requirements`);
+    }
+  }, [clearShellMessages, deleteRequirement, navigate, projectId, requirementId, setTransportMessage]);
+
+  if (paused || projectId === undefined) {
+    return null;
+  }
+
+  if (!detailResult.fetching && detailResult.data !== undefined && req === null) {
+    return (
+      <section className="projects-page" data-testid="requirement-not-found">
+        <h2>Requirement not found</h2>
+        <Link to={`/projects/${projectId}/requirements`}>Back to requirements</Link>
+      </section>
+    );
+  }
+
+  if (req === undefined || req === null) {
+    return (
+      <section className="projects-page" data-testid="requirement-detail-loading">
+        <p>Loading…</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="projects-page" data-testid="requirement-detail-page">
+      <div className="project-detail-header">
+        <h2>Requirement</h2>
+        <Link to={`/projects/${projectId}/requirements`} data-testid="requirement-back-list">
+          ← Requirements
+        </Link>
+      </div>
+
+      <dl className="project-detail-meta">
+        <div>
+          <dt>External key</dt>
+          <dd>
+            <code data-testid="requirement-detail-key">{req.externalKey}</code>
+          </dd>
+        </div>
+      </dl>
+
+      <div className="projects-create project-detail-edit">
+        <h3 className="projects-subheading">Edit</h3>
+        <div className="projects-create-fields">
+          <label>
+            Title
+            <input
+              type="text"
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              data-testid="requirement-edit-title"
+            />
+          </label>
+          <label>
+            Description
+            <textarea
+              value={descriptionDraft}
+              onChange={(e) => setDescriptionDraft(e.target.value)}
+              data-testid="requirement-edit-description"
+              rows={4}
+            />
+          </label>
+        </div>
+        <button type="button" onClick={onSave} data-testid="requirement-save">
+          Save
+        </button>
+      </div>
+
+      <div className="project-detail-actions">
+        <button type="button" onClick={onDelete} data-testid="requirement-delete">
+          Delete requirement
+        </button>
+      </div>
+    </section>
+  );
+}

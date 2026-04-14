@@ -134,9 +134,14 @@ export function ProjectDetailPage() {
     <section className="projects-page" data-testid="project-detail-page">
       <div className="project-detail-header">
         <h2 id="project-detail-heading">Project</h2>
-        <Link to="/projects" data-testid="project-back-to-list">
-          ← All projects
-        </Link>
+        <div className="project-detail-header-links">
+          <Link to="/projects" data-testid="project-back-to-list">
+            ← All projects
+          </Link>
+          <Link to={`/projects/${projectId}/requirements`} data-testid="project-nav-requirements">
+            Requirements
+          </Link>
+        </div>
       </div>
 
       <dl className="project-detail-meta">

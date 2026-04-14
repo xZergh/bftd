@@ -24,10 +24,13 @@ export function ProjectsListPage() {
     if (!listResult.error) {
       return;
     }
-    const g = listResult.error.graphQLErrors.map((e) => e.message);
-    const n = listResult.error.networkError?.message;
-    const text = [...g, n].filter(Boolean).join("; ");
-    setTransportMessage(text.length > 0 ? text : "Request failed");
+    const err = listResult.error;
+    queueMicrotask(() => {
+      const g = err.graphQLErrors.map((e) => e.message);
+      const n = err.networkError?.message;
+      const text = [...g, n].filter(Boolean).join("; ");
+      setTransportMessage(text.length > 0 ? text : "Request failed");
+    });
   }, [listResult.error, setTransportMessage]);
 
   const onCreate = useCallback(async () => {
