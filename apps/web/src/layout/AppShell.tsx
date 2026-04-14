@@ -1,4 +1,5 @@
 import { Link, Outlet } from "react-router-dom";
+import { ProjectPicker } from "../components/ProjectPicker";
 import "../App.css";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import "./AppShell.css";
@@ -38,14 +39,17 @@ export function AppShell() {
         </div>
       )}
 
-      <nav className="app-nav" aria-label="Main">
-        <Link to="/" data-testid="nav-home">
-          Home
-        </Link>
-        <Link to="/projects" data-testid="nav-projects">
-          Projects
-        </Link>
-      </nav>
+      <div className="app-nav-row">
+        <nav className="app-nav" aria-label="Main">
+          <Link to="/" data-testid="nav-home">
+            Home
+          </Link>
+          <Link to="/projects" data-testid="nav-projects">
+            Projects
+          </Link>
+        </nav>
+        <ProjectPicker />
+      </div>
 
       <main className="app-main">
         <Outlet />

@@ -10,7 +10,7 @@ test.describe("FE-A app shell", () => {
 
     await page.getByTestId("nav-projects").click();
     await expect(page).toHaveURL(/\/projects$/);
-    await expect(page.getByTestId("projects-shell-placeholder")).toBeVisible();
+    await expect(page.getByTestId("projects-page")).toBeVisible();
 
     await page.getByTestId("nav-home").click();
     await expect(page).toHaveURL(/\/$/);

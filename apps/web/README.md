@@ -26,6 +26,7 @@ Full step-by-step (env, clean DB, troubleshooting): [`docs/LOCAL_MANUAL_TESTING.
 - Config: [`playwright.config.ts`](playwright.config.ts) — web servers **`tcms-api`** (depends) and **`tcms-web`**.
 - Smoke: [`e2e/fe-e2e-0-smoke.spec.ts`](e2e/fe-e2e-0-smoke.spec.ts).
 - App shell (FE-A): [`e2e/fe-a-shell.spec.ts`](e2e/fe-a-shell.spec.ts) — routing, error banners, urql load path.
+- Projects (FE-B): [`e2e/fe-b-projects.spec.ts`](e2e/fe-b-projects.spec.ts) — create, archive, picker.
 
 From repo root: `npm run e2e:web` or `npm run ci:e2e:web`.
 

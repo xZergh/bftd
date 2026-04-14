@@ -1,0 +1,154 @@
+.projects-page {
+  max-width: 100%;
+}
+
+.projects-subheading {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.projects-create {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+}
+
+.projects-create-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.projects-create-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.projects-create-fields input {
+  padding: 0.45rem 0.5rem;
+  font-size: 1rem;
+  max-width: 24rem;
+}
+
+.hint {
+  font-weight: normal;
+  color: #666;
+}
+
+.projects-list-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.projects-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.projects-loading {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.projects-empty {
+  margin: 0;
+  color: #555;
+}
+
+.projects-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  background: #fff;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.projects-table th,
+.projects-table td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #eee;
+}
+
+.projects-table th {
+  background: #f4f4f5;
+  font-weight: 600;
+}
+
+.projects-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.projects-table a {
+  color: #2563eb;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge.archived {
+  background: #f4f4f5;
+  color: #52525b;
+}
+
+.project-detail-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.project-detail-meta {
+  margin: 0 0 1.25rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.project-detail-meta dt {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #666;
+}
+
+.project-detail-meta dd {
+  margin: 0;
+}
+
+.project-detail-edit {
+  margin-bottom: 1rem;
+}
+
+.project-detail-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.project-detail-actions button[data-testid="project-archive"] {
+  color: #b42318;
+}
