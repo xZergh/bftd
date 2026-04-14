@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
-import { ClientPayloadPreview } from "../components/ClientPayloadPreview";
+import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
 import {
   ArchiveProjectMutation,
   ProjectByIdQuery,
@@ -19,6 +19,7 @@ export function ProjectDetailPage() {
   const [nameDraft, setNameDraft] = useState("");
   const [keyNewDraft, setKeyNewDraft] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
+  const [showValidationPayload, setShowValidationPayload] = useState(false);
 
   const [detailResult, reexecuteDetail] = useQuery({
     query: ProjectByIdQuery,
@@ -70,9 +71,11 @@ export function ProjectDetailPage() {
     const nm = nameDraft.trim();
     if (!trimmedNonEmpty(nm)) {
       setNameError(REQUIRED_MSG);
+      setShowValidationPayload(true);
       return;
     }
     setNameError(null);
+    setShowValidationPayload(false);
     const kn = keyNewDraft.trim();
     const res = await updateProject({
       id: projectId,
@@ -192,6 +195,7 @@ export function ProjectDetailPage() {
               onChange={(e) => {
                 setNameDraft(e.target.value);
                 setNameError(null);
+                setShowValidationPayload(false);
               }}
               data-testid="project-edit-name"
               required
@@ -209,13 +213,16 @@ export function ProjectDetailPage() {
             <input
               type="text"
               value={keyNewDraft}
-              onChange={(e) => setKeyNewDraft(e.target.value)}
+              onChange={(e) => {
+                setKeyNewDraft(e.target.value);
+                setShowValidationPayload(false);
+              }}
               data-testid="project-edit-key-new"
               placeholder={project.key}
             />
           </label>
         </div>
-        <ClientPayloadPreview payload={updateProjectClientPayload} />
+        <ValidationErrorPayloadPreview open={showValidationPayload} payload={updateProjectClientPayload} />
         <button type="button" onClick={onSave} data-testid="project-save">
           Save changes
         </button>

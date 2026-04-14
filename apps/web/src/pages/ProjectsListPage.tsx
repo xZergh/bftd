@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
-import { ClientPayloadPreview } from "../components/ClientPayloadPreview";
+import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
 import { CreateProjectMutation, ProjectsListQuery } from "../graphql/documents";
 import { REQUIRED_MSG, trimmedNonEmpty } from "../forms/mandatoryFields";
 import type { ProjectListItem } from "../graphql/types";
@@ -14,6 +14,7 @@ export function ProjectsListPage() {
   const [name, setName] = useState("");
   const [key, setKey] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
+  const [showValidationPayload, setShowValidationPayload] = useState(false);
 
   const [listResult, reexecuteList] = useQuery({
     query: ProjectsListQuery,
@@ -53,9 +54,11 @@ export function ProjectsListPage() {
     const trimmedName = name.trim();
     if (!trimmedNonEmpty(trimmedName)) {
       setNameError(REQUIRED_MSG);
+      setShowValidationPayload(true);
       return;
     }
     setNameError(null);
+    setShowValidationPayload(false);
     const trimmedKey = key.trim();
     const res = await createProject({
       name: trimmedName,
@@ -76,6 +79,7 @@ export function ProjectsListPage() {
     }
     setName("");
     setKey("");
+    setShowValidationPayload(false);
     reexecuteList({ requestPolicy: "network-only" });
   }, [clearShellMessages, createProject, key, name, reexecuteList, setPayloadAppError, setTransportMessage]);
 
@@ -96,6 +100,7 @@ export function ProjectsListPage() {
               onChange={(e) => {
                 setName(e.target.value);
                 setNameError(null);
+                setShowValidationPayload(false);
               }}
               data-testid="project-create-name"
               autoComplete="off"
@@ -114,13 +119,16 @@ export function ProjectsListPage() {
             <input
               type="text"
               value={key}
-              onChange={(e) => setKey(e.target.value)}
+              onChange={(e) => {
+                setKey(e.target.value);
+                setShowValidationPayload(false);
+              }}
               data-testid="project-create-key"
               autoComplete="off"
             />
           </label>
         </div>
-        <ClientPayloadPreview payload={createProjectClientPayload} />
+        <ValidationErrorPayloadPreview open={showValidationPayload} payload={createProjectClientPayload} />
         <button type="button" onClick={onCreate} data-testid="project-create-submit">
           Create
         </button>

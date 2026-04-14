@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
-import { ClientPayloadPreview } from "../components/ClientPayloadPreview";
+import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
 import {
   DeleteRequirementMutation,
   RequirementByIdQuery,
@@ -20,6 +20,7 @@ export function RequirementDetailPage() {
   const [titleDraft, setTitleDraft] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [showValidationPayload, setShowValidationPayload] = useState(false);
 
   const paused = requirementId === undefined || requirementId === "";
   const [detailResult, reexecuteDetail] = useQuery({
@@ -167,6 +168,7 @@ export function RequirementDetailPage() {
               onChange={(e) => {
                 setTitleDraft(e.target.value);
                 setTitleError(null);
+                setShowValidationPayload(false);
               }}
               data-testid="requirement-edit-title"
               required
@@ -188,13 +190,16 @@ export function RequirementDetailPage() {
             Description
             <textarea
               value={descriptionDraft}
-              onChange={(e) => setDescriptionDraft(e.target.value)}
+              onChange={(e) => {
+                setDescriptionDraft(e.target.value);
+                setShowValidationPayload(false);
+              }}
               data-testid="requirement-edit-description"
               rows={4}
             />
           </label>
         </div>
-        <ClientPayloadPreview payload={updateRequirementClientPayload} />
+        <ValidationErrorPayloadPreview open={showValidationPayload} payload={updateRequirementClientPayload} />
         <button type="button" onClick={onSave} data-testid="requirement-save">
           Save
         </button>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
-import { ClientPayloadPreview } from "../components/ClientPayloadPreview";
+import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
 import {
   CreateRequirementMutation,
   RequirementsListQuery
@@ -19,6 +19,7 @@ export function RequirementsListPage() {
   const [title, setTitle] = useState("");
   const [externalKeyError, setExternalKeyError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [showValidationPayload, setShowValidationPayload] = useState(false);
 
   const [listResult, reexecuteList] = useQuery({
     query: RequirementsListQuery,
@@ -75,8 +76,10 @@ export function RequirementsListPage() {
       setTitleError(null);
     }
     if (invalid) {
+      setShowValidationPayload(true);
       return;
     }
+    setShowValidationPayload(false);
     const res = await createRequirement({
       input: {
         projectId,
@@ -95,6 +98,7 @@ export function RequirementsListPage() {
     }
     setExternalKey("");
     setTitle("");
+    setShowValidationPayload(false);
     reexecuteList({ requestPolicy: "network-only" });
   }, [
     clearShellMessages,
@@ -133,6 +137,7 @@ export function RequirementsListPage() {
               onChange={(e) => {
                 setExternalKey(e.target.value);
                 setExternalKeyError(null);
+                setShowValidationPayload(false);
               }}
               data-testid="requirement-create-key"
               autoComplete="off"
@@ -159,6 +164,7 @@ export function RequirementsListPage() {
               onChange={(e) => {
                 setTitle(e.target.value);
                 setTitleError(null);
+                setShowValidationPayload(false);
               }}
               data-testid="requirement-create-title"
               autoComplete="off"
@@ -178,7 +184,7 @@ export function RequirementsListPage() {
             )}
           </label>
         </div>
-        <ClientPayloadPreview payload={createRequirementClientPayload} />
+        <ValidationErrorPayloadPreview open={showValidationPayload} payload={createRequirementClientPayload} />
         <button type="button" onClick={onCreate} data-testid="requirement-create-submit">
           Create
         </button>
