@@ -1,13 +1,18 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
+import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
 import {
   ArchiveProjectMutation,
   ProjectByIdQuery,
   UpdateProjectMutation
 } from "../graphql/documents";
+import { REQUIRED_MSG, trimmedNonEmpty } from "../forms/mandatoryFields";
+import { useDebouncedAutosaveEffect } from "../hooks/useDebouncedAutosaveEffect";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import "./ProjectsPage.css";
+
+type ProjectBaseline = { name: string; keyNew: string };
 
 export function ProjectDetailPage() {
   const { projectId } = useParams();
@@ -16,6 +21,11 @@ export function ProjectDetailPage() {
 
   const [nameDraft, setNameDraft] = useState("");
   const [keyNewDraft, setKeyNewDraft] = useState("");
+  const [baseline, setBaseline] = useState<ProjectBaseline | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [showValidationPayload, setShowValidationPayload] = useState(false);
+  const [savePhase, setSavePhase] = useState<"idle" | "saving">("idle");
+  const [failBump, setFailBump] = useState(0);
 
   const [detailResult, reexecuteDetail] = useQuery({
     query: ProjectByIdQuery,
@@ -28,13 +38,21 @@ export function ProjectDetailPage() {
 
   const project = detailResult.data?.project;
 
+  /**
+   * Hydrate when opening a project (`projectId` / `project.id`), not when `project` is replaced by refetch.
+   */
   useEffect(() => {
-    if (project === undefined || project === null) {
+    if (projectId === undefined || projectId === "") {
+      return;
+    }
+    if (project === undefined || project === null || project.id !== projectId) {
       return;
     }
     setNameDraft(project.name);
     setKeyNewDraft("");
-  }, [project]);
+    setBaseline({ name: project.name, keyNew: "" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-hydrate on navigation / entity id, not refetch
+  }, [projectId, project?.id]);
 
   useEffect(() => {
     if (!detailResult.error) {
@@ -46,42 +64,104 @@ export function ProjectDetailPage() {
     setTransportMessage(text.length > 0 ? text : "Request failed");
   }, [detailResult.error, setTransportMessage]);
 
-  const onSave = useCallback(async () => {
-    if (projectId === undefined || projectId === "") {
-      return;
-    }
-    clearShellMessages();
+  const dirty =
+    baseline !== null &&
+    (nameDraft.trim() !== baseline.name || keyNewDraft.trim() !== baseline.keyNew);
+  const canAutosave = trimmedNonEmpty(nameDraft.trim());
+
+  const updateProjectClientPayload = useMemo(() => {
+    const nm = nameDraft.trim();
     const kn = keyNewDraft.trim();
-    const res = await updateProject({
-      id: projectId,
-      name: nameDraft.trim() || undefined,
-      keyNew: kn === "" ? undefined : kn
-    });
-    if (res.error) {
-      const parts = [
-        ...res.error.graphQLErrors.map((e) => e.message),
-        res.error.networkError?.message
-      ].filter(Boolean);
-      setTransportMessage(parts.join("; ") || "Request failed");
-      return;
+    return {
+      mutation: "UpdateProject",
+      variables: {
+        id: projectId ?? null,
+        name: nm.length > 0 ? nm : null,
+        keyNew: kn.length > 0 ? kn : undefined
+      }
+    };
+  }, [keyNewDraft, nameDraft, projectId]);
+
+  const performSave = useCallback(
+    async (validateClient: boolean): Promise<boolean> => {
+      if (projectId === undefined || projectId === "") {
+        return false;
+      }
+      const nm = nameDraft.trim();
+      if (!trimmedNonEmpty(nm)) {
+        if (validateClient) {
+          clearShellMessages();
+          setNameError(REQUIRED_MSG);
+          setShowValidationPayload(true);
+        }
+        return false;
+      }
+      if (validateClient) {
+        clearShellMessages();
+        setNameError(null);
+        setShowValidationPayload(false);
+      }
+      setSavePhase("saving");
+      const kn = keyNewDraft.trim();
+      const res = await updateProject({
+        id: projectId,
+        name: nm || undefined,
+        keyNew: kn === "" ? undefined : kn
+      });
+      setSavePhase("idle");
+      if (res.error) {
+        const parts = [
+          ...res.error.graphQLErrors.map((e) => e.message),
+          res.error.networkError?.message
+        ].filter(Boolean);
+        setTransportMessage(parts.join("; ") || "Request failed");
+        setFailBump((n) => n + 1);
+        return false;
+      }
+      const appErr = res.data?.updateProject?.error;
+      if (appErr) {
+        setPayloadAppError(appErr);
+        setFailBump((n) => n + 1);
+        return false;
+      }
+      const p = res.data?.updateProject?.project;
+      if (p !== undefined && p !== null) {
+        setBaseline({ name: p.name, keyNew: "" });
+      }
+      setKeyNewDraft("");
+      reexecuteDetail({ requestPolicy: "network-only" });
+      return true;
+    },
+    [
+      clearShellMessages,
+      keyNewDraft,
+      nameDraft,
+      projectId,
+      reexecuteDetail,
+      setPayloadAppError,
+      setTransportMessage,
+      updateProject
+    ]
+  );
+
+  const autosaveResetKey = `${nameDraft}\0${keyNewDraft}\0${failBump}`;
+  const cancelAutosave = useDebouncedAutosaveEffect(
+    dirty && canAutosave,
+    autosaveResetKey,
+    () => {
+      void performSave(false);
     }
-    const appErr = res.data?.updateProject?.error;
-    if (appErr) {
-      setPayloadAppError(appErr);
-      return;
-    }
-    setKeyNewDraft("");
-    reexecuteDetail({ requestPolicy: "network-only" });
-  }, [
-    clearShellMessages,
-    keyNewDraft,
-    nameDraft,
-    projectId,
-    reexecuteDetail,
-    setPayloadAppError,
-    setTransportMessage,
-    updateProject
-  ]);
+  );
+
+  const onSaveClick = useCallback(() => {
+    cancelAutosave();
+    void performSave(true);
+  }, [cancelAutosave, performSave]);
+
+  const saveState =
+    savePhase === "saving" ? "saving" : dirty ? "unsaved" : "saved";
+  const saveStatusLabel =
+    savePhase === "saving" ? "Saving…" : dirty ? "Unsaved changes" : "All changes saved";
 
   const setArchived = useCallback(
     async (archived: boolean) => {
@@ -134,9 +214,14 @@ export function ProjectDetailPage() {
     <section className="projects-page" data-testid="project-detail-page">
       <div className="project-detail-header">
         <h2 id="project-detail-heading">Project</h2>
-        <Link to="/projects" data-testid="project-back-to-list">
-          ← All projects
-        </Link>
+        <div className="project-detail-header-links">
+          <Link to="/projects" data-testid="project-back-to-list">
+            ← All projects
+          </Link>
+          <Link to={`/projects/${projectId}/requirements`} data-testid="project-nav-requirements">
+            Requirements
+          </Link>
+        </div>
       </div>
 
       <dl className="project-detail-meta">
@@ -158,28 +243,53 @@ export function ProjectDetailPage() {
         <h3 className="projects-subheading">Edit</h3>
         <div className="projects-create-fields">
           <label>
-            Name
+            Name <span className="required-star" aria-hidden="true">*</span>
             <input
               type="text"
               value={nameDraft}
-              onChange={(e) => setNameDraft(e.target.value)}
+              onChange={(e) => {
+                setNameDraft(e.target.value);
+                setNameError(null);
+                setShowValidationPayload(false);
+              }}
               data-testid="project-edit-name"
+              required
+              aria-invalid={nameError !== null}
+              aria-describedby={nameError !== null ? "project-edit-name-err" : undefined}
             />
+            {nameError !== null && (
+              <p id="project-edit-name-err" className="field-error" role="alert" data-testid="project-edit-name-error">
+                {nameError}
+              </p>
+            )}
           </label>
           <label>
             New key <span className="hint">(optional)</span>
             <input
               type="text"
               value={keyNewDraft}
-              onChange={(e) => setKeyNewDraft(e.target.value)}
+              onChange={(e) => {
+                setKeyNewDraft(e.target.value);
+                setShowValidationPayload(false);
+              }}
               data-testid="project-edit-key-new"
               placeholder={project.key}
             />
           </label>
         </div>
-        <button type="button" onClick={onSave} data-testid="project-save">
-          Save changes
-        </button>
+        <ValidationErrorPayloadPreview open={showValidationPayload} payload={updateProjectClientPayload} />
+        <div className="form-edit-actions">
+          <span
+            className={`form-save-status form-save-status--${saveState}`}
+            data-testid="form-save-status"
+            data-save-state={saveState}
+          >
+            {saveStatusLabel}
+          </span>
+          <button type="button" onClick={onSaveClick} data-testid="project-save">
+            Save changes
+          </button>
+        </div>
       </div>
 
       <div className="project-detail-actions">

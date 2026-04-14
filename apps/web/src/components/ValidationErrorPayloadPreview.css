@@ -1,0 +1,33 @@
+.validation-error-payload-preview {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+}
+
+.validation-error-payload-heading {
+  margin: 0 0 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.validation-error-payload-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  color: #78350f;
+  line-height: 1.35;
+}
+
+.validation-error-payload-json {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  background: #fff;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  overflow-x: auto;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+}

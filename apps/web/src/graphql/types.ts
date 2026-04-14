@@ -6,3 +6,15 @@ export type ProjectListItem = {
   name: string;
   isArchived: boolean;
 };
+
+export type RequirementListItem = {
+  id: string;
+  externalKey: string;
+  title: string;
+  description: string | null;
+  status: string | null;
+  priority: string | null;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+};

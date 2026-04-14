@@ -43,9 +43,9 @@
 ## FE-C — Requirements
 
 
-| ID   | Item                                 | E2E spec (planned)                       | Scenarios (planned)              |
-| ---- | ------------------------------------ | ---------------------------------------- | -------------------------------- |
-| FE-C | CRUD; blocked delete shows `fixHint` | `apps/web/e2e/fe-c-requirements.spec.ts` | Create/edit; delete blocked path |
+| ID   | Item                                 | E2E spec                                                                                       | Scenarios                                                                                                                              |
+| ---- | ------------------------------------ | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| FE-C | `[x]` CRUD; blocked delete shows `fixHint` (GraphQL `errors[]` extensions) | [`apps/web/e2e/fe-c-requirements.spec.ts`](../apps/web/e2e/fe-c-requirements.spec.ts) | `/projects/:projectId/requirements` list + create; detail edit; delete blocked after linked manual (API) surfaces `fixHint` in shell |
 
 
 ---

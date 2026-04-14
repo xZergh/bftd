@@ -272,9 +272,22 @@ export const resolvers = {
       }
     },
     deleteRequirement: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
-      const input = deleteRequirementInput.parse(args.input);
-      await ctx.service.deleteRequirement(input);
-      return { success: true };
+      try {
+        const input = deleteRequirementInput.parse(args.input);
+        await ctx.service.deleteRequirement(input);
+        return { success: true };
+      } catch (error) {
+        if (error instanceof AppError) {
+          throw new GraphQLError(error.message, {
+            extensions: {
+              code: error.code,
+              fixHint: error.fixHint,
+              context: error.context != null ? JSON.stringify(error.context) : null
+            }
+          });
+        }
+        throw error;
+      }
     },
     createManualTestCase: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       try {

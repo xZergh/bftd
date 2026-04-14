@@ -27,6 +27,7 @@ Full step-by-step (env, clean DB, troubleshooting): [`docs/LOCAL_MANUAL_TESTING.
 - Smoke: [`e2e/fe-e2e-0-smoke.spec.ts`](e2e/fe-e2e-0-smoke.spec.ts).
 - App shell (FE-A): [`e2e/fe-a-shell.spec.ts`](e2e/fe-a-shell.spec.ts) — routing, error banners, urql load path.
 - Projects (FE-B): [`e2e/fe-b-projects.spec.ts`](e2e/fe-b-projects.spec.ts) — create, archive, picker.
+- Requirements (FE-C): [`e2e/fe-c-requirements.spec.ts`](e2e/fe-c-requirements.spec.ts) — create/edit; blocked delete + `fixHint`.
 
 From repo root: `npm run e2e:web` or `npm run ci:e2e:web`.
 

@@ -122,6 +122,40 @@
   margin-bottom: 1rem;
 }
 
+.project-detail-header-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+}
+
+.project-detail-header-links a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.project-detail-header-links a:hover {
+  text-decoration: underline;
+}
+
+.projects-create-fields textarea {
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 0.45rem 0.5rem;
+  max-width: 28rem;
+  resize: vertical;
+}
+
+.field-error {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: #b42318;
+}
+
+.required-star {
+  color: #b42318;
+  font-weight: 600;
+}
+
 .project-detail-meta {
   margin: 0 0 1.25rem;
   display: grid;
@@ -142,6 +176,30 @@
 
 .project-detail-edit {
   margin-bottom: 1rem;
+}
+
+.form-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.form-save-status {
+  font-size: 0.8125rem;
+  color: #52525b;
+}
+
+.form-save-status--saved {
+  color: #166534;
+}
+
+.form-save-status--unsaved {
+  color: #a16207;
+}
+
+.form-save-status--saving {
+  color: #52525b;
 }
 
 .project-detail-actions {

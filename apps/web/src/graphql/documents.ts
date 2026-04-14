@@ -97,3 +97,84 @@ export const CreateProjectMutation = parse(`
     }
   }
 `);
+
+export const RequirementsListQuery = parse(`
+  query RequirementsList($projectId: ID!) {
+    requirements(input: { projectId: $projectId }) {
+      id
+      externalKey
+      title
+      description
+      status
+      priority
+      tags
+      createdAt
+      updatedAt
+    }
+  }
+`);
+
+export const RequirementByIdQuery = parse(`
+  query RequirementById($id: ID!, $projectId: ID) {
+    requirement(input: { id: $id, projectId: $projectId }) {
+      id
+      projectId
+      externalKey
+      title
+      description
+      releaseLabel
+      sprintLabel
+      requirementType
+      status
+      priority
+      tags
+      parentRequirementId
+      createdAt
+      updatedAt
+    }
+  }
+`);
+
+export const CreateRequirementMutation = parse(`
+  mutation CreateRequirement($input: CreateRequirementInput!) {
+    createRequirement(input: $input) {
+      requirement {
+        id
+        externalKey
+        title
+      }
+      error {
+        code
+        message
+        fixHint
+        context
+      }
+    }
+  }
+`);
+
+export const UpdateRequirementMutation = parse(`
+  mutation UpdateRequirement($input: UpdateRequirementInput!) {
+    updateRequirement(input: $input) {
+      requirement {
+        id
+        title
+        description
+      }
+      error {
+        code
+        message
+        fixHint
+        context
+      }
+    }
+  }
+`);
+
+export const DeleteRequirementMutation = parse(`
+  mutation DeleteRequirement($id: ID!) {
+    deleteRequirement(input: { id: $id }) {
+      success
+    }
+  }
+`);
