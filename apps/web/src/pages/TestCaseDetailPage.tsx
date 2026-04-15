@@ -17,12 +17,38 @@ import {
 } from "../graphql/documents";
 import { formatGraphQlTransportError } from "../graphql/formatGraphQlError";
 import { REQUIRED_MSG, trimmedNonEmpty } from "../forms/mandatoryFields";
+import { useDebouncedAutosaveEffect } from "../hooks/useDebouncedAutosaveEffect";
 import type { RequirementListItem, TestCaseListItem } from "../graphql/types";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import { autoNodeId, manNodeId, parseGraphNodeId } from "../traceability/graphNodeIds";
 import "./ProjectsPage.css";
 
 type StepDraft = { name: string; expectedResult: string };
+
+type ManualEditBaseline = { title: string; stepsJson: string };
+
+function normalizedFilledSteps(drafts: StepDraft[]): Array<{ name: string; expectedResult: string }> {
+  return drafts
+    .map((s) => ({ name: s.name.trim(), expectedResult: s.expectedResult.trim() }))
+    .filter((s) => s.name.length > 0);
+}
+
+function normalizedStepsJson(drafts: StepDraft[]): string {
+  return JSON.stringify(normalizedFilledSteps(drafts));
+}
+
+function stepsFromTestCase(
+  steps:
+    | Array<{ stepOrder: number; name: string; expectedResult?: string | null }>
+    | undefined
+    | null
+): StepDraft[] {
+  const ordered = [...(steps ?? [])].sort((a, b) => a.stepOrder - b.stepOrder);
+  return ordered.map((s) => ({
+    name: s.name,
+    expectedResult: s.expectedResult ?? ""
+  }));
+}
 
 export function TestCaseDetailPage() {
   const { projectId, testCaseId } = useParams();
@@ -32,7 +58,11 @@ export function TestCaseDetailPage() {
   const [titleError, setTitleError] = useState<string | null>(null);
 
   const [stepDrafts, setStepDrafts] = useState<StepDraft[]>([]);
-  const [stepsBaseline, setStepsBaseline] = useState<string>("");
+  const [manualEditBaseline, setManualEditBaseline] = useState<ManualEditBaseline | null>(null);
+  const [automatedTitleBaseline, setAutomatedTitleBaseline] = useState<string | null>(null);
+
+  const [savePhase, setSavePhase] = useState<"idle" | "saving">("idle");
+  const [failBump, setFailBump] = useState(0);
 
   const [addReqId, setAddReqId] = useState("");
   const [addManualId, setAddManualId] = useState("");
@@ -84,15 +114,24 @@ export function TestCaseDetailPage() {
     if (tc === undefined || tc === null || tc.id !== testCaseId) {
       return;
     }
-    setTitleDraft(tc.title);
-    const ordered = [...(tc.steps ?? [])].sort((a, b) => a.stepOrder - b.stepOrder);
-    const drafts = ordered.map((s) => ({
-      name: s.name,
-      expectedResult: s.expectedResult ?? ""
-    }));
-    setStepDrafts(drafts.length > 0 ? drafts : [{ name: "", expectedResult: "" }]);
-    setStepsBaseline(JSON.stringify(drafts));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate on navigation / id only
+    if (tc.type === "manual") {
+      setTitleDraft(tc.title);
+      const ordered = [...(tc.steps ?? [])].sort((a, b) => a.stepOrder - b.stepOrder);
+      const drafts = ordered.map((s) => ({
+        name: s.name,
+        expectedResult: s.expectedResult ?? ""
+      }));
+      setStepDrafts(drafts.length > 0 ? drafts : [{ name: "", expectedResult: "" }]);
+      const filled = normalizedFilledSteps(drafts);
+      setManualEditBaseline({ title: tc.title, stepsJson: JSON.stringify(filled) });
+      setAutomatedTitleBaseline(null);
+    } else {
+      setTitleDraft(tc.title);
+      setAutomatedTitleBaseline(tc.title);
+      setManualEditBaseline(null);
+      setStepDrafts([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate on navigation / id only, not refetch
   }, [testCaseId, tc?.id]);
 
   useEffect(() => {
@@ -169,102 +208,203 @@ export function TestCaseDetailPage() {
     return manuals.filter((m) => !linked.has(m.id));
   }, [linkedManuals, manuals]);
 
-  const stepsDirty = useMemo(() => {
-    const filled = stepDrafts
-      .map((s) => ({ name: s.name.trim(), expectedResult: s.expectedResult.trim() }))
-      .filter((s) => s.name.length > 0);
-    return JSON.stringify(filled) !== stepsBaseline;
-  }, [stepDrafts, stepsBaseline]);
+  const manualDirty =
+    tc?.type === "manual" &&
+    manualEditBaseline !== null &&
+    (titleDraft.trim() !== manualEditBaseline.title.trim() ||
+      normalizedStepsJson(stepDrafts) !== manualEditBaseline.stepsJson);
 
-  const onSaveManual = useCallback(async () => {
-    if (paused || tc?.type !== "manual" || tc.isDeleted) {
-      return;
-    }
-    clearShellMessages();
-    if (!trimmedNonEmpty(titleDraft.trim())) {
-      setTitleError(REQUIRED_MSG);
-      return;
-    }
-    setTitleError(null);
-    const filledSteps = stepDrafts
-      .map((s) => ({ name: s.name.trim(), expectedResult: s.expectedResult.trim() }))
-      .filter((s) => s.name.length > 0);
-    if (filledSteps.length === 0) {
-      setTransportMessage("Manual test case needs at least one step with a name.");
-      return;
-    }
-    const res = await updateManual({
-      input: {
-        id: tc.id,
-        title: titleDraft.trim(),
-        steps: filledSteps.map((s) => ({
-          name: s.name,
-          expectedResult: s.expectedResult === "" ? undefined : s.expectedResult
-        }))
+  const automatedDirty =
+    tc?.type === "automated" &&
+    automatedTitleBaseline !== null &&
+    titleDraft.trim() !== automatedTitleBaseline.trim();
+
+  const canAutosaveManual =
+    trimmedNonEmpty(titleDraft.trim()) && normalizedFilledSteps(stepDrafts).length > 0;
+
+  const canAutosaveAutomated = trimmedNonEmpty(titleDraft.trim());
+
+  const performSaveManual = useCallback(
+    async (validateClient: boolean): Promise<boolean> => {
+      if (paused || tc?.type !== "manual" || tc.isDeleted) {
+        return false;
       }
-    });
-    if (res.error) {
-      setTransportMessage(formatGraphQlTransportError(res.error));
-      return;
-    }
-    const appErr = res.data?.updateManualTestCase?.error;
-    if (appErr) {
-      setPayloadAppError(appErr);
-      return;
-    }
-    reexecuteDetail({ requestPolicy: "network-only" });
-    reexecuteGraph({ requestPolicy: "network-only" });
-  }, [
-    clearShellMessages,
-    paused,
-    reexecuteDetail,
-    reexecuteGraph,
-    setPayloadAppError,
-    setTransportMessage,
-    stepDrafts,
-    tc,
-    titleDraft,
-    updateManual
-  ]);
+      const filledSteps = normalizedFilledSteps(stepDrafts);
+      if (!trimmedNonEmpty(titleDraft.trim())) {
+        if (validateClient) {
+          clearShellMessages();
+          setTitleError(REQUIRED_MSG);
+        }
+        return false;
+      }
+      if (filledSteps.length === 0) {
+        if (validateClient) {
+          clearShellMessages();
+          setTransportMessage("Manual test case needs at least one step with a name.");
+        }
+        return false;
+      }
+      if (validateClient) {
+        clearShellMessages();
+        setTitleError(null);
+      }
+      setSavePhase("saving");
+      const res = await updateManual({
+        input: {
+          id: tc.id,
+          title: titleDraft.trim(),
+          steps: filledSteps.map((s) => ({
+            name: s.name,
+            expectedResult: s.expectedResult === "" ? undefined : s.expectedResult
+          }))
+        }
+      });
+      setSavePhase("idle");
+      if (res.error) {
+        setTransportMessage(formatGraphQlTransportError(res.error));
+        setFailBump((n) => n + 1);
+        return false;
+      }
+      const appErr = res.data?.updateManualTestCase?.error;
+      if (appErr) {
+        setPayloadAppError(appErr);
+        setFailBump((n) => n + 1);
+        return false;
+      }
+      const t = res.data?.updateManualTestCase?.testCase;
+      if (t !== undefined && t !== null) {
+        setTitleDraft(t.title);
+        const drafts = stepsFromTestCase(t.steps);
+        setStepDrafts(drafts.length > 0 ? drafts : [{ name: "", expectedResult: "" }]);
+        const filled = normalizedFilledSteps(drafts.length > 0 ? drafts : [{ name: "", expectedResult: "" }]);
+        setManualEditBaseline({ title: t.title, stepsJson: JSON.stringify(filled) });
+      }
+      reexecuteDetail({ requestPolicy: "network-only" });
+      reexecuteGraph({ requestPolicy: "network-only" });
+      return true;
+    },
+    [
+      clearShellMessages,
+      paused,
+      reexecuteDetail,
+      reexecuteGraph,
+      setPayloadAppError,
+      setTransportMessage,
+      stepDrafts,
+      tc,
+      titleDraft,
+      updateManual
+    ]
+  );
 
-  const onSaveAutomatedTitle = useCallback(async () => {
-    if (paused || tc?.type !== "automated" || tc.isDeleted) {
-      return;
+  const performSaveAutomated = useCallback(
+    async (validateClient: boolean): Promise<boolean> => {
+      if (paused || tc?.type !== "automated" || tc.isDeleted) {
+        return false;
+      }
+      if (!trimmedNonEmpty(titleDraft.trim())) {
+        if (validateClient) {
+          clearShellMessages();
+          setTitleError(REQUIRED_MSG);
+        }
+        return false;
+      }
+      if (validateClient) {
+        clearShellMessages();
+        setTitleError(null);
+      }
+      setSavePhase("saving");
+      const res = await updateAutomated({
+        input: { id: tc.id, title: titleDraft.trim() }
+      });
+      setSavePhase("idle");
+      if (res.error) {
+        setTransportMessage(formatGraphQlTransportError(res.error));
+        setFailBump((n) => n + 1);
+        return false;
+      }
+      const appErr = res.data?.updateAutomatedTestCase?.error;
+      if (appErr) {
+        setPayloadAppError(appErr);
+        setFailBump((n) => n + 1);
+        return false;
+      }
+      const t = res.data?.updateAutomatedTestCase?.testCase;
+      if (t !== undefined && t !== null) {
+        setTitleDraft(t.title);
+        setAutomatedTitleBaseline(t.title);
+      }
+      reexecuteDetail({ requestPolicy: "network-only" });
+      return true;
+    },
+    [
+      clearShellMessages,
+      paused,
+      reexecuteDetail,
+      setPayloadAppError,
+      setTransportMessage,
+      tc,
+      titleDraft,
+      updateAutomated
+    ]
+  );
+
+  const manualAutosaveKey = `${titleDraft}\0${normalizedStepsJson(stepDrafts)}\0${failBump}`;
+  const cancelManualAutosave = useDebouncedAutosaveEffect(
+    !paused &&
+      tc?.type === "manual" &&
+      tc.isDeleted === false &&
+      manualDirty &&
+      canAutosaveManual,
+    manualAutosaveKey,
+    () => {
+      void performSaveManual(false);
     }
-    clearShellMessages();
-    if (!trimmedNonEmpty(titleDraft.trim())) {
-      setTitleError(REQUIRED_MSG);
-      return;
+  );
+
+  const cancelAutomatedAutosave = useDebouncedAutosaveEffect(
+    !paused &&
+      tc?.type === "automated" &&
+      tc.isDeleted === false &&
+      automatedDirty &&
+      canAutosaveAutomated,
+    `${titleDraft}\0${failBump}`,
+    () => {
+      void performSaveAutomated(false);
     }
-    setTitleError(null);
-    const res = await updateAutomated({
-      input: { id: tc.id, title: titleDraft.trim() }
-    });
-    if (res.error) {
-      setTransportMessage(formatGraphQlTransportError(res.error));
-      return;
-    }
-    const appErr = res.data?.updateAutomatedTestCase?.error;
-    if (appErr) {
-      setPayloadAppError(appErr);
-      return;
-    }
-    reexecuteDetail({ requestPolicy: "network-only" });
-  }, [
-    clearShellMessages,
-    paused,
-    reexecuteDetail,
-    setPayloadAppError,
-    setTransportMessage,
-    tc,
-    titleDraft,
-    updateAutomated
-  ]);
+  );
+
+  const onSaveManualClick = useCallback(() => {
+    cancelManualAutosave();
+    void performSaveManual(true);
+  }, [cancelManualAutosave, performSaveManual]);
+
+  const onSaveAutomatedClick = useCallback(() => {
+    cancelAutomatedAutosave();
+    void performSaveAutomated(true);
+  }, [cancelAutomatedAutosave, performSaveAutomated]);
+
+  const saveState: "saved" | "unsaved" | "saving" =
+    savePhase === "saving"
+      ? "saving"
+      : tc?.type === "manual"
+        ? manualDirty
+          ? "unsaved"
+          : "saved"
+        : tc?.type === "automated"
+          ? automatedDirty
+            ? "unsaved"
+            : "saved"
+          : "saved";
+
+  const saveStatusLabel =
+    savePhase === "saving" ? "Saving…" : saveState === "unsaved" ? "Unsaved changes" : "All changes saved";
 
   const onLinkRequirement = useCallback(async () => {
     if (paused || projectId === undefined || tc?.type !== "manual" || addReqId === "" || tc.isDeleted) {
       return;
     }
+    cancelManualAutosave();
     clearShellMessages();
     const res = await linkReqMan({
       input: { projectId, requirementId: addReqId, manualTestCaseId: tc.id }
@@ -275,13 +415,14 @@ export function TestCaseDetailPage() {
     }
     setAddReqId("");
     reexecuteGraph({ requestPolicy: "network-only" });
-  }, [addReqId, clearShellMessages, linkReqMan, paused, projectId, reexecuteGraph, tc]);
+  }, [addReqId, cancelManualAutosave, clearShellMessages, linkReqMan, paused, projectId, reexecuteGraph, tc]);
 
   const onUnlinkRequirement = useCallback(
     async (requirementId: string) => {
       if (paused || tc?.type !== "manual" || tc.isDeleted) {
         return;
       }
+      cancelManualAutosave();
       clearShellMessages();
       const res = await unlinkReqMan({ input: { requirementId, manualTestCaseId: tc.id } });
       if (res.error) {
@@ -290,13 +431,14 @@ export function TestCaseDetailPage() {
       }
       reexecuteGraph({ requestPolicy: "network-only" });
     },
-    [clearShellMessages, paused, reexecuteGraph, tc, unlinkReqMan]
+    [cancelManualAutosave, clearShellMessages, paused, reexecuteGraph, tc, unlinkReqMan]
   );
 
   const onLinkManual = useCallback(async () => {
     if (paused || projectId === undefined || tc?.type !== "automated" || addManualId === "" || tc.isDeleted) {
       return;
     }
+    cancelAutomatedAutosave();
     clearShellMessages();
     const res = await linkAutoMan({
       input: { projectId, automatedTestCaseId: tc.id, manualTestCaseId: addManualId }
@@ -307,13 +449,14 @@ export function TestCaseDetailPage() {
     }
     setAddManualId("");
     reexecuteGraph({ requestPolicy: "network-only" });
-  }, [addManualId, clearShellMessages, linkAutoMan, paused, projectId, reexecuteGraph, tc]);
+  }, [addManualId, cancelAutomatedAutosave, clearShellMessages, linkAutoMan, paused, projectId, reexecuteGraph, tc]);
 
   const onUnlinkManual = useCallback(
     async (manualTestCaseId: string) => {
       if (paused || tc?.type !== "automated" || tc.isDeleted) {
         return;
       }
+      cancelAutomatedAutosave();
       clearShellMessages();
       const res = await unlinkAutoMan({ input: { automatedTestCaseId: tc.id, manualTestCaseId } });
       if (res.error) {
@@ -322,13 +465,15 @@ export function TestCaseDetailPage() {
       }
       reexecuteGraph({ requestPolicy: "network-only" });
     },
-    [clearShellMessages, paused, reexecuteGraph, tc, unlinkAutoMan]
+    [cancelAutomatedAutosave, clearShellMessages, paused, reexecuteGraph, tc, unlinkAutoMan]
   );
 
   const onTombstone = useCallback(async () => {
     if (paused || tc === undefined || tc === null) {
       return;
     }
+    cancelManualAutosave();
+    cancelAutomatedAutosave();
     clearShellMessages();
     const res = await tombstone({ testCaseId: tc.id });
     if (res.error) {
@@ -337,7 +482,16 @@ export function TestCaseDetailPage() {
     }
     reexecuteDetail({ requestPolicy: "network-only" });
     reexecuteGraph({ requestPolicy: "network-only" });
-  }, [clearShellMessages, paused, reexecuteDetail, reexecuteGraph, tc, tombstone]);
+  }, [
+    cancelAutomatedAutosave,
+    cancelManualAutosave,
+    clearShellMessages,
+    paused,
+    reexecuteDetail,
+    reexecuteGraph,
+    tc,
+    tombstone
+  ]);
 
   const onRestore = useCallback(async () => {
     if (paused || tc === undefined || tc === null) {
@@ -433,14 +587,32 @@ export function TestCaseDetailPage() {
           </label>
         </div>
         {tc.type === "manual" && editable && (
-          <button type="button" onClick={onSaveManual} data-testid="testcase-save-manual">
-            Save
-          </button>
+          <div className="form-edit-actions">
+            <span
+              className={`form-save-status form-save-status--${saveState}`}
+              data-testid="form-save-status"
+              data-save-state={saveState}
+            >
+              {saveStatusLabel}
+            </span>
+            <button type="button" onClick={onSaveManualClick} data-testid="testcase-save-manual">
+              Save
+            </button>
+          </div>
         )}
         {tc.type === "automated" && editable && (
-          <button type="button" onClick={onSaveAutomatedTitle} data-testid="testcase-save-auto-title">
-            Save title
-          </button>
+          <div className="form-edit-actions">
+            <span
+              className={`form-save-status form-save-status--${saveState}`}
+              data-testid="form-save-status"
+              data-save-state={saveState}
+            >
+              {saveStatusLabel}
+            </span>
+            <button type="button" onClick={onSaveAutomatedClick} data-testid="testcase-save-auto-title">
+              Save title
+            </button>
+          </div>
         )}
       </div>
 
@@ -493,7 +665,6 @@ export function TestCaseDetailPage() {
           >
             Add step
           </button>
-          {stepsDirty && <p className="hint">You have unsaved step changes — use Save above.</p>}
         </div>
       )}
 

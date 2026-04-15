@@ -57,7 +57,7 @@ export function TestCasesListPage() {
     requestPolicy: "network-only"
   });
 
-  const [manualListResult] = useQuery({
+  const [manualListResult, reexecuteManualList] = useQuery({
     query: TestCasesListQuery,
     variables: { projectId: projectId ?? "", type: "manual", includeDeleted: false },
     pause: paused,
@@ -161,6 +161,7 @@ export function TestCasesListPage() {
     setManualReqIds([]);
     setManualSteps([{ name: "", expectedResult: "" }]);
     reexecuteCases({ requestPolicy: "network-only" });
+    reexecuteManualList({ requestPolicy: "network-only" });
   }, [
     clearShellMessages,
     createManual,
@@ -170,6 +171,7 @@ export function TestCasesListPage() {
     paused,
     projectId,
     reexecuteCases,
+    reexecuteManualList,
     setPayloadAppError,
     setTransportMessage
   ]);
