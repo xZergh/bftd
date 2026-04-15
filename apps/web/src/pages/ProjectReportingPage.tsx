@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "urql";
+import { CoveragePie } from "../components/reporting/CoveragePie";
+import { TraceabilityTree } from "../components/reporting/TraceabilityTree";
 import {
   KpiDashboardQuery,
+  RequirementsListQuery,
   RunTraceabilityReportQuery,
+  TestCasesListQuery,
   TestRunsListQuery,
   TraceabilityGraphQuery
 } from "../graphql/documents";
@@ -12,8 +16,10 @@ import type {
   KpiCoverageFormulaInfo,
   KpiCoverageMetricValue,
   KpiDashboardPayload,
+  RequirementListItem,
   RunTraceabilityEdge,
   RunTraceabilityReportPayload,
+  TestCaseListItem,
   TestRunListItem,
   TraceabilityCoverageByStatusRow,
   TraceabilityGraphPayload
@@ -52,12 +58,27 @@ export function ProjectReportingPage() {
     requestPolicy: "network-only"
   });
 
+  const [requirementsListResult] = useQuery({
+    query: RequirementsListQuery,
+    variables: { projectId: projectId ?? "" },
+    pause: paused,
+    requestPolicy: "network-only"
+  });
+
+  const [testCasesListResult] = useQuery({
+    query: TestCasesListQuery,
+    variables: { projectId: projectId ?? "", includeDeleted: true },
+    pause: paused,
+    requestPolicy: "network-only"
+  });
+
   const runs: TestRunListItem[] = runsResult.data?.testRuns ?? [];
   const [selectedRunId, setSelectedRunId] = useState("");
 
   const runIdsKey = runs.map((r: TestRunListItem) => r.id).join(",");
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- default run selection tracks fetched testRuns list */
     const rs = runsResult.data?.testRuns;
     if (!rs?.length) {
       setSelectedRunId("");
@@ -69,6 +90,7 @@ export function ProjectReportingPage() {
       }
       return rs[0].id;
     });
+    /* eslint-enable react-hooks/set-state-in-effect */
     // runIdsKey encodes run id set; avoid effect churn from urql `data` object identity.
   }, [runIdsKey]); // eslint-disable-line react-hooks/exhaustive-deps -- sync select to list contents
 
@@ -107,6 +129,20 @@ export function ProjectReportingPage() {
     setTransportMessage(formatGraphQlTransportError(traceReportResult.error));
   }, [traceReportResult.error, setTransportMessage]);
 
+  useEffect(() => {
+    if (!requirementsListResult.error) {
+      return;
+    }
+    setTransportMessage(formatGraphQlTransportError(requirementsListResult.error));
+  }, [requirementsListResult.error, setTransportMessage]);
+
+  useEffect(() => {
+    if (!testCasesListResult.error) {
+      return;
+    }
+    setTransportMessage(formatGraphQlTransportError(testCasesListResult.error));
+  }, [testCasesListResult.error, setTransportMessage]);
+
   const kpi = kpiResult.data?.kpiDashboard as KpiDashboardPayload | undefined;
   const graph = graphResult.data?.traceabilityGraph as TraceabilityGraphPayload | undefined;
   const traceReport = traceReportResult.data?.runTraceabilityReport as RunTraceabilityReportPayload | undefined;
@@ -121,7 +157,34 @@ export function ProjectReportingPage() {
       denominatorLabel: f.denominatorLabel,
       metric: cov.find((c: KpiCoverageMetricValue) => c.formulaId === f.formulaId)
     }));
-  }, [kpi]);
+  }, [kpi?.coverageFormulaInfo, kpi?.current?.coverage]); // eslint-disable-line react-hooks/exhaustive-deps -- rows derive from these slices only
+
+  const requirementTitleById = useMemo(() => {
+    const m = new Map<string, string>();
+    const list: RequirementListItem[] = requirementsListResult.data?.requirements ?? [];
+    for (const r of list) {
+      m.set(r.id, r.title.trim().length > 0 ? r.title : r.externalKey);
+    }
+    return m;
+  }, [requirementsListResult.data?.requirements]);
+
+  const testCaseTitleById = useMemo(() => {
+    const m = new Map<string, string>();
+    const list: TestCaseListItem[] = testCasesListResult.data?.testCases ?? [];
+    for (const t of list) {
+      const title = t.title.trim();
+      m.set(t.id, title.length > 0 ? title : t.externalId ?? t.id);
+    }
+    return m;
+  }, [testCasesListResult.data?.testCases]);
+
+  function snapshotReqTitle(id: string): string {
+    return requirementTitleById.get(id) ?? "Unknown requirement";
+  }
+
+  function snapshotCaseTitle(id: string): string {
+    return testCaseTitleById.get(id) ?? "Unknown test case";
+  }
 
   if (paused) {
     return null;
@@ -147,7 +210,7 @@ export function ProjectReportingPage() {
         </div>
       </div>
 
-      <section className="reporting-section" aria-labelledby="kpi-dashboard-heading">
+      <section className="reporting-section reporting-kpi-visual-vars" aria-labelledby="kpi-dashboard-heading">
         <h3 id="kpi-dashboard-heading">KPI dashboard</h3>
         {kpiResult.fetching && !kpi ? <p>Loading KPI…</p> : null}
         {kpi ? (
@@ -161,6 +224,9 @@ export function ProjectReportingPage() {
             <table className="projects-table reporting-kpi-table">
               <thead>
                 <tr>
+                  <th scope="col" className="reporting-kpi-th-chart">
+                    <span className="sr-only">Coverage chart</span>
+                  </th>
                   <th scope="col">Coverage metric</th>
                   <th scope="col">Value</th>
                   <th scope="col">Numerator / denominator</th>
@@ -176,6 +242,19 @@ export function ProjectReportingPage() {
                     metric: KpiCoverageMetricValue | undefined;
                   }) => (
                     <tr key={row.formulaId} data-testid="kpi-coverage-row" data-formula-id={row.formulaId}>
+                      <td className="reporting-kpi-td-chart">
+                        {row.metric !== undefined ? (
+                          <div className="coverage-pie-wrap">
+                            <CoveragePie
+                              numerator={row.metric.numerator}
+                              denominator={row.metric.denominator}
+                              label={`${row.label}: ${row.metric.numerator} of ${row.metric.denominator}`}
+                            />
+                          </div>
+                        ) : (
+                          <div className="coverage-pie-wrap coverage-pie-wrap--empty" aria-hidden />
+                        )}
+                      </td>
                       <td data-testid="kpi-formula-label">{row.label}</td>
                       <td data-testid="kpi-value-pct">
                         {row.metric !== undefined ? formatCoveragePct(row.metric.valuePct) : "—"}
@@ -217,6 +296,8 @@ export function ProjectReportingPage() {
               <span data-testid="trace-graph-node-count">{graph.nodes.length}</span> nodes,{" "}
               <span data-testid="trace-graph-edge-count">{graph.edges.length}</span> edges
             </p>
+            <TraceabilityTree graph={graph} />
+            <h4 className="reporting-subheading">Coverage by requirement status</h4>
             <table className="projects-table">
               <thead>
                 <tr>
@@ -267,25 +348,23 @@ export function ProjectReportingPage() {
                   <time dateTime={traceReport.capturedAt}>{traceReport.capturedAt}</time> ·{" "}
                   <span data-testid="run-trace-edge-count">{traceReport.edges.length}</span> traceability edge(s)
                 </p>
-                <table className="projects-table">
+                <table className="projects-table reporting-run-trace-table">
                   <thead>
                     <tr>
-                      <th scope="col">Requirement id</th>
-                      <th scope="col">Manual testcase id</th>
-                      <th scope="col">Automated testcase id</th>
+                      <th scope="col">Requirement</th>
+                      <th scope="col">Manual test case</th>
+                      <th scope="col">Automated test case</th>
                     </tr>
                   </thead>
                   <tbody>
                     {traceReport.edges.map((e: RunTraceabilityEdge, i: number) => (
                       <tr key={`${e.requirementId}-${e.manualTestCaseId}-${i}`} data-testid="run-trace-edge-row">
-                        <td>
-                          <code>{e.requirementId}</code>
-                        </td>
-                        <td>
-                          <code>{e.manualTestCaseId}</code>
-                        </td>
-                        <td>
-                          <code>{e.automatedTestCaseId ?? "—"}</code>
+                        <td data-testid="run-trace-req-title">{snapshotReqTitle(e.requirementId)}</td>
+                        <td data-testid="run-trace-manual-title">{snapshotCaseTitle(e.manualTestCaseId)}</td>
+                        <td data-testid="run-trace-auto-title">
+                          {e.automatedTestCaseId !== null && e.automatedTestCaseId !== undefined && e.automatedTestCaseId !== ""
+                            ? snapshotCaseTitle(e.automatedTestCaseId)
+                            : "—"}
                         </td>
                       </tr>
                     ))}

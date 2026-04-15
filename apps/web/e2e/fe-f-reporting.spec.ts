@@ -68,6 +68,7 @@ test.describe("FE-F reporting", () => {
 
     const reqRow = page.locator(`[data-testid="kpi-coverage-row"][data-formula-id="requirement_coverage"]`);
     await expect(reqRow).toBeVisible({ timeout: 15000 });
+    await expect(reqRow.getByTestId("kpi-coverage-pie")).toBeVisible();
     await expect(reqRow.getByTestId("kpi-formula-label")).toHaveText("Requirement Coverage");
     await expect(reqRow.getByTestId("kpi-value-pct")).toHaveText("100%");
 
@@ -82,10 +83,16 @@ test.describe("FE-F reporting", () => {
 
   test("traceability graph summary and run snapshot edges", async ({ page }) => {
     const suffix = `${Date.now()}-trace`;
+    const reqTitle = `Requirement ${suffix}`;
+    const manualTitle = `Manual ${suffix}`;
     await seedProjectForReporting(page, suffix);
 
     await page.getByTestId("project-nav-reporting").click();
     await expect(page.getByTestId("reporting-page")).toBeVisible();
+
+    await expect(page.getByTestId("traceability-tree")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId("traceability-tree")).toContainText(reqTitle);
+    await expect(page.getByTestId("traceability-tree")).toContainText(manualTitle);
 
     await expect(page.getByTestId("trace-graph-node-count")).toHaveText(/\d+/, { timeout: 15000 });
     const nodeCount = Number(await page.getByTestId("trace-graph-node-count").textContent());
@@ -97,5 +104,7 @@ test.describe("FE-F reporting", () => {
 
     await expect(page.getByTestId("run-trace-edge-count")).toHaveText("1", { timeout: 15000 });
     await expect(page.getByTestId("run-trace-edge-row")).toHaveCount(1);
+    await expect(page.getByTestId("run-trace-req-title")).toHaveText(reqTitle, { timeout: 10000 });
+    await expect(page.getByTestId("run-trace-manual-title")).toHaveText(manualTitle, { timeout: 10000 });
   });
 });
