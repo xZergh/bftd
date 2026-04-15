@@ -28,6 +28,7 @@ Full step-by-step (env, clean DB, troubleshooting): [`docs/LOCAL_MANUAL_TESTING.
 - App shell (FE-A): [`e2e/fe-a-shell.spec.ts`](e2e/fe-a-shell.spec.ts) — routing, error banners, urql load path.
 - Projects (FE-B): [`e2e/fe-b-projects.spec.ts`](e2e/fe-b-projects.spec.ts) — create, archive, picker.
 - Requirements (FE-C): [`e2e/fe-c-requirements.spec.ts`](e2e/fe-c-requirements.spec.ts) — create/edit; blocked delete + `fixHint`.
+- Test cases (FE-D): [`e2e/fe-d-testcases.spec.ts`](e2e/fe-d-testcases.spec.ts) — manual + automated create; links; tombstone/restore.
 
 From repo root: `npm run e2e:web` or `npm run ci:e2e:web`.
 

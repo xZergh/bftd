@@ -18,3 +18,14 @@ export type RequirementListItem = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type TestCaseListItem = {
+  id: string;
+  type: string;
+  title: string;
+  externalId: string | null;
+  isDeleted: boolean;
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
