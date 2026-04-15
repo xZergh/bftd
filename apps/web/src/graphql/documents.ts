@@ -359,3 +359,101 @@ export const RestoreTestCaseMutation = parse(`
     }
   }
 `);
+
+export const TestRunsListQuery = parse(`
+  query TestRunsList($projectId: ID!) {
+    testRuns(input: { projectId: $projectId }) {
+      id
+      projectId
+      name
+      releaseLabel
+      sprintLabel
+      environment
+      buildVersion
+      trigger
+      createdAt
+      finishedAt
+    }
+  }
+`);
+
+export const TestRunDetailQuery = parse(`
+  query TestRunDetail($runId: ID!, $projectId: ID) {
+    testRun(input: { runId: $runId, projectId: $projectId }) {
+      run {
+        id
+        projectId
+        name
+        releaseLabel
+        sprintLabel
+        environment
+        buildVersion
+        trigger
+        createdAt
+        finishedAt
+      }
+      results {
+        id
+        runId
+        testCaseId
+        status
+        durationMs
+        createdAt
+      }
+    }
+  }
+`);
+
+export const RunAggregateQuery = parse(`
+  query RunAggregate($runId: ID!) {
+    runAggregate(input: { runId: $runId }) {
+      runId
+      total
+      passed
+      failed
+      skipped
+      blocked
+      passRatePct
+      durationMs
+    }
+  }
+`);
+
+export const CreateTestRunMutation = parse(`
+  mutation CreateTestRun($input: CreateTestRunInput!) {
+    createTestRun(input: $input) {
+      run {
+        id
+        name
+        createdAt
+      }
+      error {
+        code
+        message
+        fixHint
+        context
+      }
+    }
+  }
+`);
+
+export const SubmitTestResultMutation = parse(`
+  mutation SubmitTestResult($input: SubmitTestResultInput!) {
+    submitTestResult(input: $input) {
+      result {
+        id
+        runId
+        testCaseId
+        status
+        durationMs
+        createdAt
+      }
+      error {
+        code
+        message
+        fixHint
+        context
+      }
+    }
+  }
+`);

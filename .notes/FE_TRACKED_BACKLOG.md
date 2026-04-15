@@ -63,9 +63,9 @@
 ## FE-E — Runs + results
 
 
-| ID   | Item                                   | E2E spec (planned)               | Scenarios (planned)                |
-| ---- | -------------------------------------- | -------------------------------- | ---------------------------------- |
-| FE-E | Create run; submit results; aggregates | `apps/web/e2e/fe-e-runs.spec.ts` | Create run; submit; view aggregate |
+| ID   | Item                                   | E2E spec                                                                 | Scenarios                                                                                         |
+| ---- | -------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| FE-E | `[x]` Create run; submit results; aggregates | [`apps/web/e2e/fe-e-runs.spec.ts`](../apps/web/e2e/fe-e-runs.spec.ts) | `/projects/:projectId/runs` create; detail submit `passed`; `runAggregate` totals + pass rate |
 
 
 ---
