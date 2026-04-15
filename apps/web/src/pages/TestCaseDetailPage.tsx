@@ -1,0 +1,619 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { useMutation, useQuery } from "urql";
+import {
+  LinkAutomatedManualMutation,
+  LinkRequirementManualMutation,
+  RequirementsListQuery,
+  RestoreTestCaseMutation,
+  TestCaseByIdQuery,
+  TestCasesListQuery,
+  TombstoneTestCaseMutation,
+  TraceabilityGraphQuery,
+  UnlinkAutomatedManualMutation,
+  UnlinkRequirementManualMutation,
+  UpdateAutomatedTestCaseMutation,
+  UpdateManualTestCaseMutation
+} from "../graphql/documents";
+import { formatGraphQlTransportError } from "../graphql/formatGraphQlError";
+import { REQUIRED_MSG, trimmedNonEmpty } from "../forms/mandatoryFields";
+import type { RequirementListItem, TestCaseListItem } from "../graphql/types";
+import { useShellErrors } from "../shell/ShellErrorsContext";
+import { autoNodeId, manNodeId, parseGraphNodeId } from "../traceability/graphNodeIds";
+import "./ProjectsPage.css";
+
+type StepDraft = { name: string; expectedResult: string };
+
+export function TestCaseDetailPage() {
+  const { projectId, testCaseId } = useParams();
+  const { clearShellMessages, setTransportMessage, setPayloadAppError } = useShellErrors();
+
+  const [titleDraft, setTitleDraft] = useState("");
+  const [titleError, setTitleError] = useState<string | null>(null);
+
+  const [stepDrafts, setStepDrafts] = useState<StepDraft[]>([]);
+  const [stepsBaseline, setStepsBaseline] = useState<string>("");
+
+  const [addReqId, setAddReqId] = useState("");
+  const [addManualId, setAddManualId] = useState("");
+
+  const paused = projectId === undefined || projectId === "" || testCaseId === undefined || testCaseId === "";
+
+  const [detailResult, reexecuteDetail] = useQuery({
+    query: TestCaseByIdQuery,
+    variables: { id: testCaseId ?? "", projectId: projectId ?? undefined, includeDeleted: true },
+    pause: paused
+  });
+
+  const [graphResult, reexecuteGraph] = useQuery({
+    query: TraceabilityGraphQuery,
+    variables: { projectId: projectId ?? "" },
+    pause: paused,
+    requestPolicy: "network-only"
+  });
+
+  const [reqResult] = useQuery({
+    query: RequirementsListQuery,
+    variables: { projectId: projectId ?? "" },
+    pause: paused,
+    requestPolicy: "network-only"
+  });
+
+  const [manualListResult] = useQuery({
+    query: TestCasesListQuery,
+    variables: { projectId: projectId ?? "", type: "manual", includeDeleted: false },
+    pause: paused,
+    requestPolicy: "network-only"
+  });
+
+  const [, updateManual] = useMutation(UpdateManualTestCaseMutation);
+  const [, updateAutomated] = useMutation(UpdateAutomatedTestCaseMutation);
+  const [, linkReqMan] = useMutation(LinkRequirementManualMutation);
+  const [, unlinkReqMan] = useMutation(UnlinkRequirementManualMutation);
+  const [, linkAutoMan] = useMutation(LinkAutomatedManualMutation);
+  const [, unlinkAutoMan] = useMutation(UnlinkAutomatedManualMutation);
+  const [, tombstone] = useMutation(TombstoneTestCaseMutation);
+  const [, restore] = useMutation(RestoreTestCaseMutation);
+
+  const tc = detailResult.data?.testCase;
+
+  useEffect(() => {
+    if (testCaseId === undefined || testCaseId === "") {
+      return;
+    }
+    if (tc === undefined || tc === null || tc.id !== testCaseId) {
+      return;
+    }
+    setTitleDraft(tc.title);
+    const ordered = [...(tc.steps ?? [])].sort((a, b) => a.stepOrder - b.stepOrder);
+    const drafts = ordered.map((s) => ({
+      name: s.name,
+      expectedResult: s.expectedResult ?? ""
+    }));
+    setStepDrafts(drafts.length > 0 ? drafts : [{ name: "", expectedResult: "" }]);
+    setStepsBaseline(JSON.stringify(drafts));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate on navigation / id only
+  }, [testCaseId, tc?.id]);
+
+  useEffect(() => {
+    if (!detailResult.error) {
+      return;
+    }
+    setTransportMessage(formatGraphQlTransportError(detailResult.error));
+  }, [detailResult.error, setTransportMessage]);
+
+  useEffect(() => {
+    if (!graphResult.error) {
+      return;
+    }
+    setTransportMessage(formatGraphQlTransportError(graphResult.error));
+  }, [graphResult.error, setTransportMessage]);
+
+  const graph = graphResult.data?.traceabilityGraph;
+  const nodeTitle = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const n of graph?.nodes ?? []) {
+      m.set(n.id, n.title);
+    }
+    return m;
+  }, [graph?.nodes]);
+
+  const linkedRequirements = useMemo(() => {
+    if (tc?.type !== "manual" || graph === undefined) {
+      return [];
+    }
+    const target = manNodeId(tc.id);
+    const out: { id: string; title: string }[] = [];
+    for (const e of graph.edges) {
+      if (e.kind !== "REQ_MANUAL" || e.targetId !== target) {
+        continue;
+      }
+      const p = parseGraphNodeId(e.sourceId);
+      if (p?.kind !== "req") {
+        continue;
+      }
+      out.push({ id: p.id, title: nodeTitle.get(e.sourceId) ?? p.id });
+    }
+    return out.sort((a, b) => a.title.localeCompare(b.title));
+  }, [graph, nodeTitle, tc?.id, tc?.type]);
+
+  const linkedManuals = useMemo(() => {
+    if (tc?.type !== "automated" || graph === undefined) {
+      return [];
+    }
+    const target = autoNodeId(tc.id);
+    const out: { id: string; title: string }[] = [];
+    for (const e of graph.edges) {
+      if (e.kind !== "MANUAL_AUTO" || e.targetId !== target) {
+        continue;
+      }
+      const p = parseGraphNodeId(e.sourceId);
+      if (p?.kind !== "man") {
+        continue;
+      }
+      out.push({ id: p.id, title: nodeTitle.get(e.sourceId) ?? p.id });
+    }
+    return out.sort((a, b) => a.title.localeCompare(b.title));
+  }, [graph, nodeTitle, tc?.id, tc?.type]);
+
+  const requirements: RequirementListItem[] = reqResult.data?.requirements ?? [];
+  const manuals: TestCaseListItem[] = manualListResult.data?.testCases ?? [];
+
+  const reqChoicesForLink = useMemo(() => {
+    const linked = new Set(linkedRequirements.map((r) => r.id));
+    return requirements.filter((r) => !linked.has(r.id));
+  }, [linkedRequirements, requirements]);
+
+  const manualChoicesForLink = useMemo(() => {
+    const linked = new Set(linkedManuals.map((m) => m.id));
+    return manuals.filter((m) => !linked.has(m.id));
+  }, [linkedManuals, manuals]);
+
+  const stepsDirty = useMemo(() => {
+    const filled = stepDrafts
+      .map((s) => ({ name: s.name.trim(), expectedResult: s.expectedResult.trim() }))
+      .filter((s) => s.name.length > 0);
+    return JSON.stringify(filled) !== stepsBaseline;
+  }, [stepDrafts, stepsBaseline]);
+
+  const onSaveManual = useCallback(async () => {
+    if (paused || tc?.type !== "manual" || tc.isDeleted) {
+      return;
+    }
+    clearShellMessages();
+    if (!trimmedNonEmpty(titleDraft.trim())) {
+      setTitleError(REQUIRED_MSG);
+      return;
+    }
+    setTitleError(null);
+    const filledSteps = stepDrafts
+      .map((s) => ({ name: s.name.trim(), expectedResult: s.expectedResult.trim() }))
+      .filter((s) => s.name.length > 0);
+    if (filledSteps.length === 0) {
+      setTransportMessage("Manual test case needs at least one step with a name.");
+      return;
+    }
+    const res = await updateManual({
+      input: {
+        id: tc.id,
+        title: titleDraft.trim(),
+        steps: filledSteps.map((s) => ({
+          name: s.name,
+          expectedResult: s.expectedResult === "" ? undefined : s.expectedResult
+        }))
+      }
+    });
+    if (res.error) {
+      setTransportMessage(formatGraphQlTransportError(res.error));
+      return;
+    }
+    const appErr = res.data?.updateManualTestCase?.error;
+    if (appErr) {
+      setPayloadAppError(appErr);
+      return;
+    }
+    reexecuteDetail({ requestPolicy: "network-only" });
+    reexecuteGraph({ requestPolicy: "network-only" });
+  }, [
+    clearShellMessages,
+    paused,
+    reexecuteDetail,
+    reexecuteGraph,
+    setPayloadAppError,
+    setTransportMessage,
+    stepDrafts,
+    tc,
+    titleDraft,
+    updateManual
+  ]);
+
+  const onSaveAutomatedTitle = useCallback(async () => {
+    if (paused || tc?.type !== "automated" || tc.isDeleted) {
+      return;
+    }
+    clearShellMessages();
+    if (!trimmedNonEmpty(titleDraft.trim())) {
+      setTitleError(REQUIRED_MSG);
+      return;
+    }
+    setTitleError(null);
+    const res = await updateAutomated({
+      input: { id: tc.id, title: titleDraft.trim() }
+    });
+    if (res.error) {
+      setTransportMessage(formatGraphQlTransportError(res.error));
+      return;
+    }
+    const appErr = res.data?.updateAutomatedTestCase?.error;
+    if (appErr) {
+      setPayloadAppError(appErr);
+      return;
+    }
+    reexecuteDetail({ requestPolicy: "network-only" });
+  }, [
+    clearShellMessages,
+    paused,
+    reexecuteDetail,
+    setPayloadAppError,
+    setTransportMessage,
+    tc,
+    titleDraft,
+    updateAutomated
+  ]);
+
+  const onLinkRequirement = useCallback(async () => {
+    if (paused || projectId === undefined || tc?.type !== "manual" || addReqId === "" || tc.isDeleted) {
+      return;
+    }
+    clearShellMessages();
+    const res = await linkReqMan({
+      input: { projectId, requirementId: addReqId, manualTestCaseId: tc.id }
+    });
+    if (res.error) {
+      setTransportMessage(formatGraphQlTransportError(res.error));
+      return;
+    }
+    setAddReqId("");
+    reexecuteGraph({ requestPolicy: "network-only" });
+  }, [addReqId, clearShellMessages, linkReqMan, paused, projectId, reexecuteGraph, tc]);
+
+  const onUnlinkRequirement = useCallback(
+    async (requirementId: string) => {
+      if (paused || tc?.type !== "manual" || tc.isDeleted) {
+        return;
+      }
+      clearShellMessages();
+      const res = await unlinkReqMan({ input: { requirementId, manualTestCaseId: tc.id } });
+      if (res.error) {
+        setTransportMessage(formatGraphQlTransportError(res.error));
+        return;
+      }
+      reexecuteGraph({ requestPolicy: "network-only" });
+    },
+    [clearShellMessages, paused, reexecuteGraph, tc, unlinkReqMan]
+  );
+
+  const onLinkManual = useCallback(async () => {
+    if (paused || projectId === undefined || tc?.type !== "automated" || addManualId === "" || tc.isDeleted) {
+      return;
+    }
+    clearShellMessages();
+    const res = await linkAutoMan({
+      input: { projectId, automatedTestCaseId: tc.id, manualTestCaseId: addManualId }
+    });
+    if (res.error) {
+      setTransportMessage(formatGraphQlTransportError(res.error));
+      return;
+    }
+    setAddManualId("");
+    reexecuteGraph({ requestPolicy: "network-only" });
+  }, [addManualId, clearShellMessages, linkAutoMan, paused, projectId, reexecuteGraph, tc]);
+
+  const onUnlinkManual = useCallback(
+    async (manualTestCaseId: string) => {
+      if (paused || tc?.type !== "automated" || tc.isDeleted) {
+        return;
+      }
+      clearShellMessages();
+      const res = await unlinkAutoMan({ input: { automatedTestCaseId: tc.id, manualTestCaseId } });
+      if (res.error) {
+        setTransportMessage(formatGraphQlTransportError(res.error));
+        return;
+      }
+      reexecuteGraph({ requestPolicy: "network-only" });
+    },
+    [clearShellMessages, paused, reexecuteGraph, tc, unlinkAutoMan]
+  );
+
+  const onTombstone = useCallback(async () => {
+    if (paused || tc === undefined || tc === null) {
+      return;
+    }
+    clearShellMessages();
+    const res = await tombstone({ testCaseId: tc.id });
+    if (res.error) {
+      setTransportMessage(formatGraphQlTransportError(res.error));
+      return;
+    }
+    reexecuteDetail({ requestPolicy: "network-only" });
+    reexecuteGraph({ requestPolicy: "network-only" });
+  }, [clearShellMessages, paused, reexecuteDetail, reexecuteGraph, tc, tombstone]);
+
+  const onRestore = useCallback(async () => {
+    if (paused || tc === undefined || tc === null) {
+      return;
+    }
+    clearShellMessages();
+    const res = await restore({ testCaseId: tc.id });
+    if (res.error) {
+      setTransportMessage(formatGraphQlTransportError(res.error));
+      return;
+    }
+    reexecuteDetail({ requestPolicy: "network-only" });
+    reexecuteGraph({ requestPolicy: "network-only" });
+  }, [clearShellMessages, paused, reexecuteDetail, reexecuteGraph, restore, tc]);
+
+  if (paused) {
+    return null;
+  }
+
+  if (detailResult.fetching && detailResult.data === undefined) {
+    return (
+      <section className="projects-page" data-testid="testcase-detail-loading">
+        <p>Loading…</p>
+      </section>
+    );
+  }
+
+  if (!detailResult.fetching && detailResult.data !== undefined && tc === null) {
+    return (
+      <section className="projects-page" data-testid="testcase-not-found">
+        <h2>Test case not found</h2>
+        <Link to={`/projects/${projectId}/test-cases`}>Back to test cases</Link>
+      </section>
+    );
+  }
+
+  if (tc === undefined || tc === null) {
+    return (
+      <section className="projects-page" data-testid="testcase-detail-loading">
+        <p>Loading…</p>
+      </section>
+    );
+  }
+
+  const editable = !tc.isDeleted;
+
+  return (
+    <section className="projects-page" data-testid="testcase-detail-page">
+      <div className="project-detail-header">
+        <h2>Test case</h2>
+        <Link to={`/projects/${projectId}/test-cases`} data-testid="testcase-back-list">
+          ← Test cases
+        </Link>
+      </div>
+
+      <dl className="project-detail-meta">
+        <div>
+          <dt>Type</dt>
+          <dd data-testid="testcase-detail-type">{tc.type}</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd data-testid="testcase-detail-status">{tc.isDeleted ? "Deleted (tombstoned)" : "Active"}</dd>
+        </div>
+      </dl>
+
+      {tc.isDeleted && (
+        <p className="shell-banner err" role="status" data-testid="testcase-deleted-banner">
+          This test case is deleted. Restore it to edit or link traceability.
+        </p>
+      )}
+
+      <div className="projects-create project-detail-edit">
+        <h3 className="projects-subheading">Title</h3>
+        <div className="projects-create-fields">
+          <label>
+            Title <span className="required-star" aria-hidden="true">*</span>
+            <input
+              type="text"
+              value={titleDraft}
+              disabled={!editable}
+              onChange={(e) => {
+                setTitleDraft(e.target.value);
+                setTitleError(null);
+              }}
+              data-testid="testcase-edit-title"
+            />
+            {titleError !== null && (
+              <p className="field-error" role="alert" data-testid="testcase-edit-title-error">
+                {titleError}
+              </p>
+            )}
+          </label>
+        </div>
+        {tc.type === "manual" && editable && (
+          <button type="button" onClick={onSaveManual} data-testid="testcase-save-manual">
+            Save
+          </button>
+        )}
+        {tc.type === "automated" && editable && (
+          <button type="button" onClick={onSaveAutomatedTitle} data-testid="testcase-save-auto-title">
+            Save title
+          </button>
+        )}
+      </div>
+
+      {tc.type === "manual" && editable && (
+        <div className="projects-create project-detail-edit" data-testid="testcase-manual-steps">
+          <h3 className="projects-subheading">Steps</h3>
+          {stepDrafts.map((s, i) => (
+            <div key={i} className="testcase-step-row">
+              <label>
+                Step {i + 1} name
+                <input
+                  type="text"
+                  value={s.name}
+                  onChange={(e) => {
+                    const next = [...stepDrafts];
+                    next[i] = { ...next[i]!, name: e.target.value };
+                    setStepDrafts(next);
+                  }}
+                  data-testid={`testcase-edit-step-name-${i}`}
+                />
+              </label>
+              <label>
+                Expected
+                <input
+                  type="text"
+                  value={s.expectedResult}
+                  onChange={(e) => {
+                    const next = [...stepDrafts];
+                    next[i] = { ...next[i]!, expectedResult: e.target.value };
+                    setStepDrafts(next);
+                  }}
+                  data-testid={`testcase-edit-step-expected-${i}`}
+                />
+              </label>
+              {stepDrafts.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setStepDrafts(stepDrafts.filter((_, j) => j !== i))}
+                  data-testid={`testcase-edit-step-remove-${i}`}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => setStepDrafts([...stepDrafts, { name: "", expectedResult: "" }])}
+            data-testid="testcase-edit-step-add"
+          >
+            Add step
+          </button>
+          {stepsDirty && <p className="hint">You have unsaved step changes — use Save above.</p>}
+        </div>
+      )}
+
+      {tc.type === "manual" && (
+        <div className="projects-create project-detail-edit" data-testid="testcase-manual-links">
+          <h3 className="projects-subheading">Linked requirements</h3>
+          {linkedRequirements.length === 0 ? (
+            <p className="hint">No requirement links.</p>
+          ) : (
+            <ul className="testcase-link-list">
+              {linkedRequirements.map((r) => (
+                <li key={r.id} data-linked-req-id={r.id}>
+                  <span data-testid="testcase-linked-req-title">{r.title}</span>
+                  {editable && (
+                    <button
+                      type="button"
+                      onClick={() => void onUnlinkRequirement(r.id)}
+                      data-testid={`testcase-unlink-req-${r.id}`}
+                    >
+                      Unlink
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {editable && reqChoicesForLink.length > 0 && (
+            <div className="testcase-link-add">
+              <label>
+                Add requirement
+                <select
+                  value={addReqId}
+                  onChange={(e) => setAddReqId(e.target.value)}
+                  data-testid="testcase-add-req-select"
+                >
+                  <option value="">—</option>
+                  {reqChoicesForLink.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.externalKey} — {r.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                onClick={() => void onLinkRequirement()}
+                disabled={addReqId === ""}
+                data-testid="testcase-add-req-submit"
+              >
+                Link
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tc.type === "automated" && (
+        <div className="projects-create project-detail-edit" data-testid="testcase-auto-links">
+          <h3 className="projects-subheading">Linked manual test cases</h3>
+          {linkedManuals.length === 0 ? (
+            <p className="hint">No manual test links.</p>
+          ) : (
+            <ul className="testcase-link-list">
+              {linkedManuals.map((m) => (
+                <li key={m.id} data-linked-manual-id={m.id}>
+                  <span data-testid="testcase-linked-manual-title">{m.title}</span>
+                  {editable && linkedManuals.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => void onUnlinkManual(m.id)}
+                      data-testid={`testcase-unlink-manual-${m.id}`}
+                    >
+                      Unlink
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {editable && manualChoicesForLink.length > 0 && (
+            <div className="testcase-link-add">
+              <label>
+                Add manual test case
+                <select
+                  value={addManualId}
+                  onChange={(e) => setAddManualId(e.target.value)}
+                  data-testid="testcase-add-manual-select"
+                >
+                  <option value="">—</option>
+                  {manualChoicesForLink.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                onClick={() => void onLinkManual()}
+                disabled={addManualId === ""}
+                data-testid="testcase-add-manual-submit"
+              >
+                Link
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="project-detail-actions">
+        {editable ? (
+          <button type="button" onClick={() => void onTombstone()} data-testid="testcase-tombstone">
+            Delete (tombstone)
+          </button>
+        ) : (
+          <button type="button" onClick={() => void onRestore()} data-testid="testcase-restore">
+            Restore
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}

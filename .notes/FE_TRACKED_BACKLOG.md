@@ -53,9 +53,9 @@
 ## FE-D — Test cases + linking
 
 
-| ID   | Item                                                | E2E spec (planned)                    | Scenarios (planned)                              |
-| ---- | --------------------------------------------------- | ------------------------------------- | ------------------------------------------------ |
-| FE-D | Manual + steps; automated; links; tombstone/restore | `apps/web/e2e/fe-d-testcases.spec.ts` | Manual linked to req; automated linked to manual |
+| ID   | Item                                                | E2E spec                                                                                    | Scenarios                                                                                                                          |
+| ---- | --------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| FE-D | `[x]` Manual + steps; automated; links; tombstone/restore | [`apps/web/e2e/fe-d-testcases.spec.ts`](../apps/web/e2e/fe-d-testcases.spec.ts) | `/projects/:projectId/test-cases` list + create; detail links via `traceabilityGraph`; tombstone + restore on automated testcase |
 
 
 ---
