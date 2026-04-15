@@ -42,3 +42,65 @@ export type TestRunListItem = {
   createdAt: string;
   finishedAt: string | null;
 };
+
+export type KpiCoverageFormulaInfo = {
+  formulaId: string;
+  label: string;
+  description: string;
+  numeratorLabel: string;
+  denominatorLabel: string;
+  expression: string;
+  scope: string;
+};
+
+export type KpiCoverageMetricValue = {
+  formulaId: string;
+  valuePct: number;
+  numerator: number;
+  denominator: number;
+};
+
+export type KpiCurrentSnapshot = {
+  totalRequirements: number;
+  totalManualCases: number;
+  totalTestRuns: number;
+  requirementsWithManualLinks: number;
+  requirementsWithAutomatedLinksViaManual: number;
+  automatedCasesReachableFromRequirements: number;
+  orphanManualCases: number;
+  orphanAutomatedCases: number;
+  coverage: KpiCoverageMetricValue[];
+};
+
+export type KpiDashboardPayload = {
+  projectId: string;
+  generatedAt: string;
+  coverageFormulaInfo: KpiCoverageFormulaInfo[];
+  current: KpiCurrentSnapshot;
+};
+
+export type TraceabilityCoverageByStatusRow = {
+  status: string;
+  requirementCount: number;
+  withManualLinkCount: number;
+};
+
+export type TraceabilityGraphPayload = {
+  projectId: string;
+  nodes: Array<{ id: string; kind: string; title: string }>;
+  edges: Array<{ id: string; kind: string; sourceId: string; targetId: string }>;
+  coverageByRequirementStatus: TraceabilityCoverageByStatusRow[];
+};
+
+export type RunTraceabilityEdge = {
+  requirementId: string;
+  manualTestCaseId: string;
+  automatedTestCaseId: string | null;
+};
+
+export type RunTraceabilityReportPayload = {
+  runId: string;
+  projectId: string;
+  capturedAt: string;
+  edges: RunTraceabilityEdge[];
+};
