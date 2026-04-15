@@ -43,9 +43,14 @@ test.describe("FE-D test cases", () => {
 
     const manualRow = page.locator(`tr[data-testid="testcase-row"]`).filter({ hasText: manualTitle });
     await expect(manualRow).toBeVisible();
-    const manualHref = await manualRow.getByTestId("testcase-open").getAttribute("href");
-    expect(manualHref).toMatch(/\/test-cases\/[^/]+$/);
-    const manualId = manualHref!.split("/test-cases/")[1]!;
+    const manualId = await manualRow.getAttribute("data-testcase-id");
+    expect(manualId).toBeTruthy();
+
+    const autoPanelManualCheckbox = page.getByTestId(`testcase-create-auto-manual-${manualId}`);
+    await expect(autoPanelManualCheckbox).toBeVisible({ timeout: 8000 });
+    await expect(
+      page.getByTestId("testcase-create-auto-manuals").locator("label").filter({ hasText: manualTitle })
+    ).toBeVisible();
 
     await manualRow.getByTestId("testcase-open").click();
     await expect(page.getByTestId("testcase-detail-page")).toBeVisible();
