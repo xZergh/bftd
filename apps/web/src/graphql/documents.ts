@@ -231,6 +231,60 @@ export const TraceabilityGraphQuery = parse(`
         sourceId
         targetId
       }
+      coverageByRequirementStatus {
+        status
+        requirementCount
+        withManualLinkCount
+      }
+    }
+  }
+`);
+
+export const KpiDashboardQuery = parse(`
+  query KpiDashboard($projectId: ID!) {
+    kpiDashboard(input: { projectId: $projectId }) {
+      projectId
+      generatedAt
+      coverageFormulaInfo {
+        formulaId
+        label
+        description
+        numeratorLabel
+        denominatorLabel
+        expression
+        scope
+      }
+      current {
+        totalRequirements
+        totalManualCases
+        totalTestRuns
+        requirementsWithManualLinks
+        requirementsWithAutomatedLinksViaManual
+        automatedCasesReachableFromRequirements
+        orphanManualCases
+        orphanAutomatedCases
+        coverage {
+          formulaId
+          valuePct
+          numerator
+          denominator
+        }
+      }
+    }
+  }
+`);
+
+export const RunTraceabilityReportQuery = parse(`
+  query RunTraceabilityReport($runId: ID!) {
+    runTraceabilityReport(input: { runId: $runId }) {
+      runId
+      projectId
+      capturedAt
+      edges {
+        requirementId
+        manualTestCaseId
+        automatedTestCaseId
+      }
     }
   }
 `);

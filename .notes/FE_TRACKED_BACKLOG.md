@@ -73,9 +73,9 @@
 ## FE-F — KPI + traceability
 
 
-| ID   | Item                                                                             | E2E spec (planned)                    | Scenarios (planned)                     |
-| ---- | -------------------------------------------------------------------------------- | ------------------------------------- | --------------------------------------- |
-| FE-F | `kpiDashboard`, `runTraceabilityReport`, `traceabilityGraph` (level per FE spec) | `apps/web/e2e/fe-f-reporting.spec.ts` | Dashboard shows formula labels + values |
+| ID   | Item                                                                             | E2E spec                                                                 | Scenarios                                                                                                                          |
+| ---- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| FE-F | `[x]` `kpiDashboard`, `runTraceabilityReport`, `traceabilityGraph` (incl. coverage-by-status) | [`apps/web/e2e/fe-f-reporting.spec.ts`](../apps/web/e2e/fe-f-reporting.spec.ts) | `/projects/:projectId/reporting` — KPI formula labels + values; graph summary; run traceability snapshot edges |
 
 
 ---
