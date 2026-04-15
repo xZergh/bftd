@@ -29,3 +29,16 @@ export type TestCaseListItem = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type TestRunListItem = {
+  id: string;
+  projectId: string;
+  name: string;
+  releaseLabel: string | null;
+  sprintLabel: string | null;
+  environment: string | null;
+  buildVersion: string | null;
+  trigger: string | null;
+  createdAt: string;
+  finishedAt: string | null;
+};

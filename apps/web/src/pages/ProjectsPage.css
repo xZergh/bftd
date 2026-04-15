@@ -194,6 +194,35 @@
   font-size: 0.875rem;
 }
 
+.run-aggregate-panel {
+  margin-bottom: 1rem;
+}
+
+.run-aggregate-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  gap: 0.75rem 1rem;
+  margin: 0;
+}
+
+.run-aggregate-grid > div {
+  margin: 0;
+}
+
+.run-aggregate-grid dt {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #666;
+}
+
+.run-aggregate-grid dd {
+  margin: 0.15rem 0 0;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
 .project-detail-header {
   display: flex;
   flex-wrap: wrap;
