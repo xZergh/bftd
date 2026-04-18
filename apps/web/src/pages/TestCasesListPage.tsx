@@ -41,6 +41,20 @@ export function TestCasesListPage() {
 
   const paused = projectId === undefined || projectId === "";
 
+  /** Defer urql subscriptions one tick so the prior route (e.g. testcase detail) can unmount cleanly. */
+  const [deferQueries, setDeferQueries] = useState(true);
+  useEffect(() => {
+    if (paused) {
+      return;
+    }
+    setDeferQueries(true);
+    queueMicrotask(() => {
+      setDeferQueries(false);
+    });
+  }, [paused, projectId]);
+
+  const queryPaused = paused || deferQueries;
+
   const [listResult, reexecuteCases] = useQuery({
     query: TestCasesListQuery,
     variables: {
@@ -48,21 +62,21 @@ export function TestCasesListPage() {
       type: typeFilter === "" ? undefined : typeFilter,
       includeDeleted
     },
-    pause: paused,
+    pause: queryPaused,
     requestPolicy: "network-only"
   });
 
   const [reqResult] = useQuery({
     query: RequirementsListQuery,
     variables: { projectId: projectId ?? "" },
-    pause: paused,
+    pause: queryPaused,
     requestPolicy: "network-only"
   });
 
   const [manualListResult, reexecuteManualList] = useQuery({
     query: TestCasesListQuery,
     variables: { projectId: projectId ?? "", type: "manual", includeDeleted: false },
-    pause: paused,
+    pause: queryPaused,
     requestPolicy: "network-only"
   });
 
@@ -108,7 +122,7 @@ export function TestCasesListPage() {
   }, [autoManualIds, autoTitle, projectId]);
 
   const onCreateManual = useCallback(async () => {
-    if (paused) {
+    if (paused || deferQueries) {
       return;
     }
     clearShellMessages();
@@ -167,6 +181,7 @@ export function TestCasesListPage() {
   }, [
     clearShellMessages,
     createManual,
+    deferQueries,
     manualReqIds,
     manualSteps,
     manualTitle,
@@ -179,7 +194,7 @@ export function TestCasesListPage() {
   ]);
 
   const onCreateAutomated = useCallback(async () => {
-    if (paused) {
+    if (paused || deferQueries) {
       return;
     }
     clearShellMessages();
@@ -225,6 +240,7 @@ export function TestCasesListPage() {
     autoTitle,
     clearShellMessages,
     createAutomated,
+    deferQueries,
     paused,
     projectId,
     reexecuteCases,
@@ -242,6 +258,14 @@ export function TestCasesListPage() {
 
   if (paused) {
     return null;
+  }
+
+  if (deferQueries) {
+    return (
+      <section className="projects-page" data-testid="testcases-page">
+        <PageLoading />
+      </section>
+    );
   }
 
   const requirements: RequirementListItem[] = reqResult.data?.requirements ?? [];

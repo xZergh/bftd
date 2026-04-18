@@ -15,7 +15,6 @@ export function AppShell() {
       </a>
 
       <YStack
-        flex={1}
         minHeight="100vh"
         backgroundColor="$background"
         maxWidth={1120}
@@ -81,7 +80,7 @@ export function AppShell() {
                 fontSize="$2"
                 overflow="scroll"
                 data-testid="shell-app-error-context"
-                selectable
+                userSelect="text"
               >
                 {payloadAppError.context}
               </Text>
@@ -108,15 +107,14 @@ export function AppShell() {
           </XStack>
           <ProjectPicker />
         </XStack>
+        <main id="main-content" tabIndex={-1} style={{ outline: "none", width: "100%", paddingBottom: "1.5rem" }}>
+          <YStack flex={1} gap="$3">
+            <RouteErrorBoundary>
+              <Outlet />
+            </RouteErrorBoundary>
+          </YStack>
+        </main>
       </YStack>
-
-      <main id="main-content" tabIndex={-1} style={{ outline: "none", maxWidth: 1120, margin: "0 auto", padding: "0 1rem 2rem" }}>
-        <YStack flex={1} gap="$3">
-          <RouteErrorBoundary>
-            <Outlet />
-          </RouteErrorBoundary>
-        </YStack>
-      </main>
     </div>
   );
 }

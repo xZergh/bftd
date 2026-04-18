@@ -18,12 +18,26 @@ type ShellErrorsContextValue = {
 const ShellErrorsContext = createContext<ShellErrorsContextValue | null>(null);
 
 export function ShellErrorsProvider({ children }: { children: ReactNode }) {
-  const [transportMessage, setTransportMessage] = useState<string | null>(null);
-  const [payloadAppError, setPayloadAppError] = useState<AppErrorShape | null>(null);
+  const [transportMessage, setTransportMessageState] = useState<string | null>(null);
+  const [payloadAppError, setPayloadAppErrorState] = useState<AppErrorShape | null>(null);
+
+  const setTransportMessage = useCallback((message: string | null) => {
+    queueMicrotask(() => {
+      setTransportMessageState(message);
+    });
+  }, []);
+
+  const setPayloadAppError = useCallback((error: AppErrorShape | null) => {
+    queueMicrotask(() => {
+      setPayloadAppErrorState(error);
+    });
+  }, []);
 
   const clearShellMessages = useCallback(() => {
-    setTransportMessage(null);
-    setPayloadAppError(null);
+    queueMicrotask(() => {
+      setTransportMessageState(null);
+      setPayloadAppErrorState(null);
+    });
   }, []);
 
   const value = useMemo(
@@ -34,7 +48,7 @@ export function ShellErrorsProvider({ children }: { children: ReactNode }) {
       setPayloadAppError,
       clearShellMessages
     }),
-    [transportMessage, payloadAppError, clearShellMessages]
+    [transportMessage, payloadAppError, setTransportMessage, setPayloadAppError, clearShellMessages]
   );
 
   return <ShellErrorsContext.Provider value={value}>{children}</ShellErrorsContext.Provider>;

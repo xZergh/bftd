@@ -6,7 +6,7 @@ TCMS helps you manage requirements, manual and automated tests, and execution re
 
 ## 2. Quickstart
 
-Developers can explore the API in the browser with the **GraphQL Explorer** at `http://localhost:4000/graphql` (see [`docs/GRAPHQL_EXPLORER.md`](GRAPHQL_EXPLORER.md)).
+Developers can explore the API in the browser with the **GraphQL Explorer** at `http://localhost:4000/graphql` (see `[docs/GRAPHQL_EXPLORER.md](GRAPHQL_EXPLORER.md)`).
 
 1. Create a project (application under test).
 2. Import requirements.

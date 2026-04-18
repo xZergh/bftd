@@ -90,31 +90,34 @@ export function TestCaseDetailPage() {
     pause: paused
   });
 
+  /** Avoid overlapping urql subscriptions with the test-case list page during route transitions. */
+  const secondaryPaused = paused || (detailResult.fetching && detailResult.data === undefined);
+
   const [graphResult, reexecuteGraph] = useQuery({
     query: TraceabilityGraphQuery,
     variables: { projectId: projectId ?? "" },
-    pause: paused,
+    pause: secondaryPaused,
     requestPolicy: "network-only"
   });
 
   const [versionHistoryResult, reexecuteVersionHistory] = useQuery({
     query: TestCaseVersionHistoryQuery,
     variables: { testCaseId: testCaseId ?? "", includeDeleted: true },
-    pause: paused,
+    pause: secondaryPaused,
     requestPolicy: "network-only"
   });
 
   const [reqResult] = useQuery({
     query: RequirementsListQuery,
     variables: { projectId: projectId ?? "" },
-    pause: paused,
+    pause: secondaryPaused,
     requestPolicy: "network-only"
   });
 
   const [manualListResult] = useQuery({
     query: TestCasesListQuery,
     variables: { projectId: projectId ?? "", type: "manual", includeDeleted: false },
-    pause: paused,
+    pause: secondaryPaused,
     requestPolicy: "network-only"
   });
 
