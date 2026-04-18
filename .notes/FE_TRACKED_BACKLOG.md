@@ -83,9 +83,9 @@
 ## FE-G — Imports
 
 
-| ID   | Item                                   | E2E spec (planned)                  | Scenarios (planned)                    |
-| ---- | -------------------------------------- | ----------------------------------- | -------------------------------------- |
-| FE-G | Requirements, TRR, design bulk imports | `apps/web/e2e/fe-g-imports.spec.ts` | Paste JSON; assert counts + error rows |
+| ID   | Item                                   | E2E spec                                                                 | Scenarios                                                                                                                          |
+| ---- | -------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| FE-G | `[x]` Requirements, TRR, design bulk imports | [`apps/web/e2e/fe-g-imports.spec.ts`](../apps/web/e2e/fe-g-imports.spec.ts) | `/projects/:projectId/imports` — paste JSON; counts; error rows with index; design links with provider |
 
 
 ---

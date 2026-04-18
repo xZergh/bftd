@@ -514,3 +514,135 @@
 .reporting-run-trace-table td {
   vertical-align: top;
 }
+
+.import-intro {
+  margin-top: 0.5rem;
+}
+
+.import-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 1rem 0 0.75rem;
+}
+
+.import-tab {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.875rem;
+  border: 1px solid #d4d4d8;
+  border-radius: 6px;
+  background: #fff;
+  color: #3f3f46;
+  cursor: pointer;
+}
+
+.import-tab:hover {
+  border-color: #a1a1aa;
+}
+
+.import-tab--active {
+  border-color: #0d9488;
+  background: #ecfdf5;
+  color: #0f766e;
+  font-weight: 600;
+}
+
+.import-panel {
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+}
+
+.import-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: #52525b;
+  line-height: 1.45;
+}
+
+.import-hint code {
+  font-size: 0.8125rem;
+}
+
+.import-json-textarea {
+  display: block;
+  width: 100%;
+  max-width: 52rem;
+  padding: 0.65rem 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  border: 1px solid #d4d4d8;
+  border-radius: 6px;
+  resize: vertical;
+  min-height: 8rem;
+}
+
+.import-provider-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+  font-size: 0.875rem;
+}
+
+.import-provider-label input {
+  min-width: 10rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 1rem;
+}
+
+.import-actions {
+  margin-top: 0.75rem;
+}
+
+.import-result {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e4e4e7;
+}
+
+.import-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  margin: 0 0 1rem;
+}
+
+.import-counts > div {
+  margin: 0;
+}
+
+.import-counts dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #71717a;
+}
+
+.import-counts dd {
+  margin: 0.15rem 0 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.import-result-subheading {
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #b42318;
+}
+
+.import-result-block + .import-result-block {
+  margin-top: 1rem;
+}
+
+.import-warnings-block .import-result-subheading {
+  color: #a16207;
+}
+
+.import-errors-table .import-error-fix {
+  font-size: 0.8125rem;
+  color: #52525b;
+}

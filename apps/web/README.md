@@ -31,6 +31,7 @@ Full step-by-step (env, clean DB, troubleshooting): [`docs/LOCAL_MANUAL_TESTING.
 - Test cases (FE-D): [`e2e/fe-d-testcases.spec.ts`](e2e/fe-d-testcases.spec.ts) — manual + automated create; links; tombstone/restore.
 - Runs (FE-E): [`e2e/fe-e-runs.spec.ts`](e2e/fe-e-runs.spec.ts) — create run; submit result; aggregate.
 - Reporting (FE-F): [`e2e/fe-f-reporting.spec.ts`](e2e/fe-f-reporting.spec.ts) — KPI dashboard; traceability graph; run snapshot.
+- Imports (FE-G): [`e2e/fe-g-imports.spec.ts`](e2e/fe-g-imports.spec.ts) — requirements / TRR / design bulk JSON imports.
 
 From repo root: `npm run e2e:web` or `npm run ci:e2e:web`.
 

@@ -511,3 +511,55 @@ export const SubmitTestResultMutation = parse(`
     }
   }
 `);
+
+export const ImportRequirementsMutation = parse(`
+  mutation ImportRequirements($input: ImportRequirementsInput!) {
+    importRequirements(input: $input) {
+      createdCount
+      updatedCount
+      skippedCount
+      errors {
+        index
+        code
+        message
+        fixHint
+      }
+      warnings {
+        index
+        message
+      }
+    }
+  }
+`);
+
+export const ImportAutomatedFromTrrMutation = parse(`
+  mutation ImportAutomatedFromTrr($input: ImportAutomatedFromTrrInput!) {
+    importAutomatedFromTrr(input: $input) {
+      createdCount
+      updatedCount
+      skippedCount
+      errors {
+        index
+        code
+        message
+        fixHint
+      }
+    }
+  }
+`);
+
+export const ImportRequirementDesignLinksMutation = parse(`
+  mutation ImportRequirementDesignLinks($input: ImportRequirementDesignLinksInput!) {
+    importRequirementDesignLinks(input: $input) {
+      createdCount
+      updatedCount
+      skippedCount
+      errors {
+        index
+        code
+        message
+        fixHint
+      }
+    }
+  }
+`);
