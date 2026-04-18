@@ -233,6 +233,9 @@ export function ProjectDetailPage() {
           <Link to={`/projects/${projectId}/imports`} data-testid="project-nav-imports">
             Imports
           </Link>
+          <Link to={`/projects/${projectId}/design-links`} data-testid="project-nav-design-links">
+            Design links
+          </Link>
         </div>
       </div>
 

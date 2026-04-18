@@ -563,3 +563,49 @@ export const ImportRequirementDesignLinksMutation = parse(`
     }
   }
 `);
+
+export const RequirementDesignLinksQuery = parse(`
+  query RequirementDesignLinks($projectId: ID!, $requirementId: ID) {
+    requirementDesignLinks(input: { projectId: $projectId, requirementId: $requirementId }) {
+      id
+      projectId
+      requirementId
+      provider
+      designProjectId
+      designFileId
+      designPageId
+      designNodeId
+      shareUrl
+      title
+      lastSyncedAt
+    }
+  }
+`);
+
+export const UpsertRequirementDesignLinkMutation = parse(`
+  mutation UpsertRequirementDesignLink($input: RequirementDesignLinkInput!) {
+    upsertRequirementDesignLink(input: $input) {
+      link {
+        id
+        requirementId
+        provider
+        shareUrl
+        title
+      }
+      error {
+        code
+        message
+        fixHint
+        context
+      }
+    }
+  }
+`);
+
+export const UnlinkRequirementDesignLinkMutation = parse(`
+  mutation UnlinkRequirementDesignLink($input: UnlinkRequirementDesignLinkInput!) {
+    unlinkRequirementDesignLink(input: $input) {
+      success
+    }
+  }
+`);
