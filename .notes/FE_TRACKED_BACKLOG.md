@@ -93,9 +93,9 @@
 ## FE-H — Design links
 
 
-| ID   | Item                                           | E2E spec (planned)                       | Scenarios (planned)  |
-| ---- | ---------------------------------------------- | ---------------------------------------- | -------------------- |
-| FE-H | List / upsert / unlink Penpot (provider) links | `apps/web/e2e/fe-h-design-links.spec.ts` | Upsert; list; unlink |
+| ID   | Item                                           | E2E spec                                                                 | Scenarios                                                                                                                          |
+| ---- | ---------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| FE-H | `[x]` List / upsert / unlink Penpot (provider) links | [`apps/web/e2e/fe-h-design-links.spec.ts`](../apps/web/e2e/fe-h-design-links.spec.ts) | `/projects/:projectId/design-links` — upsert; list; idempotent title update; unlink |
 
 
 ---
