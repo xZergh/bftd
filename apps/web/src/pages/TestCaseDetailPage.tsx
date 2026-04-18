@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
+import { PageLoading } from "../components/PageLoading";
 import {
   LinkAutomatedManualMutation,
   LinkRequirementManualMutation,
@@ -553,7 +554,7 @@ export function TestCaseDetailPage() {
   if (detailResult.fetching && detailResult.data === undefined) {
     return (
       <section className="projects-page" data-testid="testcase-detail-loading">
-        <p>Loading…</p>
+        <PageLoading />
       </section>
     );
   }
@@ -570,7 +571,7 @@ export function TestCaseDetailPage() {
   if (tc === undefined || tc === null) {
     return (
       <section className="projects-page" data-testid="testcase-detail-loading">
-        <p>Loading…</p>
+        <PageLoading />
       </section>
     );
   }
@@ -816,7 +817,7 @@ export function TestCaseDetailPage() {
       <div className="projects-create" data-testid="testcase-version-history">
         <h3 className="projects-subheading">Version history</h3>
         {versionHistoryResult.fetching && versionRows.length === 0 ? (
-          <p data-testid="testcase-version-history-loading">Loading…</p>
+          <PageLoading dataTestId="testcase-version-history-loading" />
         ) : null}
         {versionRows.length === 0 && !versionHistoryResult.fetching ? (
           <p className="hint" data-testid="testcase-version-history-empty">

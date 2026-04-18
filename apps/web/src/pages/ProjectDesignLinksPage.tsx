@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
+import { PageLoading } from "../components/PageLoading";
 import {
   RequirementDesignLinksQuery,
   RequirementsListQuery,
@@ -328,11 +329,7 @@ export function ProjectDesignLinksPage() {
         </button>
       </div>
 
-      {linksResult.fetching ? (
-        <p className="projects-loading" data-testid="design-links-loading">
-          Loading…
-        </p>
-      ) : null}
+      {linksResult.fetching ? <PageLoading dataTestId="design-links-loading" /> : null}
 
       <table className="projects-table" data-testid="design-links-table">
         <thead>

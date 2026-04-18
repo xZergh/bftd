@@ -10,6 +10,7 @@ React + Vite front end for the TCMS GraphQL API. Dev server proxies API routes t
 | `npm run build` | Production build to `dist/`. |
 | `npm run preview` | Preview production build. |
 | `npm run e2e` | Playwright tests (starts API + web via config when not reused). |
+| `npm run e2e:smoke` | Playwright tests tagged `@smoke` (subset; see `e2e/fe-e2e-0-smoke.spec.ts`). |
 | `npm run e2e:ci` | Same as `e2e` (use from CI with `CI=true`). |
 | `npm run e2e:install` | Download Playwright browser binaries (Chromium). |
 
@@ -34,8 +35,9 @@ Full step-by-step (env, clean DB, troubleshooting): [`docs/LOCAL_MANUAL_TESTING.
 - Imports (FE-G): [`e2e/fe-g-imports.spec.ts`](e2e/fe-g-imports.spec.ts) — requirements / TRR / design bulk JSON imports.
 - Design links (FE-H): [`e2e/fe-h-design-links.spec.ts`](e2e/fe-h-design-links.spec.ts) — Penpot upsert, list, unlink.
 - Version history (FE-I): [`e2e/fe-i-version-history.spec.ts`](e2e/fe-i-version-history.spec.ts) — testcase detail lists `testCaseVersionHistory`; save bumps `versionSeq`.
+- Polish (FE-J): [`e2e/fe-j-polish.spec.ts`](e2e/fe-j-polish.spec.ts) — skip link; route error boundary (dev throw route); keyboard focus on project picker.
 
-From repo root: `npm run e2e:web` or `npm run ci:e2e:web`.
+From repo root: `npm run e2e:web` or `npm run ci:e2e:web`. Tagged smoke only: `npm run e2e:smoke:web` (repo root).
 
 ## Stack
 

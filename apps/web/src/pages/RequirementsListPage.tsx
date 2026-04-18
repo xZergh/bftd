@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
+import { PageLoading } from "../components/PageLoading";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
 import {
   CreateRequirementMutation,
@@ -237,11 +238,7 @@ export function RequirementsListPage() {
         </button>
       </div>
 
-      {listResult.fetching && (
-        <p className="projects-loading" data-testid="requirements-list-loading">
-          Loading…
-        </p>
-      )}
+      {listResult.fetching && <PageLoading dataTestId="requirements-list-loading" />}
 
       {rows.length === 0 && !listResult.fetching ? (
         <p className="projects-empty" data-testid="requirements-list-empty">

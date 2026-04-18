@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
+import { PageLoading } from "../components/PageLoading";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
 import {
   CreateAutomatedTestCaseMutation,
@@ -451,9 +452,7 @@ export function TestCasesListPage() {
           Show deleted
         </label>
         {listResult.fetching && (
-          <span className="projects-loading" data-testid="testcases-list-loading">
-            Loading…
-          </span>
+          <PageLoading inline dataTestId="testcases-list-loading" />
         )}
       </div>
 

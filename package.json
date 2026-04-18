@@ -12,6 +12,7 @@
     "dev:web": "npm run dev -w tcms-web",
     "start:e2e-api": "cross-env DB_PATH=./data/e2e-playwright.sqlite PORT=4000 tsx src/server.ts",
     "e2e:web": "npm run e2e -w tcms-web",
+    "e2e:smoke:web": "npm run e2e:smoke -w tcms-web",
     "ci:e2e:web": "cross-env CI=true npm run e2e:ci -w tcms-web",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",

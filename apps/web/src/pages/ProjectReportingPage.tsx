@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "urql";
+import { PageLoading } from "../components/PageLoading";
 import { CoveragePie } from "../components/reporting/CoveragePie";
 import { TraceabilityTree } from "../components/reporting/TraceabilityTree";
 import {
@@ -212,7 +213,7 @@ export function ProjectReportingPage() {
 
       <section className="reporting-section reporting-kpi-visual-vars" aria-labelledby="kpi-dashboard-heading">
         <h3 id="kpi-dashboard-heading">KPI dashboard</h3>
-        {kpiResult.fetching && !kpi ? <p>Loading KPI…</p> : null}
+        {kpiResult.fetching && !kpi ? <PageLoading message="Loading KPI…" /> : null}
         {kpi ? (
           <>
             <p className="reporting-meta">
@@ -289,7 +290,7 @@ export function ProjectReportingPage() {
 
       <section className="reporting-section" aria-labelledby="trace-graph-heading">
         <h3 id="trace-graph-heading">Traceability graph</h3>
-        {graphResult.fetching && !graph ? <p>Loading graph…</p> : null}
+        {graphResult.fetching && !graph ? <PageLoading message="Loading graph…" /> : null}
         {graph ? (
           <>
             <p className="reporting-meta">
@@ -340,7 +341,7 @@ export function ProjectReportingPage() {
                 ))}
               </select>
             </label>
-            {traceReportResult.fetching && !traceReport ? <p>Loading snapshot…</p> : null}
+            {traceReportResult.fetching && !traceReport ? <PageLoading message="Loading snapshot…" /> : null}
             {traceReport ? (
               <>
                 <p className="reporting-meta">

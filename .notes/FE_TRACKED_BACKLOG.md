@@ -113,9 +113,9 @@
 ## FE-J — Polish (concrete)
 
 
-| ID   | Item                                                            | E2E spec (planned)                 | Scenarios (planned)            |
-| ---- | --------------------------------------------------------------- | ---------------------------------- | ------------------------------ |
-| FE-J | Loading states; error boundary; one keyboard path; smoke re-run | `apps/web/e2e/fe-j-polish.spec.ts` | Smoke subset of critical flows |
+| ID   | Item                                                            | E2E spec                                                                                    | Scenarios                                                                                                                          |
+| ---- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| FE-J | `[x]` Shared `PageLoading`; route error boundary; skip link + picker keyboard; `@smoke` grep | [`apps/web/e2e/fe-j-polish.spec.ts`](../apps/web/e2e/fe-j-polish.spec.ts) | Skip-to-main focuses `#main-content`; `/e2e-throw` (dev) shows boundary + home; project picker focusable; root `e2e:smoke:web` runs tagged smoke |
 
 
 **FE-J checklist:** consistent loading UI; **one** keyboard-accessible path (e.g. project control or submit); re-run smoke E2E tag/subset.
