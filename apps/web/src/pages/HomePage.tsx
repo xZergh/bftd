@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from "react";
 import { useClient, useMutation, useQuery } from "urql";
+import { PageLoading } from "../components/PageLoading";
 import { CreateProjectMutation, IntentionallyInvalidQuery, ProjectsQuery } from "../graphql/documents";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 
@@ -82,7 +83,7 @@ export function HomePage() {
       <p className="home-lead">Load data from the API or trigger error paths used by the app shell.</p>
 
       <div data-testid="projects-query-status" aria-live="polite">
-        {projectResult.fetching ? "Loading…" : ""}
+        {projectResult.fetching ? <PageLoading inline /> : null}
       </div>
 
       <div className="home-actions">

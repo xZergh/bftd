@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
+import { PageLoading } from "../components/PageLoading";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
 import {
   RunAggregateQuery,
@@ -152,7 +153,7 @@ export function RunDetailPage() {
   if (detailResult.fetching && detailResult.data === undefined) {
     return (
       <section className="projects-page" data-testid="run-detail-loading">
-        <p>Loading…</p>
+        <PageLoading />
       </section>
     );
   }
@@ -169,7 +170,7 @@ export function RunDetailPage() {
   if (detail === undefined || detail === null) {
     return (
       <section className="projects-page" data-testid="run-detail-loading">
-        <p>Loading…</p>
+        <PageLoading />
       </section>
     );
   }
@@ -204,9 +205,7 @@ export function RunDetailPage() {
       <div className="projects-create run-aggregate-panel" data-testid="run-aggregate-panel">
         <h3 className="projects-subheading">Aggregate</h3>
         {aggregateResult.fetching && agg === undefined ? (
-          <p className="projects-loading" data-testid="run-aggregate-loading">
-            Loading…
-          </p>
+          <PageLoading dataTestId="run-aggregate-loading" />
         ) : agg !== undefined ? (
           <dl className="run-aggregate-grid">
             <div>

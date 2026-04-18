@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
+import { PageLoading } from "../components/PageLoading";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
 import {
   DeleteRequirementMutation,
@@ -183,7 +184,7 @@ export function RequirementDetailPage() {
   if (detailResult.fetching && detailResult.data === undefined) {
     return (
       <section className="projects-page" data-testid="requirement-detail-loading">
-        <p>Loading…</p>
+        <PageLoading />
       </section>
     );
   }
@@ -200,7 +201,7 @@ export function RequirementDetailPage() {
   if (req === undefined || req === null) {
     return (
       <section className="projects-page" data-testid="requirement-detail-loading">
-        <p>Loading…</p>
+        <PageLoading />
       </section>
     );
   }

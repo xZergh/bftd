@@ -2,6 +2,7 @@ import { Link, Outlet } from "react-router-dom";
 import { ProjectPicker } from "../components/ProjectPicker";
 import "../App.css";
 import { useShellErrors } from "../shell/ShellErrorsContext";
+import { RouteErrorBoundary } from "./RouteErrorBoundary";
 import "./AppShell.css";
 
 export function AppShell() {
@@ -9,6 +10,9 @@ export function AppShell() {
 
   return (
     <div className="app" data-testid="app-root">
+      <a href="#main-content" className="skip-to-main" data-testid="skip-to-main">
+        Skip to main content
+      </a>
       <header className="app-header">
         <h1>TCMS</h1>
         <p className="tagline">Local Test Case Management</p>
@@ -51,8 +55,10 @@ export function AppShell() {
         <ProjectPicker />
       </div>
 
-      <main className="app-main">
-        <Outlet />
+      <main id="main-content" className="app-main" tabIndex={-1}>
+        <RouteErrorBoundary>
+          <Outlet />
+        </RouteErrorBoundary>
       </main>
     </div>
   );

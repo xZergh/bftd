@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
+import { PageLoading } from "../components/PageLoading";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
 import { CreateProjectMutation, ProjectsListQuery } from "../graphql/documents";
 import {
@@ -184,11 +185,7 @@ export function ProjectsListPage() {
           />
           Show archived
         </label>
-        {listResult.fetching && (
-          <span className="projects-loading" data-testid="projects-list-loading">
-            Loading…
-          </span>
-        )}
+        {listResult.fetching && <PageLoading inline dataTestId="projects-list-loading" />}
       </div>
 
       {projects.length === 0 && !listResult.fetching ? (

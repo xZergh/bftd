@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
+import { PageLoading } from "../components/PageLoading";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
 import { CreateTestRunMutation, TestRunsListQuery } from "../graphql/documents";
 import { formatGraphQlTransportError } from "../graphql/formatGraphQlError";
@@ -130,11 +131,7 @@ export function TestRunsListPage() {
         </button>
       </div>
 
-      {listResult.fetching && (
-        <p className="projects-loading" data-testid="runs-list-loading">
-          Loading…
-        </p>
-      )}
+      {listResult.fetching && <PageLoading dataTestId="runs-list-loading" />}
 
       {rows.length === 0 && !listResult.fetching ? (
         <p className="projects-empty" data-testid="runs-list-empty">

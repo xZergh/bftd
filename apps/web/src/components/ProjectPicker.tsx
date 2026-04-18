@@ -20,6 +20,7 @@ export function ProjectPicker() {
       <select
         className="project-picker-select"
         data-testid="project-picker"
+        aria-label="Select project"
         disabled={fetching && !data}
         value={value}
         onChange={(e) => {
