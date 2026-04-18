@@ -69,14 +69,14 @@ export function RunDetailPage() {
     setTransportMessage(formatGraphQlTransportError(aggregateResult.error));
   }, [aggregateResult.error, setTransportMessage]);
 
-  const testCases: TestCaseListItem[] = casesResult.data?.testCases ?? [];
   const caseTitleById = useMemo(() => {
+    const testCases: TestCaseListItem[] = casesResult.data?.testCases ?? [];
     const m = new Map<string, string>();
     for (const t of testCases) {
       m.set(t.id, t.title);
     }
     return m;
-  }, [testCases]);
+  }, [casesResult.data?.testCases]);
 
   const submitClientPayload = useMemo(() => {
     const d = durationMs.trim() === "" ? null : Number.parseInt(durationMs.trim(), 10);
@@ -256,7 +256,7 @@ export function RunDetailPage() {
               data-testid="result-submit-testcase"
             >
               <option value="">—</option>
-              {testCases.map((t) => (
+              {(casesResult.data?.testCases ?? []).map((t: TestCaseListItem) => (
                 <option key={t.id} value={t.id}>
                   [{t.type}] {t.title}
                 </option>

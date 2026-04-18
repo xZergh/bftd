@@ -229,18 +229,17 @@ export function TestCaseDetailPage() {
     return [...raw].sort((a, b) => b.versionSeq - a.versionSeq);
   }, [versionHistoryResult.data?.testCaseVersionHistory]);
 
-  const requirements: RequirementListItem[] = reqResult.data?.requirements ?? [];
-  const manuals: TestCaseListItem[] = manualListResult.data?.testCases ?? [];
-
   const reqChoicesForLink = useMemo(() => {
+    const requirements: RequirementListItem[] = reqResult.data?.requirements ?? [];
     const linked = new Set(linkedRequirements.map((r) => r.id));
     return requirements.filter((r) => !linked.has(r.id));
-  }, [linkedRequirements, requirements]);
+  }, [linkedRequirements, reqResult.data?.requirements]);
 
   const manualChoicesForLink = useMemo(() => {
+    const manuals: TestCaseListItem[] = manualListResult.data?.testCases ?? [];
     const linked = new Set(linkedManuals.map((m) => m.id));
     return manuals.filter((m) => !linked.has(m.id));
-  }, [linkedManuals, manuals]);
+  }, [linkedManuals, manualListResult.data?.testCases]);
 
   const manualDirty =
     tc?.type === "manual" &&
@@ -453,7 +452,17 @@ export function TestCaseDetailPage() {
     }
     setAddReqId("");
     reexecuteGraph({ requestPolicy: "network-only" });
-  }, [addReqId, cancelManualAutosave, clearShellMessages, linkReqMan, paused, projectId, reexecuteGraph, tc]);
+  }, [
+    addReqId,
+    cancelManualAutosave,
+    clearShellMessages,
+    linkReqMan,
+    paused,
+    projectId,
+    reexecuteGraph,
+    setTransportMessage,
+    tc
+  ]);
 
   const onUnlinkRequirement = useCallback(
     async (requirementId: string) => {
@@ -469,7 +478,7 @@ export function TestCaseDetailPage() {
       }
       reexecuteGraph({ requestPolicy: "network-only" });
     },
-    [cancelManualAutosave, clearShellMessages, paused, reexecuteGraph, tc, unlinkReqMan]
+    [cancelManualAutosave, clearShellMessages, paused, reexecuteGraph, setTransportMessage, tc, unlinkReqMan]
   );
 
   const onLinkManual = useCallback(async () => {
@@ -487,7 +496,17 @@ export function TestCaseDetailPage() {
     }
     setAddManualId("");
     reexecuteGraph({ requestPolicy: "network-only" });
-  }, [addManualId, cancelAutomatedAutosave, clearShellMessages, linkAutoMan, paused, projectId, reexecuteGraph, tc]);
+  }, [
+    addManualId,
+    cancelAutomatedAutosave,
+    clearShellMessages,
+    linkAutoMan,
+    paused,
+    projectId,
+    reexecuteGraph,
+    setTransportMessage,
+    tc
+  ]);
 
   const onUnlinkManual = useCallback(
     async (manualTestCaseId: string) => {
@@ -503,7 +522,7 @@ export function TestCaseDetailPage() {
       }
       reexecuteGraph({ requestPolicy: "network-only" });
     },
-    [cancelAutomatedAutosave, clearShellMessages, paused, reexecuteGraph, tc, unlinkAutoMan]
+    [cancelAutomatedAutosave, clearShellMessages, paused, reexecuteGraph, setTransportMessage, tc, unlinkAutoMan]
   );
 
   const onTombstone = useCallback(async () => {
@@ -529,6 +548,7 @@ export function TestCaseDetailPage() {
     reexecuteDetail,
     reexecuteGraph,
     reexecuteVersionHistory,
+    setTransportMessage,
     tc,
     tombstone
   ]);
@@ -546,7 +566,16 @@ export function TestCaseDetailPage() {
     reexecuteDetail({ requestPolicy: "network-only" });
     reexecuteGraph({ requestPolicy: "network-only" });
     reexecuteVersionHistory({ requestPolicy: "network-only" });
-  }, [clearShellMessages, paused, reexecuteDetail, reexecuteGraph, reexecuteVersionHistory, restore, tc]);
+  }, [
+    clearShellMessages,
+    paused,
+    reexecuteDetail,
+    reexecuteGraph,
+    reexecuteVersionHistory,
+    restore,
+    setTransportMessage,
+    tc
+  ]);
 
   if (paused) {
     return null;
