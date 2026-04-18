@@ -103,9 +103,9 @@
 ## FE-I — Version history
 
 
-| ID   | Item                     | E2E spec (planned)                          | Scenarios (planned)            |
-| ---- | ------------------------ | ------------------------------------------- | ------------------------------ |
-| FE-I | `testCaseVersionHistory` | `apps/web/e2e/fe-i-version-history.spec.ts` | History renders for a testcase |
+| ID   | Item                     | E2E spec                                                                                    | Scenarios                                                                                                                          |
+| ---- | ------------------------ | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| FE-I | `[x]` `testCaseVersionHistory` on testcase detail | [`apps/web/e2e/fe-i-version-history.spec.ts`](../apps/web/e2e/fe-i-version-history.spec.ts) | Detail shows version table (newest first); title autosave adds a row with higher `versionSeq` |
 
 
 ---

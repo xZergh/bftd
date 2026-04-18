@@ -216,6 +216,31 @@ export const TestCaseByIdQuery = parse(`
   }
 `);
 
+export const TestCaseVersionHistoryQuery = parse(`
+  query TestCaseVersionHistory($testCaseId: ID!, $includeDeleted: Boolean) {
+    testCaseVersionHistory(input: { testCaseId: $testCaseId, includeDeleted: $includeDeleted }) {
+      id
+      testCaseId
+      versionSeq
+      createdAt
+      title
+      type
+      externalId
+      releaseLabel
+      sprintLabel
+      isTombstone
+      requirementIds
+      manualTestCaseIds
+      steps {
+        id
+        stepOrder
+        name
+        expectedResult
+      }
+    }
+  }
+`);
+
 export const TraceabilityGraphQuery = parse(`
   query TraceabilityGraph($projectId: ID!) {
     traceabilityGraph(input: { projectId: $projectId }) {
