@@ -230,6 +230,9 @@ export function ProjectDetailPage() {
           <Link to={`/projects/${projectId}/reporting`} data-testid="project-nav-reporting">
             Reporting
           </Link>
+          <Link to={`/projects/${projectId}/imports`} data-testid="project-nav-imports">
+            Imports
+          </Link>
         </div>
       </div>
 

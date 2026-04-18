@@ -5,6 +5,7 @@ import { ProjectDetailPage } from "./pages/ProjectDetailPage";
 import { ProjectsListPage } from "./pages/ProjectsListPage";
 import { RequirementDetailPage } from "./pages/RequirementDetailPage";
 import { RequirementsListPage } from "./pages/RequirementsListPage";
+import { ProjectImportsPage } from "./pages/ProjectImportsPage";
 import { ProjectReportingPage } from "./pages/ProjectReportingPage";
 import { RunDetailPage } from "./pages/RunDetailPage";
 import { TestCaseDetailPage } from "./pages/TestCaseDetailPage";
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="projects/:projectId/runs/:runId" element={<RunDetailPage />} />
         <Route path="projects/:projectId/runs" element={<TestRunsListPage />} />
         <Route path="projects/:projectId/reporting" element={<ProjectReportingPage />} />
+        <Route path="projects/:projectId/imports" element={<ProjectImportsPage />} />
         <Route path="projects/:projectId" element={<ProjectDetailPage />} />
       </Route>
     </Routes>
