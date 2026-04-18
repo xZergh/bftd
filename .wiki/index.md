@@ -2,8 +2,8 @@
 title: "Project Wiki"
 type: "index"
 status: "active"
-last_commit: "3b4820a0b0d442aaf572379eab8b993bba1181a0"
-updated_at: "2026-04-19"
+last_commit: "63b8f6a53947262f7f8552eb0225b12a438c198a"
+updated_at: "2026-04-09"
 ---
 
 # TCMS Project Wiki
@@ -39,6 +39,9 @@ This wiki captures the current architecture and major feature flows from reposit
 
 - `[[features-apps-web-src-app-tsx]]` - route structure and page entry points.
 - `[[features-apps-web-imports-ui]]` - bulk JSON imports (requirements, TRR, design links).
+- `[[features-apps-web-design-links]]` - per-project design link list / upsert / unlink UI.
+- `[[features-apps-web-testcase-version-history]]` - testcase detail version history table.
+- `[[features-apps-web-shell-polish]]` - shared loading UI, error boundary, skip link, `@smoke` Playwright subset.
 
 ## Flows
 
