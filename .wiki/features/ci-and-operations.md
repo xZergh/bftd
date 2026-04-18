@@ -2,8 +2,8 @@
 title: "CI And Operations"
 type: "feature"
 status: "active"
-source_paths: ["docs/OPERATIONS.md", "package.json", "scripts/ci/check-architecture-boundaries.ts", "vitest.config.ts"]
-updated_at: "2026-04-17"
+source_paths: ["docs/OPERATIONS.md", "package.json", "scripts/ci/check-architecture-boundaries.ts", "vitest.config.ts", "apps/web/package.json"]
+updated_at: "2026-04-09"
 ---
 
 This page captures delivery guardrails and operational quality gates for TCMS.
@@ -16,6 +16,7 @@ This page captures delivery guardrails and operational quality gates for TCMS.
 
 ## Test execution policy
 
+- Web Playwright: full suite via `npm run e2e:web` / `npm run ci:e2e:web`; **tagged smoke** via `npm run e2e:smoke:web` (root) which runs only `@smoke` tests in `tcms-web`.
 - CI uses retry behavior and emits JUnit output to `artifacts/junit.xml`.
 - Coverage is enabled with baseline thresholds and reports under `artifacts/coverage`.
 - Optional Allure setup can be skipped via `CI_SKIP_ALLURE=1`.
@@ -27,6 +28,7 @@ This page captures delivery guardrails and operational quality gates for TCMS.
 
 ## Related pages
 
+- `[[features-apps-web-shell-polish]]`
 - `[[features-testing-strategy]]`
 - `[[concepts-architecture-boundaries]]`
 - `[[features-src-graphql-type-defs-ts]]`

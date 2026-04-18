@@ -1,6 +1,7 @@
 ---
 
 ## title: "Architecture Boundaries"
+
 type: "concept"
 status: "active"
 source_paths: ["docs/DEVELOPER_GUIDE.md", "src/domain/service.ts", "src/graphql/resolvers.ts", "src/db/schema.ts"]

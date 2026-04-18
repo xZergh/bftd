@@ -30,6 +30,8 @@ Parse failures (invalid JSON or wrong top-level shape) stay **on the page**; Gra
 ## Related pages
 
 - `[[features-apps-web-src-app-tsx]]`
+- `[[features-apps-web-shell-polish]]`
+- `[[features-apps-web-design-links]]`
 - `[[flows-import-pipelines]]`
 - `[[features-src-domain-services-imports-ts]]`
 - `[[features-src-domain-services-design-links-ts]]`
