@@ -2,8 +2,8 @@
 title: "Project Wiki"
 type: "index"
 status: "active"
-last_commit: "63b8f6a53947262f7f8552eb0225b12a438c198a"
-updated_at: "2026-04-09"
+last_commit: "a77e32279703922c9fcd0e3cfbcc4eb2186e01df"
+updated_at: "2026-04-19"
 ---
 
 # TCMS Project Wiki
@@ -42,17 +42,20 @@ This wiki captures the current architecture and major feature flows from reposit
 - `[[features-apps-web-design-links]]` - per-project design link list / upsert / unlink UI.
 - `[[features-apps-web-testcase-version-history]]` - testcase detail version history table.
 - `[[features-apps-web-shell-polish]]` - shared loading UI, error boundary, skip link, `@smoke` Playwright subset.
+- `[[features-apps-web-ui-testing]]` - Playwright projects (desktop + mobile), Vitest + Testing Library.
 
 ## Flows
 
 - `[[flows-kpi-snapshot-lifecycle]]` - current/run/daily KPI snapshot lifecycle.
 - `[[flows-import-pipelines]]` - requirements and TRR import execution model.
 - `[[flows-run-traceability-snapshot]]` - run snapshot capture and edge materialization.
+- `[[flows-seed-demo-qa-project]]` - CLI seed for project `DEMO-QA` with sample requirements, tests, and run results.
 
 ## Concepts
 
 - `[[concepts-error-contract]]` - deterministic API and GraphQL error contract.
 - `[[concepts-import-identity-rules]]` - identity semantics for import upserts.
+- `[[concepts-ui-qa-layout-tamagui-and-mobile]]` - Tamagui-based QA UI layout and path to Expo/native.
 
 ## Notes
 

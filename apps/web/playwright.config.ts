@@ -14,7 +14,18 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:5173",
     trace: "on-first-retry"
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      testIgnore: "**/fe-k-mobile-shell.spec.ts"
+    },
+    {
+      name: "mobile-chrome",
+      use: { ...devices["Pixel 5"] },
+      testMatch: "**/fe-k-mobile-shell.spec.ts"
+    }
+  ],
   webServer: [
     {
       name: "tcms-api",

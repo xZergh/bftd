@@ -51,9 +51,19 @@ npm run dev:web
 ## Open
 
 - **Web UI:** [http://127.0.0.1:5173/](http://127.0.0.1:5173/)
-- **GraphQL Explorer (browser):** [http://127.0.0.1:5173/graphql](http://127.0.0.1:5173/graphql) — same URL as the GraphQL endpoint; open in a browser for the interactive UI ([`docs/GRAPHQL_EXPLORER.md`](GRAPHQL_EXPLORER.md)).
+- **GraphQL Explorer (browser):** [http://127.0.0.1:5173/graphql](http://127.0.0.1:5173/graphql) — same URL as the GraphQL endpoint; open in a browser for the interactive UI (`[docs/GRAPHQL_EXPLORER.md](GRAPHQL_EXPLORER.md)`).
 
 Direct API (no Vite): [http://127.0.0.1:4000/graphql](http://127.0.0.1:4000/graphql) (Explorer in browser or `POST` JSON), [http://127.0.0.1:4000/health](http://127.0.0.1:4000/health).
+
+## Demo sample data (optional)
+
+From the repository root, with the API **stopped** (or using a dedicated `DB_PATH` so you do not clobber a running server’s DB), seed a project `**DEMO-QA`** with several requirements, manual and automated tests, links, and a sample run:
+
+```bash
+npm run seed:demo
+```
+
+The script is **idempotent**: if a project with key `DEMO-QA` already exists, it prints a message and exits without changing data. Set `DB_PATH` to target a specific SQLite file (same variable as the API).
 
 ## Clean slate (new local DB)
 
@@ -70,7 +80,7 @@ $env:DB_PATH="./data/manual-clean.sqlite"; npm run dev
 
 ## What to exercise (product)
 
-Follow [`docs/USER_GUIDE.md`](USER_GUIDE.md) for domain workflows (requirements, tests, runs, KPI). Use the **GraphQL Explorer** ([`docs/GRAPHQL_EXPLORER.md`](GRAPHQL_EXPLORER.md)) or the web UI **Check API** control to confirm the API responds.
+Follow `[docs/USER_GUIDE.md](USER_GUIDE.md)` for domain workflows (requirements, tests, runs, KPI). Use the **GraphQL Explorer** (`[docs/GRAPHQL_EXPLORER.md](GRAPHQL_EXPLORER.md)`) or the web UI **Check API** control to confirm the API responds.
 
 ## Troubleshooting
 

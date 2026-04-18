@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
@@ -162,7 +163,7 @@ export function RunDetailPage() {
     return (
       <section className="projects-page" data-testid="run-not-found">
         <h2>Run not found</h2>
-        <Link to={`/projects/${projectId}/runs`}>Back to runs</Link>
+        <RouterLink to={`/projects/${projectId}/runs`}>Back to runs</RouterLink>
       </section>
     );
   }
@@ -182,9 +183,9 @@ export function RunDetailPage() {
     <section className="projects-page" data-testid="run-detail-page">
       <div className="project-detail-header">
         <h2>Test run</h2>
-        <Link to={`/projects/${projectId}/runs`} data-testid="run-back-list">
+        <RouterLink to={`/projects/${projectId}/runs`} data-testid="run-back-list">
           ← Runs
-        </Link>
+        </RouterLink>
       </div>
 
       <dl className="project-detail-meta">

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
@@ -193,7 +194,7 @@ export function RequirementDetailPage() {
     return (
       <section className="projects-page" data-testid="requirement-not-found">
         <h2>Requirement not found</h2>
-        <Link to={`/projects/${projectId}/requirements`}>Back to requirements</Link>
+        <RouterLink to={`/projects/${projectId}/requirements`}>Back to requirements</RouterLink>
       </section>
     );
   }
@@ -210,9 +211,9 @@ export function RequirementDetailPage() {
     <section className="projects-page" data-testid="requirement-detail-page">
       <div className="project-detail-header">
         <h2>Requirement</h2>
-        <Link to={`/projects/${projectId}/requirements`} data-testid="requirement-back-list">
+        <RouterLink to={`/projects/${projectId}/requirements`} data-testid="requirement-back-list">
           ← Requirements
-        </Link>
+        </RouterLink>
       </div>
 
       <dl className="project-detail-meta">

@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', '.tamagui']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -20,4 +20,10 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    files: ['src/shell/ShellErrorsContext.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off'
+    }
+  }
 ])

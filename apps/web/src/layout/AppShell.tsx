@@ -1,64 +1,121 @@
-import { Link, Outlet } from "react-router-dom";
+import { Outlet } from "react-router-dom";
+import { Paragraph, Text, XStack, YStack } from "tamagui";
 import { ProjectPicker } from "../components/ProjectPicker";
-import "../App.css";
+import { RouterLink } from "../tamagui/RouterLink";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import { RouteErrorBoundary } from "./RouteErrorBoundary";
-import "./AppShell.css";
 
 export function AppShell() {
   const { transportMessage, payloadAppError } = useShellErrors();
 
   return (
-    <div className="app" data-testid="app-root">
+    <div data-testid="app-root" style={{ minHeight: "100vh", width: "100%" }}>
       <a href="#main-content" className="skip-to-main" data-testid="skip-to-main">
         Skip to main content
       </a>
-      <header className="app-header">
-        <h1>TCMS</h1>
-        <p className="tagline">Local Test Case Management</p>
-      </header>
 
-      {transportMessage !== null && (
-        <div className="shell-banner err" role="alert" data-testid="shell-transport-error">
-          {transportMessage}
-        </div>
-      )}
+      <YStack
+        flex={1}
+        minHeight="100vh"
+        backgroundColor="$background"
+        maxWidth={1120}
+        marginHorizontal="auto"
+        paddingHorizontal="$4"
+        paddingVertical="$5"
+        gap="$3"
+      >
+        <YStack gap="$1">
+          <Text fontSize="$8" fontWeight="700" color="$color12">
+            TCMS
+          </Text>
+          <Paragraph margin={0} size="$3" color="$color11">
+            Local Test Case Management
+          </Paragraph>
+        </YStack>
 
-      {payloadAppError !== null && (
-        <div className="shell-banner app-error-panel" role="alert" data-testid="shell-app-error">
-          <div className="app-error-code" data-testid="shell-app-error-code">
-            {payloadAppError.code}
-          </div>
-          <p className="app-error-message" data-testid="shell-app-error-message">
-            {payloadAppError.message}
-          </p>
-          <p className="app-error-fixhint" data-testid="shell-app-error-fixhint">
-            {payloadAppError.fixHint}
-          </p>
-          {payloadAppError.context != null && payloadAppError.context !== "" && (
-            <pre className="app-error-context" data-testid="shell-app-error-context">
-              {payloadAppError.context}
-            </pre>
-          )}
-        </div>
-      )}
+        {transportMessage !== null && (
+          <YStack
+            role="alert"
+            data-testid="shell-transport-error"
+            padding="$3"
+            borderRadius="$3"
+            backgroundColor="$red2"
+            borderWidth={1}
+            borderColor="$red6"
+          >
+            <Paragraph margin={0} color="$red11" size="$3">
+              {transportMessage}
+            </Paragraph>
+          </YStack>
+        )}
 
-      <div className="app-nav-row">
-        <nav className="app-nav" aria-label="Main">
-          <Link to="/" data-testid="nav-home">
-            Home
-          </Link>
-          <Link to="/projects" data-testid="nav-projects">
-            Projects
-          </Link>
-        </nav>
-        <ProjectPicker />
-      </div>
+        {payloadAppError !== null && (
+          <YStack
+            role="alert"
+            data-testid="shell-app-error"
+            padding="$3"
+            borderRadius="$3"
+            backgroundColor="$yellow2"
+            borderWidth={1}
+            borderColor="$yellow6"
+            gap="$2"
+          >
+            <Text
+              fontFamily="$mono"
+              fontSize="$2"
+              fontWeight="600"
+              color="$color12"
+              data-testid="shell-app-error-code"
+            >
+              {payloadAppError.code}
+            </Text>
+            <Paragraph margin={0} data-testid="shell-app-error-message" size="$3">
+              {payloadAppError.message}
+            </Paragraph>
+            <Paragraph margin={0} size="$3" color="$color10" data-testid="shell-app-error-fixhint">
+              {payloadAppError.fixHint}
+            </Paragraph>
+            {payloadAppError.context != null && payloadAppError.context !== "" && (
+              <Text
+                fontFamily="$mono"
+                fontSize="$2"
+                overflow="scroll"
+                data-testid="shell-app-error-context"
+                selectable
+              >
+                {payloadAppError.context}
+              </Text>
+            )}
+          </YStack>
+        )}
 
-      <main id="main-content" className="app-main" tabIndex={-1}>
-        <RouteErrorBoundary>
-          <Outlet />
-        </RouteErrorBoundary>
+        <XStack
+          flexWrap="wrap"
+          alignItems="flex-end"
+          justifyContent="space-between"
+          gap="$3"
+          marginBottom="$2"
+          role="navigation"
+          aria-label="Main"
+        >
+          <XStack gap="$3" alignItems="center">
+            <RouterLink to="/" data-testid="nav-home">
+              Home
+            </RouterLink>
+            <RouterLink to="/projects" data-testid="nav-projects">
+              Projects
+            </RouterLink>
+          </XStack>
+          <ProjectPicker />
+        </XStack>
+      </YStack>
+
+      <main id="main-content" tabIndex={-1} style={{ outline: "none", maxWidth: 1120, margin: "0 auto", padding: "0 1rem 2rem" }}>
+        <YStack flex={1} gap="$3">
+          <RouteErrorBoundary>
+            <Outlet />
+          </RouteErrorBoundary>
+        </YStack>
       </main>
     </div>
   );

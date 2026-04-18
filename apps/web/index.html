@@ -8,6 +8,11 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      globalThis.process = globalThis.process || { env: {} };
+      globalThis.process.env = globalThis.process.env || {};
+      globalThis.process.env.NODE_ENV = globalThis.process.env.NODE_ENV || "development";
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

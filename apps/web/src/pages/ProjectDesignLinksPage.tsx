@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
 import {
@@ -185,24 +186,24 @@ export function ProjectDesignLinksPage() {
       <div className="project-detail-header">
         <h2 id="design-links-heading">Design links</h2>
         <div className="project-detail-header-links">
-          <Link to={`/projects/${projectId}`} data-testid="design-links-back-project">
+          <RouterLink to={`/projects/${projectId}`} data-testid="design-links-back-project">
             ← Project
-          </Link>
-          <Link to={`/projects/${projectId}/requirements`} data-testid="project-nav-requirements">
+          </RouterLink>
+          <RouterLink to={`/projects/${projectId}/requirements`} data-testid="project-nav-requirements">
             Requirements
-          </Link>
-          <Link to={`/projects/${projectId}/test-cases`} data-testid="project-nav-test-cases">
+          </RouterLink>
+          <RouterLink to={`/projects/${projectId}/test-cases`} data-testid="project-nav-test-cases">
             Test cases
-          </Link>
-          <Link to={`/projects/${projectId}/runs`} data-testid="project-nav-runs">
+          </RouterLink>
+          <RouterLink to={`/projects/${projectId}/runs`} data-testid="project-nav-runs">
             Runs
-          </Link>
-          <Link to={`/projects/${projectId}/reporting`} data-testid="project-nav-reporting">
+          </RouterLink>
+          <RouterLink to={`/projects/${projectId}/reporting`} data-testid="project-nav-reporting">
             Reporting
-          </Link>
-          <Link to={`/projects/${projectId}/imports`} data-testid="project-nav-imports">
+          </RouterLink>
+          <RouterLink to={`/projects/${projectId}/imports`} data-testid="project-nav-imports">
             Imports
-          </Link>
+          </RouterLink>
         </div>
       </div>
 

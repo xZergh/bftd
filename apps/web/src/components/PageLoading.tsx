@@ -1,3 +1,5 @@
+import { Paragraph } from "tamagui";
+
 type PageLoadingProps = {
   /** Visible message (default matches app copy). */
   message?: string;
@@ -12,17 +14,16 @@ export function PageLoading({
   inline = false,
   dataTestId = "page-loading"
 }: PageLoadingProps) {
-  const className = inline ? "page-loading page-loading--inline" : "page-loading";
   if (inline) {
     return (
-      <span className={className} role="status" aria-live="polite" data-testid={dataTestId}>
+      <span role="status" aria-live="polite" data-testid={dataTestId} style={{ fontSize: "0.95rem", color: "#52525b" }}>
         {message}
       </span>
     );
   }
   return (
-    <p className={className} role="status" aria-live="polite" data-testid={dataTestId}>
+    <Paragraph role="status" aria-live="polite" data-testid={dataTestId} margin={0} size="$3" color="$color10">
       {message}
-    </p>
+    </Paragraph>
   );
 }

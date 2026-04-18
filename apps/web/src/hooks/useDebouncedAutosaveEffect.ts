@@ -14,8 +14,11 @@ export function useDebouncedAutosaveEffect(
   debounceMs: number = AUTOSAVE_DEBOUNCE_MS
 ): () => void {
   const onFireRef = useRef(onFire);
-  onFireRef.current = onFire;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    onFireRef.current = onFire;
+  }, [onFire]);
 
   const cancelPending = useCallback(() => {
     if (timerRef.current !== null) {

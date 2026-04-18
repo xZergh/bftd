@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
@@ -97,9 +98,9 @@ export function TestRunsListPage() {
     <section className="projects-page" data-testid="runs-page">
       <div className="project-detail-header">
         <h2 id="runs-heading">Test runs</h2>
-        <Link to={`/projects/${projectId}`} data-testid="runs-back-project">
+        <RouterLink to={`/projects/${projectId}`} data-testid="runs-back-project">
           ← Project
-        </Link>
+        </RouterLink>
       </div>
 
       <div className="projects-create" data-testid="run-create-panel">
@@ -154,9 +155,9 @@ export function TestRunsListPage() {
                   <time dateTime={r.createdAt}>{new Date(r.createdAt).toLocaleString()}</time>
                 </td>
                 <td>
-                  <Link to={`/projects/${projectId}/runs/${r.id}`} data-testid="run-open">
+                  <RouterLink to={`/projects/${projectId}/runs/${r.id}`} data-testid="run-open">
                     Open
-                  </Link>
+                  </RouterLink>
                 </td>
               </tr>
             ))}

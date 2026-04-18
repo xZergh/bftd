@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
 import {
@@ -563,7 +564,7 @@ export function TestCaseDetailPage() {
     return (
       <section className="projects-page" data-testid="testcase-not-found">
         <h2>Test case not found</h2>
-        <Link to={`/projects/${projectId}/test-cases`}>Back to test cases</Link>
+        <RouterLink to={`/projects/${projectId}/test-cases`}>Back to test cases</RouterLink>
       </section>
     );
   }
@@ -582,9 +583,9 @@ export function TestCaseDetailPage() {
     <section className="projects-page" data-testid="testcase-detail-page">
       <div className="project-detail-header">
         <h2>Test case</h2>
-        <Link to={`/projects/${projectId}/test-cases`} data-testid="testcase-back-list">
+        <RouterLink to={`/projects/${projectId}/test-cases`} data-testid="testcase-back-list">
           ← Test cases
-        </Link>
+        </RouterLink>
       </div>
 
       <dl className="project-detail-meta">
