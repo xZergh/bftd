@@ -33,6 +33,7 @@ Full step-by-step (env, clean DB, troubleshooting): [`docs/LOCAL_MANUAL_TESTING.
 - Reporting (FE-F): [`e2e/fe-f-reporting.spec.ts`](e2e/fe-f-reporting.spec.ts) — KPI dashboard; traceability graph; run snapshot.
 - Imports (FE-G): [`e2e/fe-g-imports.spec.ts`](e2e/fe-g-imports.spec.ts) — requirements / TRR / design bulk JSON imports.
 - Design links (FE-H): [`e2e/fe-h-design-links.spec.ts`](e2e/fe-h-design-links.spec.ts) — Penpot upsert, list, unlink.
+- Version history (FE-I): [`e2e/fe-i-version-history.spec.ts`](e2e/fe-i-version-history.spec.ts) — testcase detail lists `testCaseVersionHistory`; save bumps `versionSeq`.
 
 From repo root: `npm run e2e:web` or `npm run ci:e2e:web`.
 

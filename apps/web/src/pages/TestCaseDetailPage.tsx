@@ -7,6 +7,7 @@ import {
   RequirementsListQuery,
   RestoreTestCaseMutation,
   TestCaseByIdQuery,
+  TestCaseVersionHistoryQuery,
   TestCasesListQuery,
   TombstoneTestCaseMutation,
   TraceabilityGraphQuery,
@@ -26,6 +27,18 @@ import "./ProjectsPage.css";
 type StepDraft = { name: string; expectedResult: string };
 
 type ManualEditBaseline = { title: string; stepsJson: string };
+
+type TestCaseVersionRow = {
+  id: string;
+  testCaseId: string;
+  versionSeq: number;
+  createdAt: string;
+  title: string;
+  type: string;
+  externalId: string | null;
+  isTombstone: boolean;
+  steps: Array<{ stepOrder: number; name: string; expectedResult?: string | null }>;
+};
 
 function normalizedFilledSteps(drafts: StepDraft[]): Array<{ name: string; expectedResult: string }> {
   return drafts
@@ -78,6 +91,13 @@ export function TestCaseDetailPage() {
   const [graphResult, reexecuteGraph] = useQuery({
     query: TraceabilityGraphQuery,
     variables: { projectId: projectId ?? "" },
+    pause: paused,
+    requestPolicy: "network-only"
+  });
+
+  const [versionHistoryResult, reexecuteVersionHistory] = useQuery({
+    query: TestCaseVersionHistoryQuery,
+    variables: { testCaseId: testCaseId ?? "", includeDeleted: true },
     pause: paused,
     requestPolicy: "network-only"
   });
@@ -148,6 +168,13 @@ export function TestCaseDetailPage() {
     setTransportMessage(formatGraphQlTransportError(graphResult.error));
   }, [graphResult.error, setTransportMessage]);
 
+  useEffect(() => {
+    if (!versionHistoryResult.error) {
+      return;
+    }
+    setTransportMessage(formatGraphQlTransportError(versionHistoryResult.error));
+  }, [versionHistoryResult.error, setTransportMessage]);
+
   const graph = graphResult.data?.traceabilityGraph;
   const nodeTitle = useMemo(() => {
     const m = new Map<string, string>();
@@ -194,6 +221,11 @@ export function TestCaseDetailPage() {
     }
     return out.sort((a, b) => a.title.localeCompare(b.title));
   }, [graph, nodeTitle, tc?.id, tc?.type]);
+
+  const versionRows = useMemo(() => {
+    const raw = (versionHistoryResult.data?.testCaseVersionHistory ?? []) as TestCaseVersionRow[];
+    return [...raw].sort((a, b) => b.versionSeq - a.versionSeq);
+  }, [versionHistoryResult.data?.testCaseVersionHistory]);
 
   const requirements: RequirementListItem[] = reqResult.data?.requirements ?? [];
   const manuals: TestCaseListItem[] = manualListResult.data?.testCases ?? [];
@@ -281,6 +313,7 @@ export function TestCaseDetailPage() {
       }
       reexecuteDetail({ requestPolicy: "network-only" });
       reexecuteGraph({ requestPolicy: "network-only" });
+      reexecuteVersionHistory({ requestPolicy: "network-only" });
       return true;
     },
     [
@@ -288,6 +321,7 @@ export function TestCaseDetailPage() {
       paused,
       reexecuteDetail,
       reexecuteGraph,
+      reexecuteVersionHistory,
       setPayloadAppError,
       setTransportMessage,
       stepDrafts,
@@ -335,12 +369,14 @@ export function TestCaseDetailPage() {
         setAutomatedTitleBaseline(t.title);
       }
       reexecuteDetail({ requestPolicy: "network-only" });
+      reexecuteVersionHistory({ requestPolicy: "network-only" });
       return true;
     },
     [
       clearShellMessages,
       paused,
       reexecuteDetail,
+      reexecuteVersionHistory,
       setPayloadAppError,
       setTransportMessage,
       tc,
@@ -482,6 +518,7 @@ export function TestCaseDetailPage() {
     }
     reexecuteDetail({ requestPolicy: "network-only" });
     reexecuteGraph({ requestPolicy: "network-only" });
+    reexecuteVersionHistory({ requestPolicy: "network-only" });
   }, [
     cancelAutomatedAutosave,
     cancelManualAutosave,
@@ -489,6 +526,7 @@ export function TestCaseDetailPage() {
     paused,
     reexecuteDetail,
     reexecuteGraph,
+    reexecuteVersionHistory,
     tc,
     tombstone
   ]);
@@ -505,7 +543,8 @@ export function TestCaseDetailPage() {
     }
     reexecuteDetail({ requestPolicy: "network-only" });
     reexecuteGraph({ requestPolicy: "network-only" });
-  }, [clearShellMessages, paused, reexecuteDetail, reexecuteGraph, restore, tc]);
+    reexecuteVersionHistory({ requestPolicy: "network-only" });
+  }, [clearShellMessages, paused, reexecuteDetail, reexecuteGraph, reexecuteVersionHistory, restore, tc]);
 
   if (paused) {
     return null;
@@ -773,6 +812,45 @@ export function TestCaseDetailPage() {
           )}
         </div>
       )}
+
+      <div className="projects-create" data-testid="testcase-version-history">
+        <h3 className="projects-subheading">Version history</h3>
+        {versionHistoryResult.fetching && versionRows.length === 0 ? (
+          <p data-testid="testcase-version-history-loading">Loading…</p>
+        ) : null}
+        {versionRows.length === 0 && !versionHistoryResult.fetching ? (
+          <p className="hint" data-testid="testcase-version-history-empty">
+            No versions recorded yet.
+          </p>
+        ) : (
+          <table className="projects-table testcase-version-history-table">
+            <thead>
+              <tr>
+                <th scope="col">Seq</th>
+                <th scope="col">Recorded</th>
+                <th scope="col">Title</th>
+                <th scope="col">Type</th>
+                <th scope="col">Tombstone</th>
+                <th scope="col">Steps</th>
+              </tr>
+            </thead>
+            <tbody>
+              {versionRows.map((v) => (
+                <tr key={v.id} data-testid="testcase-version-row" data-version-seq={String(v.versionSeq)}>
+                  <td data-testid="testcase-version-seq">{v.versionSeq}</td>
+                  <td>
+                    <time dateTime={v.createdAt}>{v.createdAt}</time>
+                  </td>
+                  <td data-testid="testcase-version-title">{v.title}</td>
+                  <td>{v.type}</td>
+                  <td>{v.isTombstone ? "Yes" : "No"}</td>
+                  <td data-testid="testcase-version-steps-count">{v.steps.length}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
       <div className="project-detail-actions">
         {editable ? (
