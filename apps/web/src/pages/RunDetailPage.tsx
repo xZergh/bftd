@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
@@ -68,14 +69,14 @@ export function RunDetailPage() {
     setTransportMessage(formatGraphQlTransportError(aggregateResult.error));
   }, [aggregateResult.error, setTransportMessage]);
 
-  const testCases: TestCaseListItem[] = casesResult.data?.testCases ?? [];
   const caseTitleById = useMemo(() => {
+    const testCases: TestCaseListItem[] = casesResult.data?.testCases ?? [];
     const m = new Map<string, string>();
     for (const t of testCases) {
       m.set(t.id, t.title);
     }
     return m;
-  }, [testCases]);
+  }, [casesResult.data?.testCases]);
 
   const submitClientPayload = useMemo(() => {
     const d = durationMs.trim() === "" ? null : Number.parseInt(durationMs.trim(), 10);
@@ -162,7 +163,7 @@ export function RunDetailPage() {
     return (
       <section className="projects-page" data-testid="run-not-found">
         <h2>Run not found</h2>
-        <Link to={`/projects/${projectId}/runs`}>Back to runs</Link>
+        <RouterLink to={`/projects/${projectId}/runs`}>Back to runs</RouterLink>
       </section>
     );
   }
@@ -182,9 +183,9 @@ export function RunDetailPage() {
     <section className="projects-page" data-testid="run-detail-page">
       <div className="project-detail-header">
         <h2>Test run</h2>
-        <Link to={`/projects/${projectId}/runs`} data-testid="run-back-list">
+        <RouterLink to={`/projects/${projectId}/runs`} data-testid="run-back-list">
           ← Runs
-        </Link>
+        </RouterLink>
       </div>
 
       <dl className="project-detail-meta">
@@ -255,7 +256,7 @@ export function RunDetailPage() {
               data-testid="result-submit-testcase"
             >
               <option value="">—</option>
-              {testCases.map((t) => (
+              {(casesResult.data?.testCases ?? []).map((t: TestCaseListItem) => (
                 <option key={t.id} value={t.id}>
                   [{t.type}] {t.title}
                 </option>

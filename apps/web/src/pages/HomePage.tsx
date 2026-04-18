@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from "react";
+import { Paragraph, XStack, YStack } from "tamagui";
 import { useClient, useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
 import { CreateProjectMutation, IntentionallyInvalidQuery, ProjectsQuery } from "../graphql/documents";
@@ -79,30 +80,43 @@ export function HomePage() {
     projectResult.data !== undefined ? JSON.stringify(projectResult.data, null, 0) : null;
 
   return (
-    <>
-      <p className="home-lead">Load data from the API or trigger error paths used by the app shell.</p>
+    <YStack gap="$3">
+      <Paragraph margin={0} size="$3" color="$color11">
+        Load data from the API or trigger error paths used by the app shell.
+      </Paragraph>
 
-      <div data-testid="projects-query-status" aria-live="polite">
+      <YStack data-testid="projects-query-status" aria-live="polite">
         {projectResult.fetching ? <PageLoading inline /> : null}
-      </div>
+      </YStack>
 
-      <div className="home-actions">
-        <button type="button" onClick={onLoadProjects} data-testid="check-api">
+      <XStack flexWrap="wrap" gap="$2">
+        <button type="button" data-testid="check-api" onClick={onLoadProjects}>
           Load projects
         </button>
-        <button type="button" onClick={onIntentionalBadQuery} data-testid="trigger-graphql-error">
+        <button type="button" data-testid="trigger-graphql-error" onClick={onIntentionalBadQuery}>
           Trigger GraphQL error
         </button>
-        <button type="button" onClick={onDuplicateProjectKey} data-testid="trigger-app-error">
+        <button type="button" data-testid="trigger-app-error" onClick={onDuplicateProjectKey}>
           Trigger AppError (duplicate key)
         </button>
-      </div>
+      </XStack>
 
       {projectsJson !== null && !projectResult.fetching && projectResult.error === undefined && (
-        <pre className="ok" data-testid="api-ok">
+        <pre
+          style={{
+            margin: 0,
+            padding: "0.75rem",
+            fontSize: "0.875rem",
+            fontFamily: "ui-monospace, monospace",
+            borderRadius: 8,
+            overflow: "auto",
+            backgroundColor: "#f4f4f5"
+          }}
+          data-testid="api-ok"
+        >
           {projectsJson}
         </pre>
       )}
-    </>
+    </YStack>
   );
 }

@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { Button, Paragraph, YStack } from "tamagui";
 
 type Props = { children: ReactNode };
 
@@ -22,19 +23,27 @@ export class RouteErrorBoundary extends Component<Props, State> {
     if (this.state.hasError && this.state.error !== null) {
       return (
         <section className="projects-page" data-testid="route-error-boundary">
-          <h2>Something went wrong</h2>
-          <p data-testid="route-error-message">{this.state.error.message}</p>
-          <p className="hint">You can go home and try again.</p>
-          <button
-            type="button"
-            data-testid="route-error-retry"
-            onClick={() => {
-              this.setState({ hasError: false, error: null });
-              window.location.assign("/");
-            }}
-          >
-            Go home
-          </button>
+          <YStack gap="$3" padding="$2">
+            <Paragraph fontSize="$6" fontWeight="700" margin={0} color="$color12">
+              Something went wrong
+            </Paragraph>
+            <Paragraph margin={0} data-testid="route-error-message" color="$color11">
+              {this.state.error.message}
+            </Paragraph>
+            <Paragraph margin={0} size="$3" color="$color10">
+              You can go home and try again.
+            </Paragraph>
+            <Button
+              size="$3"
+              data-testid="route-error-retry"
+              onPress={() => {
+                this.setState({ hasError: false, error: null });
+                window.location.assign("/");
+              }}
+            >
+              Go home
+            </Button>
+          </YStack>
         </section>
       );
     }

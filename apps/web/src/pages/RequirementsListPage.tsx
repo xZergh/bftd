@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
+import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
@@ -43,11 +44,13 @@ export function RequirementsListPage() {
     if (projectId === undefined || projectId === "") {
       return;
     }
-    setDraftHydrated(false);
-    const d = readCreateRequirementDraft(projectId);
-    setExternalKey(d?.externalKey ?? "");
-    setTitle(d?.title ?? "");
-    setDraftHydrated(true);
+    startTransition(() => {
+      setDraftHydrated(false);
+      const d = readCreateRequirementDraft(projectId);
+      setExternalKey(d?.externalKey ?? "");
+      setTitle(d?.title ?? "");
+      setDraftHydrated(true);
+    });
   }, [projectId]);
 
   const cancelDraftWrite = useDebouncedAutosaveEffect(
@@ -169,9 +172,9 @@ export function RequirementsListPage() {
     <section className="projects-page" data-testid="requirements-page">
       <div className="project-detail-header">
         <h2 id="requirements-heading">Requirements</h2>
-        <Link to={`/projects/${projectId}`} data-testid="requirements-back-project">
+        <RouterLink to={`/projects/${projectId}`} data-testid="requirements-back-project">
           ← Project
-        </Link>
+        </RouterLink>
       </div>
 
       <div className="projects-create" data-testid="requirement-create-panel">
@@ -261,12 +264,12 @@ export function RequirementsListPage() {
                 </td>
                 <td>{r.title}</td>
                 <td>
-                  <Link
+                  <RouterLink
                     to={`/projects/${projectId}/requirements/${r.id}`}
                     data-testid="requirement-open"
                   >
                     Open
-                  </Link>
+                  </RouterLink>
                 </td>
               </tr>
             ))}

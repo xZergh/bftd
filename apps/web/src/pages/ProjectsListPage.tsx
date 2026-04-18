@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Button, H2, H3, Input, Label, Paragraph, XStack, YStack } from "tamagui";
+import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
@@ -127,107 +128,133 @@ export function ProjectsListPage() {
   const projects: ProjectListItem[] = listResult.data?.projects ?? [];
 
   return (
-    <section className="projects-page" aria-labelledby="projects-heading" data-testid="projects-page">
-      <h2 id="projects-heading">Projects</h2>
+    <section aria-labelledby="projects-heading">
+      <div data-testid="projects-page">
+      <YStack gap="$4" maxWidth="100%">
+        <H2 id="projects-heading" size="$7" fontWeight="700" color="$color12">
+          Projects
+        </H2>
 
-      <div className="projects-create" data-testid="project-create-panel">
-        <h3 className="projects-subheading">New project</h3>
-        <div className="projects-create-fields">
-          <label>
-            Name <span className="required-star" aria-hidden="true">*</span>
+        <YStack
+          data-testid="project-create-panel"
+          padding="$4"
+          borderWidth={1}
+          borderColor="$borderColor"
+          borderRadius="$4"
+          backgroundColor="$background"
+          gap="$3"
+        >
+          <H3 className="projects-subheading" size="$5" fontWeight="600" margin={0} color="$color12">
+            New project
+          </H3>
+          <YStack gap="$3" className="projects-create-fields">
+            <Label htmlFor="project-create-name">
+              <Paragraph margin={0} size="$2" color="$color11">
+                Name <span style={{ color: "#b42318", fontWeight: 600 }}>*</span>
+              </Paragraph>
+              <Input
+                id="project-create-name"
+                size="$4"
+                maxWidth={384}
+                value={name}
+                onChangeText={(t) => {
+                  setName(t);
+                  setNameError(null);
+                  setShowValidationPayload(false);
+                }}
+                data-testid="project-create-name"
+                autoComplete="off"
+                aria-invalid={nameError !== null}
+                aria-describedby={nameError !== null ? "project-create-name-err" : undefined}
+              />
+              {nameError !== null && (
+                <Paragraph id="project-create-name-err" role="alert" data-testid="project-create-name-error" margin={0} size="$2" color="$red10">
+                  {nameError}
+                </Paragraph>
+              )}
+            </Label>
+            <Label htmlFor="project-create-key">
+              <Paragraph margin={0} size="$2" color="$color11">
+                Key <span style={{ fontWeight: "normal", color: "#666" }}>(optional)</span>
+              </Paragraph>
+              <Input
+                id="project-create-key"
+                size="$4"
+                maxWidth={384}
+                value={key}
+                onChangeText={(t) => {
+                  setKey(t);
+                  setShowValidationPayload(false);
+                }}
+                data-testid="project-create-key"
+                autoComplete="off"
+              />
+            </Label>
+          </YStack>
+          <ValidationErrorPayloadPreview open={showValidationPayload} payload={createProjectClientPayload} />
+          <Button size="$3" onPress={onCreate} data-testid="project-create-submit">
+            Create
+          </Button>
+        </YStack>
+
+        <XStack alignItems="center" gap="$3" flexWrap="wrap" className="projects-list-toolbar">
+          <label className="projects-checkbox-label" htmlFor="project-list-include-archived">
             <input
-              type="text"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                setNameError(null);
-                setShowValidationPayload(false);
-              }}
-              data-testid="project-create-name"
-              autoComplete="off"
-              required
-              aria-invalid={nameError !== null}
-              aria-describedby={nameError !== null ? "project-create-name-err" : undefined}
+              id="project-list-include-archived"
+              type="checkbox"
+              checked={includeArchived}
+              onChange={(e) => setIncludeArchived(e.target.checked)}
+              data-testid="project-list-include-archived"
             />
-            {nameError !== null && (
-              <p id="project-create-name-err" className="field-error" role="alert" data-testid="project-create-name-error">
-                {nameError}
-              </p>
-            )}
+            Show archived
           </label>
-          <label>
-            Key <span className="hint">(optional)</span>
-            <input
-              type="text"
-              value={key}
-              onChange={(e) => {
-                setKey(e.target.value);
-                setShowValidationPayload(false);
-              }}
-              data-testid="project-create-key"
-              autoComplete="off"
-            />
-          </label>
-        </div>
-        <ValidationErrorPayloadPreview open={showValidationPayload} payload={createProjectClientPayload} />
-        <button type="button" onClick={onCreate} data-testid="project-create-submit">
-          Create
-        </button>
-      </div>
+          {listResult.fetching && <PageLoading inline dataTestId="projects-list-loading" />}
+        </XStack>
 
-      <div className="projects-list-toolbar">
-        <label className="projects-checkbox-label">
-          <input
-            type="checkbox"
-            checked={includeArchived}
-            onChange={(e) => setIncludeArchived(e.target.checked)}
-            data-testid="project-list-include-archived"
-          />
-          Show archived
-        </label>
-        {listResult.fetching && <PageLoading inline dataTestId="projects-list-loading" />}
+        {projects.length === 0 && !listResult.fetching ? (
+          <Paragraph margin={0} data-testid="projects-list-empty" color="$color10" size="$3">
+            No projects yet. Create one above.
+          </Paragraph>
+        ) : (
+          <YStack overflow="scroll" borderWidth={1} borderColor="$borderColor" borderRadius="$4">
+            <table className="projects-table">
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Key</th>
+                  <th scope="col">Status</th>
+                  <th scope="col"> </th>
+                </tr>
+              </thead>
+              <tbody>
+                {projects.map((p) => (
+                  <tr key={p.id} data-project-key={p.key} data-testid="project-row">
+                    <td>{p.name}</td>
+                    <td>
+                      <code>{p.key}</code>
+                    </td>
+                    <td>
+                      {p.isArchived ? (
+                        <span className="badge archived" data-testid="project-archived-badge">
+                          Archived
+                        </span>
+                      ) : (
+                        <span className="badge active">Active</span>
+                      )}
+                    </td>
+                    <td>
+                      <RouterLink to={`/projects/${p.id}`} data-testid="project-open">
+                        Open
+                      </RouterLink>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </YStack>
+        )}
+      </YStack>
       </div>
-
-      {projects.length === 0 && !listResult.fetching ? (
-        <p className="projects-empty" data-testid="projects-list-empty">
-          No projects yet. Create one above.
-        </p>
-      ) : (
-        <table className="projects-table">
-          <thead>
-            <tr>
-              <th scope="col">Name</th>
-              <th scope="col">Key</th>
-              <th scope="col">Status</th>
-              <th scope="col"> </th>
-            </tr>
-          </thead>
-          <tbody>
-            {projects.map((p) => (
-              <tr key={p.id} data-project-key={p.key} data-testid="project-row">
-                <td>{p.name}</td>
-                <td>
-                  <code>{p.key}</code>
-                </td>
-                <td>
-                  {p.isArchived ? (
-                    <span className="badge archived" data-testid="project-archived-badge">
-                      Archived
-                    </span>
-                  ) : (
-                    <span className="badge active">Active</span>
-                  )}
-                </td>
-                <td>
-                  <Link to={`/projects/${p.id}`} data-testid="project-open">
-                    Open
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
     </section>
   );
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
@@ -40,6 +41,20 @@ export function TestCasesListPage() {
 
   const paused = projectId === undefined || projectId === "";
 
+  /** Defer urql subscriptions one tick so the prior route (e.g. testcase detail) can unmount cleanly. */
+  const [deferQueries, setDeferQueries] = useState(true);
+  useEffect(() => {
+    if (paused) {
+      return;
+    }
+    setDeferQueries(true);
+    queueMicrotask(() => {
+      setDeferQueries(false);
+    });
+  }, [paused, projectId]);
+
+  const queryPaused = paused || deferQueries;
+
   const [listResult, reexecuteCases] = useQuery({
     query: TestCasesListQuery,
     variables: {
@@ -47,21 +62,21 @@ export function TestCasesListPage() {
       type: typeFilter === "" ? undefined : typeFilter,
       includeDeleted
     },
-    pause: paused,
+    pause: queryPaused,
     requestPolicy: "network-only"
   });
 
   const [reqResult] = useQuery({
     query: RequirementsListQuery,
     variables: { projectId: projectId ?? "" },
-    pause: paused,
+    pause: queryPaused,
     requestPolicy: "network-only"
   });
 
   const [manualListResult, reexecuteManualList] = useQuery({
     query: TestCasesListQuery,
     variables: { projectId: projectId ?? "", type: "manual", includeDeleted: false },
-    pause: paused,
+    pause: queryPaused,
     requestPolicy: "network-only"
   });
 
@@ -107,7 +122,7 @@ export function TestCasesListPage() {
   }, [autoManualIds, autoTitle, projectId]);
 
   const onCreateManual = useCallback(async () => {
-    if (paused) {
+    if (paused || deferQueries) {
       return;
     }
     clearShellMessages();
@@ -166,6 +181,7 @@ export function TestCasesListPage() {
   }, [
     clearShellMessages,
     createManual,
+    deferQueries,
     manualReqIds,
     manualSteps,
     manualTitle,
@@ -178,7 +194,7 @@ export function TestCasesListPage() {
   ]);
 
   const onCreateAutomated = useCallback(async () => {
-    if (paused) {
+    if (paused || deferQueries) {
       return;
     }
     clearShellMessages();
@@ -224,6 +240,7 @@ export function TestCasesListPage() {
     autoTitle,
     clearShellMessages,
     createAutomated,
+    deferQueries,
     paused,
     projectId,
     reexecuteCases,
@@ -243,6 +260,14 @@ export function TestCasesListPage() {
     return null;
   }
 
+  if (deferQueries) {
+    return (
+      <section className="projects-page" data-testid="testcases-page">
+        <PageLoading />
+      </section>
+    );
+  }
+
   const requirements: RequirementListItem[] = reqResult.data?.requirements ?? [];
   const manualsForAuto: TestCaseListItem[] = manualListResult.data?.testCases ?? [];
   const rows: TestCaseListItem[] = listResult.data?.testCases ?? [];
@@ -251,9 +276,9 @@ export function TestCasesListPage() {
     <section className="projects-page" data-testid="testcases-page">
       <div className="project-detail-header">
         <h2 id="testcases-heading">Test cases</h2>
-        <Link to={`/projects/${projectId}`} data-testid="testcases-back-project">
+        <RouterLink to={`/projects/${projectId}`} data-testid="testcases-back-project">
           ← Project
-        </Link>
+        </RouterLink>
       </div>
 
       <div className="projects-create" data-testid="testcase-create-manual-panel">
@@ -484,12 +509,12 @@ export function TestCasesListPage() {
                 </td>
                 <td>{t.title}</td>
                 <td>
-                  <Link
+                  <RouterLink
                     to={`/projects/${projectId}/test-cases/${t.id}`}
                     data-testid="testcase-open"
                   >
                     Open
-                  </Link>
+                  </RouterLink>
                 </td>
               </tr>
             ))}

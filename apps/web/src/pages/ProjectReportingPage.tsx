@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { RouterLink } from "../tamagui/RouterLink";
 import { useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
 import { CoveragePie } from "../components/reporting/CoveragePie";
@@ -196,18 +197,18 @@ export function ProjectReportingPage() {
       <div className="project-detail-header">
         <h2 id="reporting-heading">Reporting</h2>
         <div className="project-detail-header-links">
-          <Link to={`/projects/${projectId}`} data-testid="reporting-back-project">
+          <RouterLink to={`/projects/${projectId}`} data-testid="reporting-back-project">
             ← Project
-          </Link>
-          <Link to={`/projects/${projectId}/requirements`} data-testid="project-nav-requirements">
+          </RouterLink>
+          <RouterLink to={`/projects/${projectId}/requirements`} data-testid="project-nav-requirements">
             Requirements
-          </Link>
-          <Link to={`/projects/${projectId}/test-cases`} data-testid="project-nav-test-cases">
+          </RouterLink>
+          <RouterLink to={`/projects/${projectId}/test-cases`} data-testid="project-nav-test-cases">
             Test cases
-          </Link>
-          <Link to={`/projects/${projectId}/runs`} data-testid="project-nav-runs">
+          </RouterLink>
+          <RouterLink to={`/projects/${projectId}/runs`} data-testid="project-nav-runs">
             Runs
-          </Link>
+          </RouterLink>
         </div>
       </div>
 

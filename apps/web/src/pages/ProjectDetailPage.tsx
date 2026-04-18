@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
@@ -198,7 +199,7 @@ export function ProjectDetailPage() {
       <section className="projects-page" data-testid="project-not-found">
         <h2>Project not found</h2>
         <p>No project matches this id.</p>
-        <Link to="/projects">Back to projects</Link>
+        <RouterLink to="/projects">Back to projects</RouterLink>
       </section>
     );
   }
@@ -216,27 +217,27 @@ export function ProjectDetailPage() {
       <div className="project-detail-header">
         <h2 id="project-detail-heading">Project</h2>
         <div className="project-detail-header-links">
-          <Link to="/projects" data-testid="project-back-to-list">
+          <RouterLink to="/projects" data-testid="project-back-to-list">
             ← All projects
-          </Link>
-          <Link to={`/projects/${projectId}/requirements`} data-testid="project-nav-requirements">
+          </RouterLink>
+          <RouterLink to={`/projects/${projectId}/requirements`} data-testid="project-nav-requirements">
             Requirements
-          </Link>
-          <Link to={`/projects/${projectId}/test-cases`} data-testid="project-nav-test-cases">
+          </RouterLink>
+          <RouterLink to={`/projects/${projectId}/test-cases`} data-testid="project-nav-test-cases">
             Test cases
-          </Link>
-          <Link to={`/projects/${projectId}/runs`} data-testid="project-nav-runs">
+          </RouterLink>
+          <RouterLink to={`/projects/${projectId}/runs`} data-testid="project-nav-runs">
             Runs
-          </Link>
-          <Link to={`/projects/${projectId}/reporting`} data-testid="project-nav-reporting">
+          </RouterLink>
+          <RouterLink to={`/projects/${projectId}/reporting`} data-testid="project-nav-reporting">
             Reporting
-          </Link>
-          <Link to={`/projects/${projectId}/imports`} data-testid="project-nav-imports">
+          </RouterLink>
+          <RouterLink to={`/projects/${projectId}/imports`} data-testid="project-nav-imports">
             Imports
-          </Link>
-          <Link to={`/projects/${projectId}/design-links`} data-testid="project-nav-design-links">
+          </RouterLink>
+          <RouterLink to={`/projects/${projectId}/design-links`} data-testid="project-nav-design-links">
             Design links
-          </Link>
+          </RouterLink>
         </div>
       </div>
 

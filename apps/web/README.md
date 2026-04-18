@@ -14,6 +14,7 @@ React + Vite front end for the TCMS GraphQL API. Dev server proxies API routes t
 | `npm run e2e:smoke`   | Playwright tests tagged `@smoke` (subset; see `e2e/fe-e2e-0-smoke.spec.ts`). |
 | `npm run e2e:ci`      | Same as `e2e` (use from CI with `CI=true`).                                  |
 | `npm run e2e:install` | Download Playwright browser binaries (Chromium).                             |
+| `npm run test`        | Vitest + Testing Library (`src/**/*.test.tsx`).                              |
 
 
 ## Local manual testing
@@ -38,10 +39,14 @@ Full step-by-step (env, clean DB, troubleshooting): `[docs/LOCAL_MANUAL_TESTING.
 - Design links (FE-H): `[e2e/fe-h-design-links.spec.ts](e2e/fe-h-design-links.spec.ts)` — Penpot upsert, list, unlink.
 - Version history (FE-I): `[e2e/fe-i-version-history.spec.ts](e2e/fe-i-version-history.spec.ts)` — testcase detail lists `testCaseVersionHistory`; save bumps `versionSeq`.
 - Polish (FE-J): `[e2e/fe-j-polish.spec.ts](e2e/fe-j-polish.spec.ts)` — skip link; route error boundary (dev throw route); keyboard focus on project picker.
+- Mobile viewport (FE-K): `[e2e/fe-k-mobile-shell.spec.ts](e2e/fe-k-mobile-shell.spec.ts)` — runs under Playwright project `mobile-chrome` (Pixel 5).
 
 From repo root: `npm run e2e:web` or `npm run ci:e2e:web`. Tagged smoke only: `npm run e2e:smoke:web` (repo root).
 
 ## Stack
 
 - React 19, Vite 8, TypeScript 6  
+- **Tamagui** (`tamagui.config.ts`, `@tamagui/vite-plugin`) for layout and themed UI (web today; aligns with a future Expo client via shared tokens).
 - urql + graphql (`/graphql`)
+
+`index.html` includes a tiny `globalThis.process` shim so Tamagui’s web bundle does not throw `process is not defined` in the browser.

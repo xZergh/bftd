@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
 import {
@@ -89,31 +90,34 @@ export function TestCaseDetailPage() {
     pause: paused
   });
 
+  /** Avoid overlapping urql subscriptions with the test-case list page during route transitions. */
+  const secondaryPaused = paused || (detailResult.fetching && detailResult.data === undefined);
+
   const [graphResult, reexecuteGraph] = useQuery({
     query: TraceabilityGraphQuery,
     variables: { projectId: projectId ?? "" },
-    pause: paused,
+    pause: secondaryPaused,
     requestPolicy: "network-only"
   });
 
   const [versionHistoryResult, reexecuteVersionHistory] = useQuery({
     query: TestCaseVersionHistoryQuery,
     variables: { testCaseId: testCaseId ?? "", includeDeleted: true },
-    pause: paused,
+    pause: secondaryPaused,
     requestPolicy: "network-only"
   });
 
   const [reqResult] = useQuery({
     query: RequirementsListQuery,
     variables: { projectId: projectId ?? "" },
-    pause: paused,
+    pause: secondaryPaused,
     requestPolicy: "network-only"
   });
 
   const [manualListResult] = useQuery({
     query: TestCasesListQuery,
     variables: { projectId: projectId ?? "", type: "manual", includeDeleted: false },
-    pause: paused,
+    pause: secondaryPaused,
     requestPolicy: "network-only"
   });
 
@@ -228,18 +232,17 @@ export function TestCaseDetailPage() {
     return [...raw].sort((a, b) => b.versionSeq - a.versionSeq);
   }, [versionHistoryResult.data?.testCaseVersionHistory]);
 
-  const requirements: RequirementListItem[] = reqResult.data?.requirements ?? [];
-  const manuals: TestCaseListItem[] = manualListResult.data?.testCases ?? [];
-
   const reqChoicesForLink = useMemo(() => {
+    const requirements: RequirementListItem[] = reqResult.data?.requirements ?? [];
     const linked = new Set(linkedRequirements.map((r) => r.id));
     return requirements.filter((r) => !linked.has(r.id));
-  }, [linkedRequirements, requirements]);
+  }, [linkedRequirements, reqResult.data?.requirements]);
 
   const manualChoicesForLink = useMemo(() => {
+    const manuals: TestCaseListItem[] = manualListResult.data?.testCases ?? [];
     const linked = new Set(linkedManuals.map((m) => m.id));
     return manuals.filter((m) => !linked.has(m.id));
-  }, [linkedManuals, manuals]);
+  }, [linkedManuals, manualListResult.data?.testCases]);
 
   const manualDirty =
     tc?.type === "manual" &&
@@ -452,7 +455,17 @@ export function TestCaseDetailPage() {
     }
     setAddReqId("");
     reexecuteGraph({ requestPolicy: "network-only" });
-  }, [addReqId, cancelManualAutosave, clearShellMessages, linkReqMan, paused, projectId, reexecuteGraph, tc]);
+  }, [
+    addReqId,
+    cancelManualAutosave,
+    clearShellMessages,
+    linkReqMan,
+    paused,
+    projectId,
+    reexecuteGraph,
+    setTransportMessage,
+    tc
+  ]);
 
   const onUnlinkRequirement = useCallback(
     async (requirementId: string) => {
@@ -468,7 +481,7 @@ export function TestCaseDetailPage() {
       }
       reexecuteGraph({ requestPolicy: "network-only" });
     },
-    [cancelManualAutosave, clearShellMessages, paused, reexecuteGraph, tc, unlinkReqMan]
+    [cancelManualAutosave, clearShellMessages, paused, reexecuteGraph, setTransportMessage, tc, unlinkReqMan]
   );
 
   const onLinkManual = useCallback(async () => {
@@ -486,7 +499,17 @@ export function TestCaseDetailPage() {
     }
     setAddManualId("");
     reexecuteGraph({ requestPolicy: "network-only" });
-  }, [addManualId, cancelAutomatedAutosave, clearShellMessages, linkAutoMan, paused, projectId, reexecuteGraph, tc]);
+  }, [
+    addManualId,
+    cancelAutomatedAutosave,
+    clearShellMessages,
+    linkAutoMan,
+    paused,
+    projectId,
+    reexecuteGraph,
+    setTransportMessage,
+    tc
+  ]);
 
   const onUnlinkManual = useCallback(
     async (manualTestCaseId: string) => {
@@ -502,7 +525,7 @@ export function TestCaseDetailPage() {
       }
       reexecuteGraph({ requestPolicy: "network-only" });
     },
-    [cancelAutomatedAutosave, clearShellMessages, paused, reexecuteGraph, tc, unlinkAutoMan]
+    [cancelAutomatedAutosave, clearShellMessages, paused, reexecuteGraph, setTransportMessage, tc, unlinkAutoMan]
   );
 
   const onTombstone = useCallback(async () => {
@@ -528,6 +551,7 @@ export function TestCaseDetailPage() {
     reexecuteDetail,
     reexecuteGraph,
     reexecuteVersionHistory,
+    setTransportMessage,
     tc,
     tombstone
   ]);
@@ -545,7 +569,16 @@ export function TestCaseDetailPage() {
     reexecuteDetail({ requestPolicy: "network-only" });
     reexecuteGraph({ requestPolicy: "network-only" });
     reexecuteVersionHistory({ requestPolicy: "network-only" });
-  }, [clearShellMessages, paused, reexecuteDetail, reexecuteGraph, reexecuteVersionHistory, restore, tc]);
+  }, [
+    clearShellMessages,
+    paused,
+    reexecuteDetail,
+    reexecuteGraph,
+    reexecuteVersionHistory,
+    restore,
+    setTransportMessage,
+    tc
+  ]);
 
   if (paused) {
     return null;
@@ -563,7 +596,7 @@ export function TestCaseDetailPage() {
     return (
       <section className="projects-page" data-testid="testcase-not-found">
         <h2>Test case not found</h2>
-        <Link to={`/projects/${projectId}/test-cases`}>Back to test cases</Link>
+        <RouterLink to={`/projects/${projectId}/test-cases`}>Back to test cases</RouterLink>
       </section>
     );
   }
@@ -582,9 +615,9 @@ export function TestCaseDetailPage() {
     <section className="projects-page" data-testid="testcase-detail-page">
       <div className="project-detail-header">
         <h2>Test case</h2>
-        <Link to={`/projects/${projectId}/test-cases`} data-testid="testcase-back-list">
+        <RouterLink to={`/projects/${projectId}/test-cases`} data-testid="testcase-back-list">
           ← Test cases
-        </Link>
+        </RouterLink>
       </div>
 
       <dl className="project-detail-meta">

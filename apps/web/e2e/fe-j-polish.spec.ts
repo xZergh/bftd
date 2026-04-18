@@ -1,6 +1,13 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("FE-J polish", () => {
+  test("projects content starts in viewport without forced blank chrome gap", async ({ page }) => {
+    await page.goto("/projects");
+    await expect(page.getByTestId("projects-page")).toBeVisible();
+    const projectsTop = await page.getByTestId("projects-page").evaluate((el) => el.getBoundingClientRect().top);
+    expect(projectsTop).toBeLessThan(260);
+  });
+
   test("skip link focuses main landmark", async ({ page }) => {
     await page.goto("/");
     await page.getByTestId("skip-to-main").focus();
