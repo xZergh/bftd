@@ -53,8 +53,8 @@ type Db = ReturnType<typeof import("../db/client").createDb>;
 export class TcmsService {
   constructor(private readonly db: Db) {}
 
-  async createProject(name: string, key?: string) {
-    return createProjectRecord(this.db, { name, key });
+  async createProject(name: string, key?: string, description?: string | null) {
+    return createProjectRecord(this.db, { name, key, description });
   }
 
   async listProjects(input?: { includeArchived?: boolean }) {
@@ -65,7 +65,7 @@ export class TcmsService {
     return getProjectRecord(this.db, input);
   }
 
-  async updateProject(input: { id?: string; key?: string; name?: string; keyNew?: string }) {
+  async updateProject(input: { id?: string; key?: string; name?: string; keyNew?: string; description?: string | null }) {
     return updateProjectRecord(this.db, input);
   }
 

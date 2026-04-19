@@ -38,7 +38,7 @@ export class RouteErrorBoundary extends Component<Props, State> {
               data-testid="route-error-retry"
               onPress={() => {
                 this.setState({ hasError: false, error: null });
-                window.location.assign("/");
+                window.location.assign("/projects");
               }}
             >
               Go home

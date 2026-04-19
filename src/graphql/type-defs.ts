@@ -13,6 +13,7 @@ export const typeDefs = /* GraphQL */ `
     id: ID!
     key: String!
     name: String!
+    description: String
     isArchived: Boolean!
     createdAt: DateTime!
     updatedAt: DateTime!
@@ -327,6 +328,7 @@ export const typeDefs = /* GraphQL */ `
   input CreateProjectInput {
     name: String!
     key: String
+    description: String
   }
 
   input CreateRequirementInput {
@@ -521,6 +523,7 @@ export const typeDefs = /* GraphQL */ `
     key: String
     name: String
     keyNew: String
+    description: String
   }
 
   input ArchiveProjectInput {

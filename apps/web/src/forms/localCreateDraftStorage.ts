@@ -1,4 +1,4 @@
-const DRAFT_VERSION = 1 as const;
+const DRAFT_VERSION = 2 as const;
 
 /** Shorter than server autosave — localStorage only */
 export const LOCAL_CREATE_DRAFT_DEBOUNCE_MS = 600;
@@ -9,7 +9,7 @@ export function requirementCreateDraftKey(projectId: string): string {
   return `tcms.createRequirementDraft.v1.${projectId}`;
 }
 
-export type CreateProjectDraft = { v: typeof DRAFT_VERSION; name: string; key: string };
+export type CreateProjectDraft = { v: typeof DRAFT_VERSION; name: string; key: string; description: string };
 
 export type CreateRequirementDraft = {
   v: typeof DRAFT_VERSION;
@@ -23,10 +23,16 @@ function safeParseProject(raw: string | null): CreateProjectDraft | null {
   }
   try {
     const o = JSON.parse(raw) as Record<string, unknown>;
-    if (o.v !== DRAFT_VERSION || typeof o.name !== "string" || typeof o.key !== "string") {
+    if (typeof o.name !== "string" || typeof o.key !== "string") {
       return null;
     }
-    return { v: DRAFT_VERSION, name: o.name, key: o.key };
+    if (o.v === 1) {
+      return { v: DRAFT_VERSION, name: o.name, key: o.key, description: "" };
+    }
+    if (o.v === DRAFT_VERSION && typeof o.description === "string") {
+      return { v: DRAFT_VERSION, name: o.name, key: o.key, description: o.description };
+    }
+    return null;
   } catch {
     return null;
   }
@@ -58,12 +64,12 @@ export function readCreateProjectDraft(): CreateProjectDraft | null {
   return safeParseProject(localStorage.getItem(KEY_CREATE_PROJECT));
 }
 
-export function writeCreateProjectDraft(name: string, key: string): void {
+export function writeCreateProjectDraft(name: string, key: string, description: string): void {
   if (typeof localStorage === "undefined") {
     return;
   }
   try {
-    const payload: CreateProjectDraft = { v: DRAFT_VERSION, name, key };
+    const payload: CreateProjectDraft = { v: DRAFT_VERSION, name, key, description };
     localStorage.setItem(KEY_CREATE_PROJECT, JSON.stringify(payload));
   } catch {
     /* quota or private mode */

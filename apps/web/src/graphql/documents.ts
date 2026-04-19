@@ -2,10 +2,11 @@ import { parse } from "graphql";
 
 export const ProjectsQuery = parse(`
   query Projects {
-    projects {
+    projects(input: {}) {
       id
       key
       name
+      description
       isArchived
     }
   }
@@ -17,6 +18,7 @@ export const ProjectsListQuery = parse(`
       id
       key
       name
+      description
       isArchived
     }
   }
@@ -28,6 +30,7 @@ export const ProjectByIdQuery = parse(`
       id
       key
       name
+      description
       isArchived
       createdAt
       updatedAt
@@ -36,12 +39,13 @@ export const ProjectByIdQuery = parse(`
 `);
 
 export const UpdateProjectMutation = parse(`
-  mutation UpdateProject($id: ID!, $name: String, $keyNew: String) {
-    updateProject(input: { id: $id, name: $name, keyNew: $keyNew }) {
+  mutation UpdateProject($id: ID!, $name: String, $keyNew: String, $description: String) {
+    updateProject(input: { id: $id, name: $name, keyNew: $keyNew, description: $description }) {
       project {
         id
         key
         name
+        description
         isArchived
       }
       error {
@@ -61,6 +65,7 @@ export const ArchiveProjectMutation = parse(`
         id
         key
         name
+        description
         isArchived
       }
       error {
@@ -80,12 +85,13 @@ export const IntentionallyInvalidQuery = parse(`
 `);
 
 export const CreateProjectMutation = parse(`
-  mutation CreateProject($name: String!, $key: String) {
-    createProject(input: { name: $name, key: $key }) {
+  mutation CreateProject($name: String!, $key: String, $description: String) {
+    createProject(input: { name: $name, key: $key, description: $description }) {
       project {
         id
         key
         name
+        description
         isArchived
       }
       error {
