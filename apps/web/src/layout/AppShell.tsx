@@ -1,12 +1,20 @@
-import { Outlet } from "react-router-dom";
+import { useEffect } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import { Paragraph, Text, XStack, YStack } from "tamagui";
 import { ProjectPicker } from "../components/ProjectPicker";
+import { ProjectsNavDropdown } from "../components/ProjectsNavDropdown";
+import { writeLastProjectPath } from "../navigation/lastProjectPath";
 import { RouterLink } from "../tamagui/RouterLink";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import { RouteErrorBoundary } from "./RouteErrorBoundary";
 
 export function AppShell() {
+  const location = useLocation();
   const { transportMessage, payloadAppError } = useShellErrors();
+
+  useEffect(() => {
+    writeLastProjectPath(location.pathname);
+  }, [location.pathname]);
 
   return (
     <div data-testid="app-root" style={{ minHeight: "100vh", width: "100%" }}>
@@ -97,13 +105,11 @@ export function AppShell() {
           role="navigation"
           aria-label="Main"
         >
-          <XStack gap="$3" alignItems="center">
+          <XStack gap="$3" alignItems="center" flexWrap="wrap">
             <RouterLink to="/" data-testid="nav-home">
               Home
             </RouterLink>
-            <RouterLink to="/projects" data-testid="nav-projects">
-              Projects
-            </RouterLink>
+            <ProjectsNavDropdown />
           </XStack>
           <ProjectPicker />
         </XStack>

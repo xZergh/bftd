@@ -14,7 +14,7 @@ import { useDebouncedAutosaveEffect } from "../hooks/useDebouncedAutosaveEffect"
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import "./ProjectsPage.css";
 
-type ProjectBaseline = { name: string; keyNew: string };
+type ProjectBaseline = { name: string; keyNew: string; description: string | null };
 
 export function ProjectDetailPage() {
   const { projectId } = useParams();
@@ -23,6 +23,7 @@ export function ProjectDetailPage() {
 
   const [nameDraft, setNameDraft] = useState("");
   const [keyNewDraft, setKeyNewDraft] = useState("");
+  const [descriptionDraft, setDescriptionDraft] = useState("");
   const [baseline, setBaseline] = useState<ProjectBaseline | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [showValidationPayload, setShowValidationPayload] = useState(false);
@@ -52,7 +53,8 @@ export function ProjectDetailPage() {
     }
     setNameDraft(project.name);
     setKeyNewDraft("");
-    setBaseline({ name: project.name, keyNew: "" });
+    setDescriptionDraft(project.description ?? "");
+    setBaseline({ name: project.name, keyNew: "", description: project.description ?? null });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-hydrate on navigation / entity id, not refetch
   }, [projectId, project?.id]);
 
@@ -66,23 +68,28 @@ export function ProjectDetailPage() {
     setTransportMessage(text.length > 0 ? text : "Request failed");
   }, [detailResult.error, setTransportMessage]);
 
+  const descNorm = (s: string | null | undefined) => (s ?? "").trim();
   const dirty =
     baseline !== null &&
-    (nameDraft.trim() !== baseline.name || keyNewDraft.trim() !== baseline.keyNew);
+    (nameDraft.trim() !== baseline.name ||
+      keyNewDraft.trim() !== baseline.keyNew ||
+      descNorm(descriptionDraft) !== descNorm(baseline.description));
   const canAutosave = trimmedNonEmpty(nameDraft.trim());
 
   const updateProjectClientPayload = useMemo(() => {
     const nm = nameDraft.trim();
     const kn = keyNewDraft.trim();
+    const d = descriptionDraft.trim();
     return {
       mutation: "UpdateProject",
       variables: {
         id: projectId ?? null,
         name: nm.length > 0 ? nm : null,
-        keyNew: kn.length > 0 ? kn : undefined
+        keyNew: kn.length > 0 ? kn : undefined,
+        description: d.length > 0 ? d : null
       }
     };
-  }, [keyNewDraft, nameDraft, projectId]);
+  }, [descriptionDraft, keyNewDraft, nameDraft, projectId]);
 
   const performSave = useCallback(
     async (validateClient: boolean): Promise<boolean> => {
@@ -105,10 +112,12 @@ export function ProjectDetailPage() {
       }
       setSavePhase("saving");
       const kn = keyNewDraft.trim();
+      const d = descriptionDraft.trim();
       const res = await updateProject({
         id: projectId,
         name: nm || undefined,
-        keyNew: kn === "" ? undefined : kn
+        keyNew: kn === "" ? undefined : kn,
+        description: d === "" ? null : d
       });
       setSavePhase("idle");
       if (res.error) {
@@ -128,7 +137,8 @@ export function ProjectDetailPage() {
       }
       const p = res.data?.updateProject?.project;
       if (p !== undefined && p !== null) {
-        setBaseline({ name: p.name, keyNew: "" });
+        setBaseline({ name: p.name, keyNew: "", description: p.description ?? null });
+        setDescriptionDraft(p.description ?? "");
       }
       setKeyNewDraft("");
       reexecuteDetail({ requestPolicy: "network-only" });
@@ -136,6 +146,7 @@ export function ProjectDetailPage() {
     },
     [
       clearShellMessages,
+      descriptionDraft,
       keyNewDraft,
       nameDraft,
       projectId,
@@ -146,7 +157,7 @@ export function ProjectDetailPage() {
     ]
   );
 
-  const autosaveResetKey = `${nameDraft}\0${keyNewDraft}\0${failBump}`;
+  const autosaveResetKey = `${nameDraft}\0${keyNewDraft}\0${descriptionDraft}\0${failBump}`;
   const cancelAutosave = useDebouncedAutosaveEffect(
     dirty && canAutosave,
     autosaveResetKey,
@@ -291,6 +302,18 @@ export function ProjectDetailPage() {
               }}
               data-testid="project-edit-key-new"
               placeholder={project.key}
+            />
+          </label>
+          <label>
+            Description <span className="hint">(optional)</span>
+            <textarea
+              rows={3}
+              value={descriptionDraft}
+              onChange={(e) => {
+                setDescriptionDraft(e.target.value);
+                setShowValidationPayload(false);
+              }}
+              data-testid="project-edit-description"
             />
           </label>
         </div>

@@ -15,6 +15,7 @@ type Project {
   id: ID!
   key: String!
   name: String!
+  description: String
   isArchived: Boolean!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -329,6 +330,7 @@ input ManualStepInput {
 input CreateProjectInput {
   name: String!
   key: String
+  description: String
 }
 
 input CreateRequirementInput {
@@ -523,6 +525,7 @@ input UpdateProjectInput {
   key: String
   name: String
   keyNew: String
+  description: String
 }
 
 input ArchiveProjectInput {

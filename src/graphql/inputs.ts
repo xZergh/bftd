@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-export const projectInput = z.object({ name: z.string().min(1), key: z.string().optional() });
+export const projectInput = z.object({
+  name: z.string().min(1),
+  key: z.string().optional(),
+  description: z.string().nullable().optional()
+});
 export const requirementInput = z.object({
   projectId: z.string().min(1),
   externalKey: z.string().min(1),
@@ -187,7 +191,8 @@ export const updateProjectInput = z
     id: z.string().optional(),
     key: z.string().optional(),
     name: z.string().optional(),
-    keyNew: z.string().optional()
+    keyNew: z.string().optional(),
+    description: z.string().nullable().optional()
   })
   .refine((v) => !!(v.id ?? v.key), { message: "Provide id or key", path: ["id"] });
 export const archiveProjectInput = z

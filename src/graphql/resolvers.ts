@@ -86,11 +86,12 @@ function mapProject(p: {
   id: string;
   key: string;
   name: string;
+  description?: string | null;
   isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
 }) {
-  return p;
+  return { ...p, description: p.description ?? null };
 }
 
 function mapRequirement(r: {
@@ -229,7 +230,7 @@ export const resolvers = {
     createProject: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       try {
         const input = projectInput.parse(args.input);
-        const project = await ctx.service.createProject(input.name, input.key);
+        const project = await ctx.service.createProject(input.name, input.key, input.description);
         return { project: mapProject(project), error: null };
       } catch (error) {
         return { project: null, error: formatError(error) };

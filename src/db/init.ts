@@ -65,6 +65,7 @@ function applyAdditiveMigrations(db: Database.Database) {
 
   if (names.has("projects")) {
     ensureColumn(db, "projects", "key", "TEXT");
+    ensureColumn(db, "projects", "description", "TEXT");
     backfillProjectKeys(db);
   }
 
@@ -124,6 +125,7 @@ export function initSqlite(dbPath: string) {
       id TEXT PRIMARY KEY,
       key TEXT NOT NULL,
       name TEXT NOT NULL,
+      description TEXT,
       is_archived INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL

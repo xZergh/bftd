@@ -7,6 +7,7 @@ export const projects = sqliteTable(
     id: text("id").primaryKey(),
     key: text("key").notNull(),
     name: text("name").notNull(),
+    description: text("description"),
     isArchived: integer("is_archived", { mode: "boolean" }).notNull().default(false),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull()

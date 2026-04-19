@@ -56,7 +56,7 @@ export async function resolveProject(db: Db, input: { projectId?: string; projec
   throw new AppError("VALIDATION_ERROR", "Project identifier required.", "Provide projectId or projectKey.", {});
 }
 
-export async function createProject(db: Db, input: { name: string; key?: string }) {
+export async function createProject(db: Db, input: { name: string; key?: string; description?: string | null }) {
   let key: string;
   if (input.key) {
     key = slugifyProjectKey(input.key);
@@ -76,6 +76,7 @@ export async function createProject(db: Db, input: { name: string; key?: string 
     id: randomUUID(),
     key,
     name: input.name,
+    description: input.description ?? null,
     isArchived: false,
     createdAt: now(),
     updatedAt: now()
@@ -104,7 +105,7 @@ export async function getProject(db: Db, input: { id?: string; key?: string }) {
 
 export async function updateProject(
   db: Db,
-  input: { id?: string; key?: string; name?: string; keyNew?: string }
+  input: { id?: string; key?: string; name?: string; keyNew?: string; description?: string | null }
 ) {
   const existing = await getProject(db, { id: input.id, key: input.key });
   if (!existing) {
@@ -124,9 +125,10 @@ export async function updateProject(
     }
   }
   const nextName = input.name ?? existing.name;
+  const nextDescription = input.description !== undefined ? input.description : existing.description ?? null;
   await db
     .update(projects)
-    .set({ name: nextName, key: nextKey, updatedAt: now() })
+    .set({ name: nextName, key: nextKey, description: nextDescription, updatedAt: now() })
     .where(eq(projects.id, existing.id));
   const updated = await getProject(db, { id: existing.id });
   return updated!;

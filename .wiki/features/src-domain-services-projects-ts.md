@@ -10,7 +10,7 @@ Project service handles project lifecycle, identity resolution, and summary coun
 
 ## Core behaviors
 
-- Creates projects with slugified keys and conflict detection.
+- Creates projects with slugified keys and conflict detection; optional `description` (nullable text) is stored on the project row.
 - Auto-generates unique keys when key is omitted.
 - Resolves project identity from either `projectId` or `projectKey`.
 - Supports archive/unarchive and list filtering (`includeArchived`).

@@ -9,7 +9,7 @@ test.describe("FE-J polish", () => {
   });
 
   test("skip link focuses main landmark", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/projects");
     await page.getByTestId("skip-to-main").focus();
     await expect(page.getByTestId("skip-to-main")).toBeFocused();
     await page.keyboard.press("Enter");
@@ -21,7 +21,7 @@ test.describe("FE-J polish", () => {
     await expect(page.getByTestId("route-error-boundary")).toBeVisible();
     await expect(page.getByTestId("route-error-message")).toContainText("E2E deliberate render error");
     await page.getByTestId("route-error-retry").click();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/projects$/);
     await expect(page.getByTestId("app-root")).toBeVisible();
   });
 

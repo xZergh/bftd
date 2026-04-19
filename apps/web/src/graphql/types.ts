@@ -4,6 +4,7 @@ export type ProjectListItem = {
   id: string;
   key: string;
   name: string;
+  description: string | null;
   isArchived: boolean;
 };
 
