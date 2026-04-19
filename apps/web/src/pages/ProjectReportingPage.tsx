@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { RouterLink } from "../tamagui/RouterLink";
 import { useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
+import { ProjectWorkspaceHeader } from "../components/ProjectWorkspaceHeader";
 import { CoveragePie } from "../components/reporting/CoveragePie";
 import { TraceabilityTree } from "../components/reporting/TraceabilityTree";
 import {
@@ -194,23 +194,12 @@ export function ProjectReportingPage() {
 
   return (
     <section className="projects-page" data-testid="reporting-page">
-      <div className="project-detail-header">
-        <h2 id="reporting-heading">Reporting</h2>
-        <div className="project-detail-header-links">
-          <RouterLink to={`/projects/${projectId}`} data-testid="reporting-back-project">
-            ← Project
-          </RouterLink>
-          <RouterLink to={`/projects/${projectId}/requirements`} data-testid="project-nav-requirements">
-            Requirements
-          </RouterLink>
-          <RouterLink to={`/projects/${projectId}/test-cases`} data-testid="project-nav-test-cases">
-            Test cases
-          </RouterLink>
-          <RouterLink to={`/projects/${projectId}/runs`} data-testid="project-nav-runs">
-            Runs
-          </RouterLink>
-        </div>
-      </div>
+      <ProjectWorkspaceHeader
+        title="Reporting"
+        titleId="reporting-heading"
+        projectId={projectId}
+        active="reporting"
+      />
 
       <section className="reporting-section reporting-kpi-visual-vars" aria-labelledby="kpi-dashboard-heading">
         <h3 id="kpi-dashboard-heading">KPI dashboard</h3>

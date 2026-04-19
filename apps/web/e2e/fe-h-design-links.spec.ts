@@ -20,7 +20,7 @@ test.describe("FE-H design links", () => {
     await page.getByTestId("requirement-create-submit").click();
     await expect(page.locator(`tr[data-requirement-key="${reqKey}"]`)).toBeVisible();
 
-    await page.getByTestId("requirements-back-project").click();
+    await page.getByTestId("project-nav-project").click();
     await page.getByTestId("project-nav-design-links").click();
     await expect(page.getByTestId("design-links-page")).toBeVisible();
 

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
+import { ProjectWorkspaceHeader } from "../components/ProjectWorkspaceHeader";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
 import {
   ArchiveProjectMutation,
@@ -225,32 +226,12 @@ export function ProjectDetailPage() {
 
   return (
     <section className="projects-page" data-testid="project-detail-page">
-      <div className="project-detail-header">
-        <h2 id="project-detail-heading">Project</h2>
-        <div className="project-detail-header-links">
-          <RouterLink to="/projects" data-testid="project-back-to-list">
-            ← All projects
-          </RouterLink>
-          <RouterLink to={`/projects/${projectId}/requirements`} data-testid="project-nav-requirements">
-            Requirements
-          </RouterLink>
-          <RouterLink to={`/projects/${projectId}/test-cases`} data-testid="project-nav-test-cases">
-            Test cases
-          </RouterLink>
-          <RouterLink to={`/projects/${projectId}/runs`} data-testid="project-nav-runs">
-            Runs
-          </RouterLink>
-          <RouterLink to={`/projects/${projectId}/reporting`} data-testid="project-nav-reporting">
-            Reporting
-          </RouterLink>
-          <RouterLink to={`/projects/${projectId}/imports`} data-testid="project-nav-imports">
-            Imports
-          </RouterLink>
-          <RouterLink to={`/projects/${projectId}/design-links`} data-testid="project-nav-design-links">
-            Design links
-          </RouterLink>
-        </div>
-      </div>
+      <ProjectWorkspaceHeader
+        title="Project"
+        titleId="project-detail-heading"
+        projectId={projectId}
+        active="project"
+      />
 
       <dl className="project-detail-meta">
         <div>

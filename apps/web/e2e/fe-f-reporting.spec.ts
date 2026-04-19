@@ -31,7 +31,7 @@ async function seedProjectForReporting(page: Page, suffix: string): Promise<void
   await page.getByTestId("requirement-create-submit").click();
   await expect(page.locator(`tr[data-requirement-key="${reqKey}"]`)).toBeVisible();
 
-  await page.getByTestId("requirements-back-project").click();
+  await page.getByTestId("project-nav-project").click();
   await expect(page.getByTestId("project-detail-page")).toBeVisible();
   await page.getByTestId("project-nav-test-cases").click();
   await expect(page.getByTestId("testcases-page")).toBeVisible();
@@ -45,7 +45,7 @@ async function seedProjectForReporting(page: Page, suffix: string): Promise<void
     page.locator(`tr[data-testid="testcase-row"]`).filter({ hasText: manualTitle })
   ).toBeVisible();
 
-  await page.getByTestId("testcases-back-project").click();
+  await page.getByTestId("project-nav-project").click();
   await expect(page.getByTestId("project-detail-page")).toBeVisible();
   await page.getByTestId("project-nav-runs").click();
   await expect(page.getByTestId("runs-page")).toBeVisible();
@@ -54,7 +54,7 @@ async function seedProjectForReporting(page: Page, suffix: string): Promise<void
   await page.getByTestId("run-create-submit").click();
   await expect(page.locator(`tr[data-testid="run-row"]`).filter({ hasText: runName })).toBeVisible();
 
-  await page.getByTestId("runs-back-project").click();
+  await page.getByTestId("project-nav-project").click();
   await expect(page.getByTestId("project-detail-page")).toBeVisible();
 }
 
