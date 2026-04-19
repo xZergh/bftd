@@ -31,7 +31,7 @@ The React app defines route-level page composition under an `AppShell` layout (`
 
 ## Shell behavior
 
-- Layout, banners, nav, project picker, skip link, and route error boundary live in `apps/web/src/layout/AppShell.tsx` (see `[[features-apps-web-shell-polish]]`).
+- Layout, banners, nav, project picker, skip link, and route error boundary live in `apps/web/src/layout/AppShell.tsx` (see `[[features-apps-web-shell-polish]]`). Main nav **Projects** opens a dropdown (`apps/web/src/components/ProjectsNavDropdown.tsx`) for All projects / New project.
 
 ## Notes
 

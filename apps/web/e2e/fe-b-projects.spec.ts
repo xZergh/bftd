@@ -26,6 +26,7 @@ test.describe("FE-B projects", () => {
     await expect(page.getByRole("columnheader", { name: "Key" })).toHaveCount(0);
     await expect(page.getByRole("columnheader", { name: "Status" })).toHaveCount(0);
 
+    await page.getByTestId("nav-projects-menu").click();
     await page.getByTestId("nav-projects-new").click();
     await expect(page).toHaveURL(/[?&]new=1/);
     await expect(page.getByTestId("project-create-dialog")).toBeVisible();

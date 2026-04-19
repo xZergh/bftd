@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button, H2, H3, Input, Label, Paragraph, Switch, XStack, YStack } from "tamagui";
+import { Button, H2, H3, Input, Label, Paragraph, XStack, YStack } from "tamagui";
 import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
@@ -44,11 +44,50 @@ function RestoreIcon() {
   );
 }
 
+function PencilIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M7 11V7a5 5 0 0 1 10 0v4M6 11h12v10H6z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+type SortKey = "name" | "description" | "status";
+type SortDir = "asc" | "desc";
+
+function compareProjects(a: ProjectListItem, b: ProjectListItem, key: SortKey, dir: SortDir): number {
+  const m = dir === "asc" ? 1 : -1;
+  if (key === "name") {
+    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" }) * m;
+  }
+  if (key === "description") {
+    return (a.description ?? "").localeCompare(b.description ?? "", undefined, { sensitivity: "base" }) * m;
+  }
+  const sa = a.isArchived ? 1 : 0;
+  const sb = b.isArchived ? 1 : 0;
+  if (sa !== sb) {
+    return (sa - sb) * m;
+  }
+  return a.name.localeCompare(b.name, undefined, { sensitivity: "base" }) * m;
+}
+
+type RowEdit = { id: string; name: string; description: string };
+
 export function ProjectsListPage() {
   const { clearShellMessages, setTransportMessage, setPayloadAppError } = useShellErrors();
   const [searchParams, setSearchParams] = useSearchParams();
   const [includeArchived, setIncludeArchived] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const initial = initialProjectCreateFields();
   const [name, setName] = useState(initial.name);
@@ -57,8 +96,7 @@ export function ProjectsListPage() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [showValidationPayload, setShowValidationPayload] = useState(false);
 
-  const [unlockedId, setUnlockedId] = useState<string | null>(null);
-  const [nameDraftEdit, setNameDraftEdit] = useState("");
+  const [rowEdit, setRowEdit] = useState<RowEdit | null>(null);
 
   const [listResult, reexecuteList] = useQuery({
     query: ProjectsListQuery,
@@ -182,69 +220,121 @@ export function ProjectsListPage() {
     setTransportMessage
   ]);
 
-  const projects: ProjectListItem[] = listResult.data?.projects ?? [];
+  const projectsRaw: ProjectListItem[] = listResult.data?.projects ?? [];
+
+  const sortedProjects = useMemo(() => {
+    const copy = [...projectsRaw];
+    copy.sort((a, b) => compareProjects(a, b, sortKey, sortDir));
+    return copy;
+  }, [projectsRaw, sortKey, sortDir]);
 
   const editingProject = useMemo(
-    () => (unlockedId === null ? null : projects.find((p) => p.id === unlockedId) ?? null),
-    [projects, unlockedId]
+    () => (rowEdit === null ? null : projectsRaw.find((p) => p.id === rowEdit.id) ?? null),
+    [projectsRaw, rowEdit]
   );
 
-  const saveRowName = useCallback(
-    async (id: string, nm: string): Promise<boolean> => {
-      clearShellMessages();
-      const res = await updateProject({ id, name: nm });
-      if (res.error) {
-        const parts = [
-          ...res.error.graphQLErrors.map((e) => e.message),
-          res.error.networkError?.message
-        ].filter(Boolean);
-        setTransportMessage(parts.join("; ") || "Request failed");
-        return false;
-      }
-      const appErr = res.data?.updateProject?.error;
-      if (appErr) {
-        setPayloadAppError(appErr);
-        return false;
-      }
-      reexecuteList({ requestPolicy: "network-only" });
+  const saveRowPatch = useCallback(async (): Promise<boolean> => {
+    if (rowEdit === null || editingProject === null || rowEdit.id !== editingProject.id) {
+      return false;
+    }
+    const nm = rowEdit.name.trim();
+    if (!trimmedNonEmpty(nm)) {
+      return false;
+    }
+    const descTrim = rowEdit.description.trim();
+    const nameDirty = nm !== editingProject.name;
+    const descDirty = descTrim !== (editingProject.description ?? "").trim();
+    if (!nameDirty && !descDirty) {
       return true;
-    },
-    [clearShellMessages, reexecuteList, setPayloadAppError, setTransportMessage, updateProject]
-  );
+    }
+    clearShellMessages();
+    const res = await updateProject({
+      id: rowEdit.id,
+      ...(nameDirty ? { name: nm } : {}),
+      ...(descDirty ? { description: descTrim === "" ? null : descTrim } : {})
+    });
+    if (res.error) {
+      const parts = [
+        ...res.error.graphQLErrors.map((e) => e.message),
+        res.error.networkError?.message
+      ].filter(Boolean);
+      setTransportMessage(parts.length > 0 ? parts.join("; ") : "Request failed");
+      return false;
+    }
+    const appErr = res.data?.updateProject?.error;
+    if (appErr) {
+      setPayloadAppError(appErr);
+      return false;
+    }
+    reexecuteList({ requestPolicy: "network-only" });
+    return true;
+  }, [clearShellMessages, editingProject, reexecuteList, rowEdit, setPayloadAppError, setTransportMessage, updateProject]);
 
-  const nameRowDirty =
-    unlockedId !== null &&
+  const nameDirty =
+    rowEdit !== null &&
     editingProject !== null &&
-    trimmedNonEmpty(nameDraftEdit.trim()) &&
-    nameDraftEdit.trim() !== editingProject.name;
+    trimmedNonEmpty(rowEdit.name.trim()) &&
+    rowEdit.name.trim() !== editingProject.name;
+
+  const descDirty =
+    rowEdit !== null &&
+    editingProject !== null &&
+    rowEdit.description.trim() !== (editingProject.description ?? "").trim();
+
+  const rowPatchDirty = Boolean(nameDirty || descDirty) && trimmedNonEmpty(rowEdit?.name.trim() ?? "");
 
   const cancelRowAutosave = useDebouncedAutosaveEffect(
-    Boolean(nameRowDirty),
-    `${unlockedId ?? ""}\0${nameDraftEdit}`,
+    rowPatchDirty,
+    `${rowEdit?.id ?? ""}\0${rowEdit?.name ?? ""}\0${rowEdit?.description ?? ""}`,
     () => {
-      if (unlockedId === null) {
-        return;
-      }
-      void saveRowName(unlockedId, nameDraftEdit.trim());
+      void saveRowPatch();
     }
   );
 
-  const onUnlockName = useCallback((p: ProjectListItem) => {
-    setUnlockedId(p.id);
-    setNameDraftEdit(p.name);
-  }, []);
-
-  const onLockName = useCallback(async () => {
+  const flushRowEdit = useCallback(async (): Promise<boolean> => {
     cancelRowAutosave();
-    if (unlockedId !== null && nameRowDirty) {
-      const ok = await saveRowName(unlockedId, nameDraftEdit.trim());
-      if (!ok) {
+    if (rowEdit === null) {
+      return true;
+    }
+    if (!rowPatchDirty) {
+      return true;
+    }
+    return saveRowPatch();
+  }, [cancelRowAutosave, rowEdit, rowPatchDirty, saveRowPatch]);
+
+  const onLockRow = useCallback(async () => {
+    const ok = await flushRowEdit();
+    if (!ok) {
+      return;
+    }
+    setRowEdit(null);
+  }, [flushRowEdit]);
+
+  const onUnlockRow = useCallback(
+    async (p: ProjectListItem) => {
+      if (rowEdit?.id === p.id) {
         return;
       }
+      if (rowEdit !== null) {
+        const ok = await flushRowEdit();
+        if (!ok) {
+          return;
+        }
+        setRowEdit(null);
+      }
+      setRowEdit({ id: p.id, name: p.name, description: p.description ?? "" });
+    },
+    [rowEdit, flushRowEdit]
+  );
+
+  const onSortClick = useCallback((key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
     }
-    setUnlockedId(null);
-    setNameDraftEdit("");
-  }, [cancelRowAutosave, nameRowDirty, nameDraftEdit, saveRowName, unlockedId]);
+  }, [sortKey]);
 
   const onArchiveToggleRow = useCallback(
     async (p: ProjectListItem, archived: boolean) => {
@@ -263,14 +353,24 @@ export function ProjectsListPage() {
         setPayloadAppError(appErr);
         return;
       }
-      if (unlockedId === p.id) {
-        setUnlockedId(null);
-        setNameDraftEdit("");
+      if (rowEdit?.id === p.id) {
+        setRowEdit(null);
       }
       reexecuteList({ requestPolicy: "network-only" });
     },
-    [archiveProject, clearShellMessages, reexecuteList, setPayloadAppError, setTransportMessage, unlockedId]
+    [archiveProject, clearShellMessages, reexecuteList, rowEdit?.id, setPayloadAppError, setTransportMessage]
   );
+
+  const sortIndicator = (key: SortKey) => {
+    if (sortKey !== key) {
+      return <span className="projects-table-sort-ind projects-table-sort-ind--idle" aria-hidden />;
+    }
+    return (
+      <span className="projects-table-sort-ind" aria-hidden>
+        {sortDir === "asc" ? "▲" : "▼"}
+      </span>
+    );
+  };
 
   return (
     <section aria-labelledby="projects-heading">
@@ -386,58 +486,107 @@ export function ProjectsListPage() {
           ) : null}
 
           <XStack alignItems="center" gap="$3" flexWrap="wrap" className="projects-list-toolbar">
-            <XStack alignItems="center" gap="$2" flexWrap="wrap">
-              <Paragraph id="show-archived-label" margin={0} size="$3" color="$color11">
-                Show archived
-              </Paragraph>
-              <Switch
-                id="project-list-include-archived"
-                checked={includeArchived}
-                onCheckedChange={(v) => setIncludeArchived(v === true)}
-                aria-labelledby="show-archived-label"
-                data-testid="project-list-include-archived-switch"
-              />
-            </XStack>
+            <label className="projects-show-archived-toggle" htmlFor="project-list-include-archived">
+              <span className="projects-show-archived-switch">
+                <input
+                  id="project-list-include-archived"
+                  type="checkbox"
+                  checked={includeArchived}
+                  onChange={(e) => setIncludeArchived(e.target.checked)}
+                  data-testid="project-list-include-archived-switch"
+                />
+                <span className="projects-show-archived-track" aria-hidden />
+                <span className="projects-show-archived-thumb" aria-hidden />
+              </span>
+              <span className="projects-show-archived-label">Show archived</span>
+            </label>
             {listResult.fetching && <PageLoading inline dataTestId="projects-list-loading" />}
           </XStack>
 
-          {projects.length === 0 && !listResult.fetching ? (
+          {projectsRaw.length === 0 && !listResult.fetching ? (
             <Paragraph margin={0} data-testid="projects-list-empty" color="$color10" size="$3">
-              No projects yet. Use Projects › New to create one.
+              No projects yet. Open the Projects menu and choose New project.
             </Paragraph>
           ) : (
             <YStack overflow="scroll" borderWidth={1} borderColor="$borderColor" borderRadius="$4">
               <table className="projects-table">
                 <thead>
                   <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Description</th>
-                    {includeArchived ? <th scope="col">Status</th> : null}
+                    <th scope="col">
+                      <button type="button" className="projects-table-sort-btn" onClick={() => onSortClick("name")}>
+                        Name {sortIndicator("name")}
+                      </button>
+                    </th>
+                    <th scope="col">
+                      <button type="button" className="projects-table-sort-btn" onClick={() => onSortClick("description")}>
+                        Description {sortIndicator("description")}
+                      </button>
+                    </th>
+                    {includeArchived ? (
+                      <th scope="col">
+                        <button type="button" className="projects-table-sort-btn" onClick={() => onSortClick("status")}>
+                          Status {sortIndicator("status")}
+                        </button>
+                      </th>
+                    ) : null}
                     <th scope="col" className="projects-table-actions-col">
                       {" "}
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {projects.map((p) => (
+                  {sortedProjects.map((p) => (
                     <tr key={p.id} data-project-key={p.key} data-testid="project-row">
                       <td className="projects-table-name-cell">
-                        {unlockedId === p.id ? (
-                          <Input
-                            size="$3"
-                            value={nameDraftEdit}
-                            onChangeText={(t) => setNameDraftEdit(t)}
-                            aria-label={`Edit name for ${p.name}`}
-                            data-testid="project-row-name-input"
-                          />
-                        ) : (
-                          <RouterLink to={`/projects/${p.id}`} data-testid="project-name-link">
-                            {p.name}
-                          </RouterLink>
-                        )}
+                        <XStack alignItems="center" gap="$2" flexWrap="nowrap" maxWidth="100%">
+                          <div className="projects-table-name-text" style={{ flex: 1, minWidth: 0 }}>
+                            {rowEdit?.id === p.id ? (
+                              <Input
+                                size="$3"
+                                width="100%"
+                                value={rowEdit.name}
+                                onChangeText={(t) => setRowEdit((re) => (re && re.id === p.id ? { ...re, name: t } : re))}
+                                aria-label={`Edit name for ${p.name}`}
+                                data-testid="project-row-name-input"
+                              />
+                            ) : (
+                              <RouterLink to={`/projects/${p.id}`} data-testid="project-name-link">
+                                {p.name}
+                              </RouterLink>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            className="projects-table-inline-icon-btn"
+                            aria-label={rowEdit?.id === p.id ? `Save and lock row for ${p.name}` : `Edit ${p.name}`}
+                            data-testid={`project-name-edit-${p.id}`}
+                            onClick={() => {
+                              if (rowEdit?.id === p.id) {
+                                void onLockRow();
+                              } else {
+                                void onUnlockRow(p);
+                              }
+                            }}
+                          >
+                            {rowEdit?.id === p.id ? <LockIcon /> : <PencilIcon />}
+                          </button>
+                        </XStack>
                       </td>
                       <td className="projects-table-desc-cell">
-                        <span title={p.description ?? undefined}>{p.description ?? "—"}</span>
+                        {rowEdit?.id === p.id ? (
+                          <textarea
+                            className="projects-table-desc-input"
+                            rows={2}
+                            value={rowEdit.description}
+                            onChange={(e) =>
+                              setRowEdit((re) => (re && re.id === p.id ? { ...re, description: e.target.value } : re))
+                            }
+                            aria-label={`Edit description for ${p.name}`}
+                            data-testid="project-row-description-input"
+                          />
+                        ) : (
+                          <span title={p.description ?? undefined}>{p.description ?? "—"}</span>
+                        )}
                       </td>
                       {includeArchived ? (
                         <td>
@@ -452,25 +601,6 @@ export function ProjectsListPage() {
                       ) : null}
                       <td className="projects-table-actions-cell">
                         <XStack gap="$2" alignItems="center" flexWrap="wrap" justifyContent="flex-end">
-                          <Button
-                            size="$2"
-                            chromeless
-                            aria-label={
-                              unlockedId === p.id
-                                ? `Lock name edit for ${p.name}`
-                                : `Unlock name edit for ${p.name}`
-                            }
-                            onPress={() => {
-                              if (unlockedId === p.id) {
-                                void onLockName();
-                              } else {
-                                void onUnlockName(p);
-                              }
-                            }}
-                            data-testid={`project-name-edit-${p.id}`}
-                          >
-                            {unlockedId === p.id ? "Lock" : "Edit"}
-                          </Button>
                           {p.isArchived ? (
                             <button
                               type="button"

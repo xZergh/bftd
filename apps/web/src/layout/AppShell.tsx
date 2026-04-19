@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Paragraph, Text, XStack, YStack } from "tamagui";
 import { ProjectPicker } from "../components/ProjectPicker";
+import { ProjectsNavDropdown } from "../components/ProjectsNavDropdown";
 import { writeLastProjectPath } from "../navigation/lastProjectPath";
 import { RouterLink } from "../tamagui/RouterLink";
 import { useShellErrors } from "../shell/ShellErrorsContext";
@@ -108,17 +109,7 @@ export function AppShell() {
             <RouterLink to="/" data-testid="nav-home">
               Home
             </RouterLink>
-            <XStack gap="$1" alignItems="center" aria-label="Projects">
-              <RouterLink to="/projects" data-testid="nav-projects">
-                Projects
-              </RouterLink>
-              <Text fontSize="$2" color="$color10" userSelect="none">
-                ›
-              </Text>
-              <RouterLink to="/projects?new=1" data-testid="nav-projects-new">
-                New
-              </RouterLink>
-            </XStack>
+            <ProjectsNavDropdown />
           </XStack>
           <ProjectPicker />
         </XStack>
