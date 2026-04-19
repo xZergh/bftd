@@ -36,7 +36,7 @@ test.describe("FE-D test cases", () => {
     await page.getByTestId("requirement-create-submit").click();
     await expect(page.locator(`tr[data-requirement-key="${reqKey}"]`)).toBeVisible();
 
-    await page.getByTestId("requirements-back-project").click();
+    await page.getByTestId("project-nav-project").click();
     await expect(page.getByTestId("project-detail-page")).toBeVisible();
     await page.getByTestId("project-nav-test-cases").click();
     await expect(page.getByTestId("testcases-page")).toBeVisible();
@@ -50,7 +50,7 @@ test.describe("FE-D test cases", () => {
     await expect(manualRow).toBeVisible();
     await manualRow.getByTestId("testcase-open").click();
     await expect(page.getByTestId("testcase-detail-page")).toBeVisible();
-    await page.getByTestId("testcase-back-list").click();
+    await page.getByTestId("project-nav-test-cases").click();
     await expect(page.getByTestId("testcases-page")).toBeVisible();
 
     expect(renderPhaseWarnings, renderPhaseWarnings.join("\n")).toEqual([]);
@@ -84,7 +84,7 @@ test.describe("FE-D test cases", () => {
     const rrow = page.locator(`tr[data-requirement-key="${reqKey}"]`);
     await expect(rrow).toBeVisible();
 
-    await page.getByTestId("requirements-back-project").click();
+    await page.getByTestId("project-nav-project").click();
     await expect(page.getByTestId("project-detail-page")).toBeVisible();
     await page.getByTestId("project-nav-test-cases").click();
     await expect(page.getByTestId("testcases-page")).toBeVisible();
@@ -110,7 +110,7 @@ test.describe("FE-D test cases", () => {
     await expect(page.getByTestId("testcase-detail-type")).toHaveText("manual");
     await expect(page.getByTestId("testcase-linked-req-title")).toContainText(reqTitle);
 
-    await page.getByTestId("testcase-back-list").click();
+    await page.getByTestId("project-nav-test-cases").click();
     await expect(page.getByTestId("testcases-page")).toBeVisible();
 
     await page.getByTestId("testcase-create-auto-title").fill(autoTitle);

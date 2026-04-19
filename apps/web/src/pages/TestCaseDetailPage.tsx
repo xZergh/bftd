@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
+import { ProjectWorkspaceHeader } from "../components/ProjectWorkspaceHeader";
 import {
   LinkAutomatedManualMutation,
   LinkRequirementManualMutation,
@@ -613,12 +614,7 @@ export function TestCaseDetailPage() {
 
   return (
     <section className="projects-page" data-testid="testcase-detail-page">
-      <div className="project-detail-header">
-        <h2>Test case</h2>
-        <RouterLink to={`/projects/${projectId}/test-cases`} data-testid="testcase-back-list">
-          ← Test cases
-        </RouterLink>
-      </div>
+      <ProjectWorkspaceHeader title="Test case" projectId={projectId as string} active="test-cases" />
 
       <dl className="project-detail-meta">
         <div>

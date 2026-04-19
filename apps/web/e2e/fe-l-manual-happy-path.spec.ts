@@ -32,7 +32,7 @@ test.describe("FE-L manual happy path", () => {
     await page.getByTestId("requirement-create-submit").click();
     await expect(page.locator(`tr[data-requirement-key="${reqKey}"]`)).toBeVisible();
 
-    await page.getByTestId("requirements-back-project").click();
+    await page.getByTestId("project-nav-project").click();
     await page.getByTestId("project-nav-test-cases").click();
     await expect(page.getByTestId("testcases-page")).toBeVisible();
     await page.getByTestId("testcase-create-manual-title").fill(manualTitle);
@@ -45,7 +45,7 @@ test.describe("FE-L manual happy path", () => {
     const manualId = await manualRow.getAttribute("data-testcase-id");
     expect(manualId).toBeTruthy();
 
-    await page.getByTestId("testcases-back-project").click();
+    await page.getByTestId("project-nav-project").click();
     await page.getByTestId("project-nav-runs").click();
     await expect(page.getByTestId("runs-page")).toBeVisible();
     await page.getByTestId("run-create-name").fill(runName);
@@ -62,8 +62,8 @@ test.describe("FE-L manual happy path", () => {
     await expect(page.getByTestId("run-aggregate-total")).toHaveText("1", { timeout: 8000 });
     await expect(page.getByTestId("run-aggregate-passed")).toHaveText("1");
 
-    await page.getByTestId("run-back-list").click();
-    await page.getByTestId("runs-back-project").click();
+    await page.getByTestId("project-nav-runs").click();
+    await page.getByTestId("project-nav-project").click();
     await page.getByTestId("project-nav-reporting").click();
     await expect(page.getByTestId("reporting-page")).toBeVisible();
     await expect(page.getByTestId("kpi-current-total-requirements")).toHaveText("1");

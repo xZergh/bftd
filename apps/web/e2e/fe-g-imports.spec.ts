@@ -86,7 +86,7 @@ test.describe("FE-G imports", () => {
     await page.getByTestId("requirement-create-submit").click();
     await expect(page.locator(`tr[data-requirement-key="${reqKey}"]`)).toBeVisible();
 
-    await page.getByTestId("requirements-back-project").click();
+    await page.getByTestId("project-nav-project").click();
     await page.getByTestId("project-nav-imports").click();
     await page.getByTestId("import-tab-design").click();
 

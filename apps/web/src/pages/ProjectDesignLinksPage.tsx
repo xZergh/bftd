@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
+import { ProjectWorkspaceHeader } from "../components/ProjectWorkspaceHeader";
 import {
   RequirementDesignLinksQuery,
   RequirementsListQuery,
@@ -183,29 +183,12 @@ export function ProjectDesignLinksPage() {
 
   return (
     <section className="projects-page" data-testid="design-links-page">
-      <div className="project-detail-header">
-        <h2 id="design-links-heading">Design links</h2>
-        <div className="project-detail-header-links">
-          <RouterLink to={`/projects/${projectId}`} data-testid="design-links-back-project">
-            ← Project
-          </RouterLink>
-          <RouterLink to={`/projects/${projectId}/requirements`} data-testid="project-nav-requirements">
-            Requirements
-          </RouterLink>
-          <RouterLink to={`/projects/${projectId}/test-cases`} data-testid="project-nav-test-cases">
-            Test cases
-          </RouterLink>
-          <RouterLink to={`/projects/${projectId}/runs`} data-testid="project-nav-runs">
-            Runs
-          </RouterLink>
-          <RouterLink to={`/projects/${projectId}/reporting`} data-testid="project-nav-reporting">
-            Reporting
-          </RouterLink>
-          <RouterLink to={`/projects/${projectId}/imports`} data-testid="project-nav-imports">
-            Imports
-          </RouterLink>
-        </div>
-      </div>
+      <ProjectWorkspaceHeader
+        title="Design links"
+        titleId="design-links-heading"
+        projectId={projectId}
+        active="design-links"
+      />
 
       <p className="reporting-meta">
         MVP supports provider <strong>penpot</strong> only. Links are keyed by project, requirement, provider, and share URL.

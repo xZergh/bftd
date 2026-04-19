@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
+import { ProjectWorkspaceHeader } from "../components/ProjectWorkspaceHeader";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
 import {
   DeleteRequirementMutation,
@@ -209,12 +210,7 @@ export function RequirementDetailPage() {
 
   return (
     <section className="projects-page" data-testid="requirement-detail-page">
-      <div className="project-detail-header">
-        <h2>Requirement</h2>
-        <RouterLink to={`/projects/${projectId}/requirements`} data-testid="requirement-back-list">
-          ← Requirements
-        </RouterLink>
-      </div>
+      <ProjectWorkspaceHeader title="Requirement" projectId={projectId} active="requirements" />
 
       <dl className="project-detail-meta">
         <div>

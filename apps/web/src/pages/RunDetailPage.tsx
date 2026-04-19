@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
+import { ProjectWorkspaceHeader } from "../components/ProjectWorkspaceHeader";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
 import {
   RunAggregateQuery,
@@ -181,12 +182,7 @@ export function RunDetailPage() {
 
   return (
     <section className="projects-page" data-testid="run-detail-page">
-      <div className="project-detail-header">
-        <h2>Test run</h2>
-        <RouterLink to={`/projects/${projectId}/runs`} data-testid="run-back-list">
-          ← Runs
-        </RouterLink>
-      </div>
+      <ProjectWorkspaceHeader title="Test run" projectId={projectId} active="runs" />
 
       <dl className="project-detail-meta">
         <div>

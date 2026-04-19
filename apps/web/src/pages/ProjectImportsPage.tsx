@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useParams } from "react-router-dom";
-import { RouterLink } from "../tamagui/RouterLink";
+import { ProjectWorkspaceHeader } from "../components/ProjectWorkspaceHeader";
 import { useMutation } from "urql";
 import {
   ImportAutomatedFromTrrMutation,
@@ -294,26 +294,12 @@ export function ProjectImportsPage() {
 
   return (
     <section className="projects-page" data-testid="imports-page">
-      <div className="project-detail-header">
-        <h2 id="imports-heading">Imports</h2>
-        <div className="project-detail-header-links">
-          <RouterLink to={`/projects/${projectId}`} data-testid="imports-back-project">
-            ← Project
-          </RouterLink>
-          <RouterLink to={`/projects/${projectId}/requirements`} data-testid="project-nav-requirements">
-            Requirements
-          </RouterLink>
-          <RouterLink to={`/projects/${projectId}/test-cases`} data-testid="project-nav-test-cases">
-            Test cases
-          </RouterLink>
-          <RouterLink to={`/projects/${projectId}/runs`} data-testid="project-nav-runs">
-            Runs
-          </RouterLink>
-          <RouterLink to={`/projects/${projectId}/reporting`} data-testid="project-nav-reporting">
-            Reporting
-          </RouterLink>
-        </div>
-      </div>
+      <ProjectWorkspaceHeader
+        title="Imports"
+        titleId="imports-heading"
+        projectId={projectId}
+        active="imports"
+      />
 
       <p className="reporting-meta import-intro">
         Paste JSON payloads for bulk operations. Row indexes in errors and warnings refer to positions in the submitted
