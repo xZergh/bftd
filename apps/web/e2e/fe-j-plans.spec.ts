@@ -44,7 +44,10 @@ test.describe("FE-J plans", () => {
     const planRow = page.locator(`tr[data-testid="plan-row"]`).filter({ hasText: planName });
     await expect(planRow).toBeVisible();
     await planRow.getByTestId("plan-manage").click();
-    await page.getByTestId(`plan-case-${manualId}`).check();
+    await expect(page.getByTestId("plan-manage-panel")).toBeVisible();
+    const planCaseCheckbox = page.getByTestId(`plan-case-${manualId}`);
+    await planCaseCheckbox.click();
+    await expect(planCaseCheckbox).toBeChecked({ timeout: 10000 });
 
     await page.getByTestId("project-nav-runs").click();
     await page.getByTestId("run-create-name").fill(runName);

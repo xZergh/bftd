@@ -58,10 +58,13 @@ test.describe("FE-L manual happy path", () => {
     await expect(runRow).toBeVisible();
     await runRow.getByTestId("run-open").click();
     await expect(page.getByTestId("run-detail-page")).toBeVisible();
+    await page.getByTestId("result-submit-open").click();
+    await expect(page.getByTestId("result-submit-dialog")).toBeVisible();
     await page.getByTestId("result-submit-testcase").selectOption(manualId!);
     await page.getByTestId("result-submit-status").selectOption("passed");
     await page.getByTestId("result-submit-duration").fill("30");
     await page.getByTestId("result-submit-button").click();
+    await expect(page.getByTestId("result-submit-dialog")).toHaveCount(0);
     await expect(page.getByTestId("run-aggregate-total")).toHaveText("1", { timeout: 8000 });
     await expect(page.getByTestId("run-aggregate-passed")).toHaveText("1");
 
