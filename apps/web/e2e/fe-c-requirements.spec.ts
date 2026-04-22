@@ -30,13 +30,15 @@ test.describe("FE-C requirements", () => {
     const edited = `${title} (edited)`;
 
     await page.goto("/projects");
+    await page.getByTestId("nav-projects-menu").click();
+    await page.getByTestId("nav-projects-new").click();
     await page.getByTestId("project-create-name").fill(projectName);
     await page.getByTestId("project-create-key").fill(projectKey);
     await page.getByTestId("project-create-submit").click();
 
     const row = page.locator(`tr[data-project-key="${projectKey}"]`);
     await expect(row).toBeVisible();
-    await row.getByTestId("project-open").click();
+    await row.getByTestId("project-name-link").click();
     await expect(page.getByTestId("project-detail-page")).toBeVisible();
 
     await page.getByTestId("project-nav-requirements").click();
@@ -72,13 +74,15 @@ test.describe("FE-C requirements", () => {
     const reqKey = `REQ-BLK-${suffix}`;
 
     await page.goto("/projects");
+    await page.getByTestId("nav-projects-menu").click();
+    await page.getByTestId("nav-projects-new").click();
     await page.getByTestId("project-create-name").fill(projectName);
     await page.getByTestId("project-create-key").fill(projectKey);
     await page.getByTestId("project-create-submit").click();
 
     const prow = page.locator(`tr[data-project-key="${projectKey}"]`);
     await expect(prow).toBeVisible();
-    const href = await prow.getByTestId("project-open").getAttribute("href");
+    const href = await prow.getByTestId("project-name-link").getAttribute("href");
     expect(href).toMatch(/^\/projects\/.+/);
     const projectId = href!.slice("/projects/".length);
 

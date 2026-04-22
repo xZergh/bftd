@@ -18,13 +18,15 @@ async function seedProjectManualAndOpenRun(
   const runName = `Run ${suffix}`;
 
   await page.goto("/projects");
+  await page.getByTestId("nav-projects-menu").click();
+  await page.getByTestId("nav-projects-new").click();
   await page.getByTestId("project-create-name").fill(projectName);
   await page.getByTestId("project-create-key").fill(projectKey);
   await page.getByTestId("project-create-submit").click();
 
   const prow = page.locator(`tr[data-project-key="${projectKey}"]`);
   await expect(prow).toBeVisible();
-  await prow.getByTestId("project-open").click();
+  await prow.getByTestId("project-name-link").click();
   await expect(page.getByTestId("project-detail-page")).toBeVisible();
 
   await page.getByTestId("project-nav-requirements").click();
@@ -39,10 +41,11 @@ async function seedProjectManualAndOpenRun(
   await page.getByTestId("project-nav-test-cases").click();
   await expect(page.getByTestId("testcases-page")).toBeVisible();
 
-  await page.getByTestId("testcase-create-manual-title").fill(manualTitle);
+  await page.getByTestId("testcase-create-type").selectOption("manual");
+  await page.getByTestId("testcase-create-title").fill(manualTitle);
   await page.getByTestId(`testcase-create-manual-req-${reqKey}`).check();
   await page.getByTestId("testcase-create-manual-step-name-0").fill(stepName);
-  await page.getByTestId("testcase-create-manual-submit").click();
+  await page.getByTestId("testcase-create-submit").click();
 
   const manualRow = page.locator(`tr[data-testid="testcase-row"]`).filter({ hasText: manualTitle });
   await expect(manualRow).toBeVisible();

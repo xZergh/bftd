@@ -12,7 +12,7 @@ import { ProjectImportsPage } from "./pages/ProjectImportsPage";
 import { ProjectReportingPage } from "./pages/ProjectReportingPage";
 import { RunDetailPage } from "./pages/RunDetailPage";
 import { TestCaseDetailPage } from "./pages/TestCaseDetailPage";
-import { TestCasesListPage } from "./pages/TestCasesListPage";
+import { TestCasesListInlinePage } from "./pages/TestCasesListInlinePage";
 import { TestRunsListPage } from "./pages/TestRunsListPage";
 
 export default function App() {
@@ -26,7 +26,7 @@ export default function App() {
         <Route path="projects/:projectId/requirements/:requirementId" element={<RequirementDetailPage />} />
         <Route path="projects/:projectId/requirements" element={<RequirementsListPage />} />
         <Route path="projects/:projectId/test-cases/:testCaseId" element={<TestCaseDetailPage />} />
-        <Route path="projects/:projectId/test-cases" element={<TestCasesListPage />} />
+        <Route path="projects/:projectId/test-cases" element={<TestCasesListInlinePage />} />
         <Route path="projects/:projectId/runs/:runId" element={<RunDetailPage />} />
         <Route path="projects/:projectId/runs" element={<TestRunsListPage />} />
         <Route path="projects/:projectId/reporting" element={<ProjectReportingPage />} />

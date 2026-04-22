@@ -20,13 +20,15 @@ test.describe("FE-D test cases", () => {
     const stepName = `Step one ${suffix}`;
 
     await page.goto("/projects");
+    await page.getByTestId("nav-projects-menu").click();
+    await page.getByTestId("nav-projects-new").click();
     await page.getByTestId("project-create-name").fill(projectName);
     await page.getByTestId("project-create-key").fill(projectKey);
     await page.getByTestId("project-create-submit").click();
 
     const prow = page.locator(`tr[data-project-key="${projectKey}"]`);
     await expect(prow).toBeVisible();
-    await prow.getByTestId("project-open").click();
+    await prow.getByTestId("project-name-link").click();
     await expect(page.getByTestId("project-detail-page")).toBeVisible();
 
     await page.getByTestId("project-nav-requirements").click();
@@ -41,10 +43,11 @@ test.describe("FE-D test cases", () => {
     await page.getByTestId("project-nav-test-cases").click();
     await expect(page.getByTestId("testcases-page")).toBeVisible();
 
-    await page.getByTestId("testcase-create-manual-title").fill(manualTitle);
+    await page.getByTestId("testcase-create-type").selectOption("manual");
+    await page.getByTestId("testcase-create-title").fill(manualTitle);
     await page.getByTestId(`testcase-create-manual-req-${reqKey}`).check();
     await page.getByTestId("testcase-create-manual-step-name-0").fill(stepName);
-    await page.getByTestId("testcase-create-manual-submit").click();
+    await page.getByTestId("testcase-create-submit").click();
 
     const manualRow = page.locator(`tr[data-testid="testcase-row"]`).filter({ hasText: manualTitle });
     await expect(manualRow).toBeVisible();
@@ -67,13 +70,15 @@ test.describe("FE-D test cases", () => {
     const stepName = `Step one ${suffix}`;
 
     await page.goto("/projects");
+    await page.getByTestId("nav-projects-menu").click();
+    await page.getByTestId("nav-projects-new").click();
     await page.getByTestId("project-create-name").fill(projectName);
     await page.getByTestId("project-create-key").fill(projectKey);
     await page.getByTestId("project-create-submit").click();
 
     const prow = page.locator(`tr[data-project-key="${projectKey}"]`);
     await expect(prow).toBeVisible();
-    await prow.getByTestId("project-open").click();
+    await prow.getByTestId("project-name-link").click();
     await expect(page.getByTestId("project-detail-page")).toBeVisible();
 
     await page.getByTestId("project-nav-requirements").click();
@@ -89,21 +94,20 @@ test.describe("FE-D test cases", () => {
     await page.getByTestId("project-nav-test-cases").click();
     await expect(page.getByTestId("testcases-page")).toBeVisible();
 
-    await page.getByTestId("testcase-create-manual-title").fill(manualTitle);
+    await page.getByTestId("testcase-create-type").selectOption("manual");
+    await page.getByTestId("testcase-create-title").fill(manualTitle);
     await page.getByTestId(`testcase-create-manual-req-${reqKey}`).check();
     await page.getByTestId("testcase-create-manual-step-name-0").fill(stepName);
-    await page.getByTestId("testcase-create-manual-submit").click();
+    await page.getByTestId("testcase-create-submit").click();
 
     const manualRow = page.locator(`tr[data-testid="testcase-row"]`).filter({ hasText: manualTitle });
     await expect(manualRow).toBeVisible();
     const manualId = await manualRow.getAttribute("data-testcase-id");
     expect(manualId).toBeTruthy();
 
-    const autoPanelManualCheckbox = page.getByTestId(`testcase-create-auto-manual-${manualId}`);
-    await expect(autoPanelManualCheckbox).toBeVisible({ timeout: 8000 });
-    await expect(
-      page.getByTestId("testcase-create-auto-manuals").locator("label").filter({ hasText: manualTitle })
-    ).toBeVisible();
+    await page.getByTestId("testcase-create-type").selectOption("automated");
+    await page.getByTestId("testcase-create-title").fill(autoTitle);
+    await expect(page.getByTestId("testcase-create-auto-manuals")).toBeVisible({ timeout: 8000 });
 
     await manualRow.getByTestId("testcase-open").click();
     await expect(page.getByTestId("testcase-detail-page")).toBeVisible();
@@ -113,9 +117,10 @@ test.describe("FE-D test cases", () => {
     await page.getByTestId("project-nav-test-cases").click();
     await expect(page.getByTestId("testcases-page")).toBeVisible();
 
-    await page.getByTestId("testcase-create-auto-title").fill(autoTitle);
+    await page.getByTestId("testcase-create-type").selectOption("automated");
+    await page.getByTestId("testcase-create-title").fill(autoTitle);
     await page.getByTestId(`testcase-create-auto-manual-${manualId}`).check();
-    await page.getByTestId("testcase-create-auto-submit").click();
+    await page.getByTestId("testcase-create-submit").click();
 
     const autoRow = page.locator(`tr[data-testid="testcase-row"]`).filter({ hasText: autoTitle });
     await expect(autoRow).toBeVisible();

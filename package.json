@@ -32,6 +32,7 @@
     "ci:schema:indexes": "tsx scripts/ci/check-schema-indexes.ts",
     "ci:schema:update": "tsx scripts/ci/update-schema-snapshot.ts",
     "ci:security:nonblocking": "tsx scripts/ci/check-security-nonblocking.ts",
+    "ci:hardening:lts": "powershell -ExecutionPolicy Bypass -File ./scripts/ci/run-hardening-node24.ps1",
     "allure:generate": "node scripts/allure-generate.cjs",
     "ci:mutation": "stryker run",
     "ci:hardening": "npm run ci:typecheck && npm run ci:lint && npm run ci:architecture:boundaries && npm run ci:test && npm run ci:migration:fresh && npm run ci:migration:upgrade && npm run ci:schema:check && npm run ci:schema:indexes && npm run ci:security:nonblocking"

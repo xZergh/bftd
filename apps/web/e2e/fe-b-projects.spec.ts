@@ -71,7 +71,9 @@ test.describe("FE-B projects", () => {
     const name = `Picker ${suffix}`;
     const key = `fe-b-p-${suffix}`;
 
-    await page.goto("/projects?new=1");
+    await page.goto("/projects");
+    await page.getByTestId("nav-projects-menu").click();
+    await page.getByTestId("nav-projects-new").click();
     await page.getByTestId("project-create-name").fill(name);
     await page.getByTestId("project-create-key").fill(key);
     await page.getByTestId("project-create-submit").click();
