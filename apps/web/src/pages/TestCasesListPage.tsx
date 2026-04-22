@@ -290,7 +290,9 @@ export function TestCasesListPage() {
   const rows: TestCaseListItem[] = listResult.data?.testCases ?? [];
 
   const newParam = searchParams.get("new");
-  const createModalOpen = newParam === "manual" || newParam === "auto" || newParam === "1";
+  const createMode: "manual" | "auto" | "both" | null =
+    newParam === "manual" ? "manual" : newParam === "auto" ? "auto" : newParam === "1" ? "both" : null;
+  const createModalOpen = createMode !== null;
 
   const manualTitleField = (
     <label>
@@ -589,8 +591,8 @@ export function TestCasesListPage() {
             <h3 id="testcase-create-dialog-title" className="projects-subheading">
               New test case
             </h3>
-            {manualCreatePanelModal}
-            {autoCreatePanelModal}
+            {createMode === "manual" || createMode === "both" ? manualCreatePanelModal : null}
+            {createMode === "auto" || createMode === "both" ? autoCreatePanelModal : null}
           </div>
         </div>
       ) : null}
