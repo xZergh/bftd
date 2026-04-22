@@ -8,10 +8,12 @@ test.describe("FE-H design links", () => {
     const shareUrl = `https://design.example/penpot/fe-h-${suffix}`;
 
     await page.goto("/projects");
+    await page.getByTestId("nav-projects-menu").click();
+    await page.getByTestId("nav-projects-new").click();
     await page.getByTestId("project-create-name").fill(`FE-H ${suffix}`);
     await page.getByTestId("project-create-key").fill(projectKey);
     await page.getByTestId("project-create-submit").click();
-    await page.locator(`tr[data-project-key="${projectKey}"]`).getByTestId("project-open").click();
+    await page.locator(`tr[data-project-key="${projectKey}"]`).getByTestId("project-name-link").click();
     await expect(page.getByTestId("project-detail-page")).toBeVisible();
 
     await page.getByTestId("project-nav-requirements").click();

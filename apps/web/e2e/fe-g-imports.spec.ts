@@ -8,10 +8,12 @@ test.describe("FE-G imports", () => {
     const projectKey = `fe-g-${suffix}`;
 
     await page.goto("/projects");
+    await page.getByTestId("nav-projects-menu").click();
+    await page.getByTestId("nav-projects-new").click();
     await page.getByTestId("project-create-name").fill(`FE-G ${suffix}`);
     await page.getByTestId("project-create-key").fill(projectKey);
     await page.getByTestId("project-create-submit").click();
-    await page.locator(`tr[data-project-key="${projectKey}"]`).getByTestId("project-open").click();
+    await page.locator(`tr[data-project-key="${projectKey}"]`).getByTestId("project-name-link").click();
     await expect(page.getByTestId("project-detail-page")).toBeVisible();
 
     await page.getByTestId("project-nav-imports").click();
@@ -32,10 +34,12 @@ test.describe("FE-G imports", () => {
     const projectKey = `fe-g-${suffix}`;
 
     await page.goto("/projects");
+    await page.getByTestId("nav-projects-menu").click();
+    await page.getByTestId("nav-projects-new").click();
     await page.getByTestId("project-create-name").fill(`FE-G mix ${suffix}`);
     await page.getByTestId("project-create-key").fill(projectKey);
     await page.getByTestId("project-create-submit").click();
-    await page.locator(`tr[data-project-key="${projectKey}"]`).getByTestId("project-open").click();
+    await page.locator(`tr[data-project-key="${projectKey}"]`).getByTestId("project-name-link").click();
     await page.getByTestId("project-nav-imports").click();
 
     const payload = JSON.stringify([
@@ -58,10 +62,12 @@ test.describe("FE-G imports", () => {
     const projectKey = `fe-g-${suffix}`;
 
     await page.goto("/projects");
+    await page.getByTestId("nav-projects-menu").click();
+    await page.getByTestId("nav-projects-new").click();
     await page.getByTestId("project-create-name").fill(`FE-G badjson ${suffix}`);
     await page.getByTestId("project-create-key").fill(projectKey);
     await page.getByTestId("project-create-submit").click();
-    await page.locator(`tr[data-project-key="${projectKey}"]`).getByTestId("project-open").click();
+    await page.locator(`tr[data-project-key="${projectKey}"]`).getByTestId("project-name-link").click();
     await page.getByTestId("project-nav-imports").click();
 
     await page.getByTestId("import-req-json").fill("[ not json");
@@ -75,10 +81,12 @@ test.describe("FE-G imports", () => {
     const reqKey = `REQ-D-${suffix}`;
 
     await page.goto("/projects");
+    await page.getByTestId("nav-projects-menu").click();
+    await page.getByTestId("nav-projects-new").click();
     await page.getByTestId("project-create-name").fill(`FE-G design ${suffix}`);
     await page.getByTestId("project-create-key").fill(projectKey);
     await page.getByTestId("project-create-submit").click();
-    await page.locator(`tr[data-project-key="${projectKey}"]`).getByTestId("project-open").click();
+    await page.locator(`tr[data-project-key="${projectKey}"]`).getByTestId("project-name-link").click();
 
     await page.getByTestId("project-nav-requirements").click();
     await page.getByTestId("requirement-create-key").fill(reqKey);
