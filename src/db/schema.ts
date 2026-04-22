@@ -168,6 +168,7 @@ export const automatedManualLinks = sqliteTable(
 export const testRuns = sqliteTable("test_runs", {
   id: text("id").primaryKey(),
   projectId: text("project_id").notNull(),
+  testPlanId: text("test_plan_id"),
   name: text("name").notNull(),
   releaseLabel: text("release_label"),
   sprintLabel: text("sprint_label"),
@@ -182,11 +183,48 @@ export const testResults = sqliteTable("test_results", {
   id: text("id").primaryKey(),
   runId: text("run_id").notNull(),
   testCaseId: text("test_case_id").notNull(),
-  status: text("status", { enum: ["passed", "failed", "skipped", "blocked"] }).notNull(),
+  status: text("status", { enum: ["passed", "failed", "skipped", "blocked", "not_run"] }).notNull(),
   durationMs: integer("duration_ms").notNull().default(0),
   attachmentsJson: text("attachments_json"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull()
 });
+
+export const testPlans = sqliteTable("test_plans", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  releaseLabel: text("release_label"),
+  sprintLabel: text("sprint_label"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull()
+});
+
+export const testPlanTestCaseLinks = sqliteTable(
+  "test_plan_test_case_links",
+  {
+    id: text("id").primaryKey(),
+    testPlanId: text("test_plan_id").notNull(),
+    testCaseId: text("test_case_id").notNull()
+  },
+  (t) => ({
+    testPlanCaseUniq: uniqueIndex("test_plan_case_uniq").on(t.testPlanId, t.testCaseId)
+  })
+);
+
+export const runTestCaseAssignments = sqliteTable(
+  "run_test_case_assignments",
+  {
+    id: text("id").primaryKey(),
+    runId: text("run_id").notNull(),
+    testCaseId: text("test_case_id").notNull(),
+    sourceTestPlanId: text("source_test_plan_id"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull()
+  },
+  (t) => ({
+    runCaseAssignmentUniq: uniqueIndex("run_case_assignment_uniq").on(t.runId, t.testCaseId)
+  })
+);
 
 export const runTraceabilitySnapshots = sqliteTable(
   "run_traceability_snapshots",

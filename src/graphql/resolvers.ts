@@ -7,6 +7,7 @@ import {
   kpiDashboardInput,
   linkAutomatedManualInput,
   linkRequirementManualInput,
+  linkTestPlanTestCaseInput,
   listProjectsInput,
   manualInput,
   projectByInput,
@@ -29,16 +30,22 @@ import {
   testCasesListInput,
   testCaseVersionHistoryInput,
   testRunByInput,
+  testPlanByInput,
+  testPlansListInput,
   testRunsListInput,
   tombstoneTestCaseInput,
   trrImportInput,
   unlinkAutomatedManualInput,
+  unlinkTestPlanTestCaseInput,
   unlinkRequirementDesignLinkInput,
   unlinkRequirementManualInput,
   updateAutomatedTestCaseInput,
   updateManualTestCaseInput,
   updateProjectInput,
   updateRequirementInput,
+  updateTestPlanInput,
+  createTestPlanInput,
+  deleteTestPlanInput,
   deleteRequirementInput,
   deleteTestCaseInput
 } from "./inputs";
@@ -171,6 +178,10 @@ export const resolvers = {
       const input = testRunsListInput.parse(args.input);
       return ctx.service.listTestRuns(input);
     },
+    testPlans: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      const input = testPlansListInput.parse(args.input);
+      return ctx.service.listTestPlans(input);
+    },
     testRun: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       const input = testRunByInput.parse(args.input);
       const detail = await ctx.service.getTestRun(input);
@@ -183,6 +194,10 @@ export const resolvers = {
         attachments: Array.isArray(r.attachments) ? r.attachments : []
       }));
       return { run, results };
+    },
+    testPlan: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      const input = testPlanByInput.parse(args.input);
+      return ctx.service.getTestPlan(input);
     },
     runAggregate: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       const input = runAggregateInput.parse(args.input);
@@ -373,6 +388,38 @@ export const resolvers = {
         return { run: null, error: formatError(error) };
       }
     },
+    createTestPlan: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      try {
+        const input = createTestPlanInput.parse(args.input);
+        const testPlan = await ctx.service.createTestPlan(input);
+        return { testPlan, error: null };
+      } catch (error) {
+        return { testPlan: null, error: formatError(error) };
+      }
+    },
+    updateTestPlan: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      try {
+        const input = updateTestPlanInput.parse(args.input);
+        const testPlan = await ctx.service.updateTestPlan(input);
+        return { testPlan, error: null };
+      } catch (error) {
+        return { testPlan: null, error: formatError(error) };
+      }
+    },
+    deleteTestPlan: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      const input = deleteTestPlanInput.parse(args.input);
+      await ctx.service.deleteTestPlan(input);
+      return { success: true };
+    },
+    linkTestPlanTestCase: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      const input = linkTestPlanTestCaseInput.parse(args.input);
+      return ctx.service.linkTestPlanTestCase(input);
+    },
+    unlinkTestPlanTestCase: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      const input = unlinkTestPlanTestCaseInput.parse(args.input);
+      await ctx.service.unlinkTestPlanTestCase(input);
+      return { success: true };
+    },
     submitTestResult: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       try {
         const input = resultInput.parse(args.input);
@@ -443,6 +490,13 @@ export const resolvers = {
       if (Array.isArray(parent.steps)) return parent.steps;
       const full = await ctx.service.getTestCase({ id: parent.id, includeDeleted: true });
       return full?.steps ?? [];
+    }
+  },
+  TestPlan: {
+    testCases: async (parent: { id: string; testCases?: unknown[] }, _args: unknown, ctx: Context) => {
+      if (Array.isArray(parent.testCases)) return parent.testCases;
+      const full = await ctx.service.getTestPlan({ id: parent.id });
+      return full?.testCases ?? [];
     }
   },
   AppError: {

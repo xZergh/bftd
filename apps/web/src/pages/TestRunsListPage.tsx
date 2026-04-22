@@ -5,10 +5,10 @@ import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
 import { ProjectWorkspaceHeader } from "../components/ProjectWorkspaceHeader";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
-import { CreateTestRunMutation, TestRunsListQuery } from "../graphql/documents";
+import { CreateTestRunMutation, TestPlansListQuery, TestRunsListQuery } from "../graphql/documents";
 import { formatGraphQlTransportError } from "../graphql/formatGraphQlError";
 import { REQUIRED_MSG, trimmedNonEmpty } from "../forms/mandatoryFields";
-import type { TestRunListItem } from "../graphql/types";
+import type { TestPlanListItem, TestRunListItem } from "../graphql/types";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import "./ProjectsPage.css";
 
@@ -18,6 +18,7 @@ export function TestRunsListPage() {
   const { clearShellMessages, setTransportMessage, setPayloadAppError } = useShellErrors();
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [runName, setRunName] = useState("");
+  const [testPlanId, setTestPlanId] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
   const [showValidationPayload, setShowValidationPayload] = useState(false);
 
@@ -31,6 +32,12 @@ export function TestRunsListPage() {
   });
 
   const [, createRun] = useMutation(CreateTestRunMutation);
+  const [plansResult] = useQuery({
+    query: TestPlansListQuery,
+    variables: { projectId: projectId ?? "" },
+    pause: paused,
+    requestPolicy: "network-only"
+  });
 
   useEffect(() => {
     setCreateModalOpen(searchParams.get("new") === "1");
@@ -61,11 +68,12 @@ export function TestRunsListPage() {
       variables: {
         input: {
           projectId: projectId ?? null,
-          name: runName.trim() || null
+          name: runName.trim() || null,
+          testPlanId: testPlanId || null
         }
       }
     };
-  }, [projectId, runName]);
+  }, [projectId, runName, testPlanId]);
 
   const onCreateRun = useCallback(async () => {
     if (paused) {
@@ -82,7 +90,8 @@ export function TestRunsListPage() {
     const res = await createRun({
       input: {
         projectId: projectId!,
-        name: runName.trim()
+        name: runName.trim(),
+        testPlanId: testPlanId || undefined
       }
     });
     if (res.error) {
@@ -95,6 +104,7 @@ export function TestRunsListPage() {
       return;
     }
     setRunName("");
+    setTestPlanId("");
     closeCreateModal();
     reexecuteList({ requestPolicy: "network-only" });
   }, [
@@ -105,6 +115,7 @@ export function TestRunsListPage() {
     projectId,
     reexecuteList,
     runName,
+    testPlanId,
     setPayloadAppError,
     setTransportMessage
   ]);
@@ -114,6 +125,7 @@ export function TestRunsListPage() {
   }
 
   const rows: TestRunListItem[] = listResult.data?.testRuns ?? [];
+  const planRows: TestPlanListItem[] = plansResult.data?.testPlans ?? [];
 
   const modalRunNameFields = (
     <div className="projects-create-fields">
@@ -135,6 +147,21 @@ export function TestRunsListPage() {
             {nameError}
           </p>
         )}
+      </label>
+      <label>
+        Plan (optional)
+        <select
+          value={testPlanId}
+          onChange={(e) => setTestPlanId(e.target.value)}
+          data-testid="run-create-test-plan-id"
+        >
+          <option value="">No plan</option>
+          {planRows.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
       </label>
     </div>
   );
@@ -207,6 +234,19 @@ export function TestRunsListPage() {
                         {nameError}
                       </p>
                     )}
+                    <select
+                      value={testPlanId}
+                      onChange={(e) => setTestPlanId(e.target.value)}
+                      data-testid="run-create-test-plan-id"
+                      className="projects-table-inline-input"
+                    >
+                      <option value="">No plan</option>
+                      {planRows.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </td>
                 <td className="projects-table-muted-cell">—</td>
