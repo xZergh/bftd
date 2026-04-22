@@ -23,6 +23,7 @@ test.describe("FE-M project workspace subnav", () => {
     await expect(page.getByTestId("project-nav-project")).toBeVisible();
     await expect(page.getByTestId("project-nav-requirements")).toBeVisible();
     await expect(page.getByTestId("project-nav-test-cases")).toBeVisible();
+    await expect(page.getByTestId("project-nav-plans")).toBeVisible();
     await expect(page.getByTestId("project-nav-runs")).toBeVisible();
     await expect(page.getByTestId("project-nav-reporting")).toBeVisible();
     await expect(page.getByTestId("project-nav-imports")).toBeVisible();
@@ -32,7 +33,13 @@ test.describe("FE-M project workspace subnav", () => {
 
     await expect(page.getByTestId("project-nav-requirements-menu")).toHaveCount(0);
     await expect(page.getByTestId("project-nav-test-cases-menu")).toHaveCount(0);
+    await expect(page.getByTestId("project-nav-plans-menu")).toHaveCount(0);
     await expect(page.getByTestId("project-nav-runs-menu")).toHaveCount(0);
+
+    const navLinks = page.locator(".project-detail-header-links a");
+    await expect(navLinks.nth(2)).toHaveText("Test cases");
+    await expect(navLinks.nth(3)).toHaveText("Plans");
+    await expect(navLinks.nth(4)).toHaveText("Runs");
   });
 
   test("test cases link opens inline create row", async ({ page }) => {

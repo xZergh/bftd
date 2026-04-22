@@ -40,6 +40,7 @@ export const automatedInput = z.object({
 export const runInput = z.object({
   projectId: z.string().min(1),
   name: z.string().min(1),
+  testPlanId: z.string().min(1).optional(),
   releaseLabel: z.string().optional(),
   sprintLabel: z.string().optional(),
   environment: z.string().optional(),
@@ -63,10 +64,18 @@ export const runTraceabilityInput = z.object({
 export const traceabilityGraphInput = z.object({
   projectId: z.string().min(1)
 });
+const resultStatusInput = z
+  .string()
+  .transform((value) => {
+    if (value === "not run" || value === "notRun") return "not_run";
+    return value;
+  })
+  .pipe(z.enum(["passed", "failed", "skipped", "blocked", "not_run"]));
+
 export const resultInput = z.object({
   runId: z.string().min(1),
   testCaseId: z.string().min(1),
-  status: z.enum(["passed", "failed", "skipped", "blocked"]),
+  status: resultStatusInput,
   durationMs: z.number().int().nonnegative().optional(),
   attachments: z.array(z.object({ kind: z.string(), ref: z.string() })).optional()
 });
@@ -270,3 +279,28 @@ export const restoreTestCaseInput = z.object({ testCaseId: z.string().min(1) });
 export const testRunsListInput = z.object({ projectId: z.string().min(1) });
 export const testRunByInput = z.object({ runId: z.string().min(1), projectId: z.string().optional() });
 export const runAggregateInput = z.object({ runId: z.string().min(1) });
+export const testPlansListInput = z.object({ projectId: z.string().min(1) });
+export const testPlanByInput = z.object({ id: z.string().min(1), projectId: z.string().optional() });
+export const createTestPlanInput = z.object({
+  projectId: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  releaseLabel: z.string().optional(),
+  sprintLabel: z.string().optional()
+});
+export const updateTestPlanInput = z.object({
+  id: z.string().min(1),
+  name: z.string().optional(),
+  description: z.string().nullable().optional(),
+  releaseLabel: z.string().nullable().optional(),
+  sprintLabel: z.string().nullable().optional()
+});
+export const deleteTestPlanInput = z.object({ id: z.string().min(1) });
+export const linkTestPlanTestCaseInput = z.object({
+  testPlanId: z.string().min(1),
+  testCaseId: z.string().min(1)
+});
+export const unlinkTestPlanTestCaseInput = z.object({
+  testPlanId: z.string().min(1),
+  testCaseId: z.string().min(1)
+});

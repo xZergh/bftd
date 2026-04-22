@@ -17,7 +17,17 @@ import type { TestCaseListItem } from "../graphql/types";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import "./ProjectsPage.css";
 
-const RESULT_STATUSES = ["passed", "failed", "skipped", "blocked"] as const;
+const RESULT_STATUSES = ["not_run", "passed", "failed", "skipped", "blocked"] as const;
+
+function normalizeRunStatusValue(status: string) {
+  if (status === "not run" || status === "notRun") return "not_run";
+  return status;
+}
+
+function formatRunStatusLabel(status: string) {
+  if (normalizeRunStatusValue(status) === "not_run") return "not run";
+  return status;
+}
 
 export function RunDetailPage() {
   const { projectId, runId } = useParams();
@@ -26,6 +36,8 @@ export function RunDetailPage() {
   const [testCaseId, setTestCaseId] = useState("");
   const [status, setStatus] = useState<string>("passed");
   const [durationMs, setDurationMs] = useState("0");
+  const [submitModalOpen, setSubmitModalOpen] = useState(false);
+  const [rowStatusDraft, setRowStatusDraft] = useState<Record<string, string>>({});
   const [tcError, setTcError] = useState<string | null>(null);
   const [showValidationPayload, setShowValidationPayload] = useState(false);
 
@@ -78,6 +90,17 @@ export function RunDetailPage() {
     }
     return m;
   }, [casesResult.data?.testCases]);
+
+  const selectableCases = useMemo(() => {
+    const results = detail?.results ?? [];
+    if (results.length > 0) {
+      return results
+        .map((r: { testCaseId: string }) => r.testCaseId)
+        .filter((id, idx, arr) => arr.indexOf(id) === idx)
+        .map((id) => ({ id, title: caseTitleById.get(id) ?? id }));
+    }
+    return (casesResult.data?.testCases ?? []).map((t: TestCaseListItem) => ({ id: t.id, title: t.title }));
+  }, [caseTitleById, casesResult.data?.testCases, detail?.results]);
 
   const submitClientPayload = useMemo(() => {
     const d = durationMs.trim() === "" ? null : Number.parseInt(durationMs.trim(), 10);
@@ -132,6 +155,7 @@ export function RunDetailPage() {
     }
     setTestCaseId("");
     setDurationMs("0");
+    setSubmitModalOpen(false);
     reexecuteDetail({ requestPolicy: "network-only" });
     reexecuteAggregate({ requestPolicy: "network-only" });
   }, [
@@ -226,6 +250,10 @@ export function RunDetailPage() {
               <dd data-testid="run-aggregate-blocked">{agg.blocked}</dd>
             </div>
             <div>
+              <dt>Not run</dt>
+              <dd data-testid="run-aggregate-not-run">{agg.notRun}</dd>
+            </div>
+            <div>
               <dt>Pass rate</dt>
               <dd data-testid="run-aggregate-pass-rate">{agg.passRatePct}%</dd>
             </div>
@@ -237,69 +265,22 @@ export function RunDetailPage() {
         ) : null}
       </div>
 
-      <div className="projects-create" data-testid="run-submit-result-panel">
-        <h3 className="projects-subheading">Submit result</h3>
-        <div className="projects-create-fields">
-          <label>
-            Test case <span className="required-star" aria-hidden="true">*</span>
-            <select
-              value={testCaseId}
-              onChange={(e) => {
-                setTestCaseId(e.target.value);
-                setTcError(null);
-                setShowValidationPayload(false);
-              }}
-              data-testid="result-submit-testcase"
-            >
-              <option value="">—</option>
-              {(casesResult.data?.testCases ?? []).map((t: TestCaseListItem) => (
-                <option key={t.id} value={t.id}>
-                  [{t.type}] {t.title}
-                </option>
-              ))}
-            </select>
-            {tcError !== null && (
-              <p className="field-error" role="alert" data-testid="result-submit-testcase-error">
-                {tcError}
-              </p>
-            )}
-          </label>
-          <label>
-            Status <span className="required-star" aria-hidden="true">*</span>
-            <select
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
-                setShowValidationPayload(false);
-              }}
-              data-testid="result-submit-status"
-            >
-              {RESULT_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Duration (ms)
-            <input
-              type="number"
-              min={0}
-              value={durationMs}
-              onChange={(e) => setDurationMs(e.target.value)}
-              data-testid="result-submit-duration"
-            />
-          </label>
-        </div>
-        <ValidationErrorPayloadPreview open={showValidationPayload} payload={submitClientPayload} />
-        <button type="button" onClick={onSubmitResult} data-testid="result-submit-button">
-          Submit result
-        </button>
-      </div>
-
       <div className="projects-create">
-        <h3 className="projects-subheading">Results</h3>
+        <div className="run-results-header">
+          <h3 className="projects-subheading">Results</h3>
+          <button
+            type="button"
+            data-testid="result-submit-open"
+            onClick={() => {
+              if (testCaseId === "" && selectableCases.length > 0) {
+                setTestCaseId(selectableCases[0]!.id);
+              }
+              setSubmitModalOpen(true);
+            }}
+          >
+            Submit result
+          </button>
+        </div>
         {(detail?.results ?? []).length === 0 ? (
           <p className="projects-empty" data-testid="run-results-empty">
             No results yet.
@@ -310,6 +291,7 @@ export function RunDetailPage() {
               <tr>
                 <th scope="col">Test case</th>
                 <th scope="col">Status</th>
+                <th scope="col">Set status</th>
                 <th scope="col">Duration (ms)</th>
               </tr>
             </thead>
@@ -320,7 +302,27 @@ export function RunDetailPage() {
                     <td data-testid="run-result-testcase-title">
                       {caseTitleById.get(r.testCaseId) ?? r.testCaseId}
                     </td>
-                    <td data-testid="run-result-status">{r.status}</td>
+                    <td data-testid="run-result-status">{formatRunStatusLabel(r.status)}</td>
+                    <td>
+                      <select
+                        value={rowStatusDraft[r.testCaseId] ?? normalizeRunStatusValue(r.status)}
+                        data-testid="run-result-status-select"
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setRowStatusDraft((prev) => ({ ...prev, [r.testCaseId]: normalizeRunStatusValue(next) }));
+                          setTestCaseId(r.testCaseId);
+                          setStatus(normalizeRunStatusValue(next));
+                          setTcError(null);
+                          setShowValidationPayload(false);
+                        }}
+                      >
+                        {RESULT_STATUSES.map((s) => (
+                          <option key={s} value={s}>
+                            {formatRunStatusLabel(s)}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
                     <td>{r.durationMs}</td>
                   </tr>
                 )
@@ -329,6 +331,94 @@ export function RunDetailPage() {
           </table>
         )}
       </div>
+      {submitModalOpen ? (
+        <div
+          className="projects-modal-backdrop"
+          role="presentation"
+          data-testid="result-submit-dialog"
+          onClick={() => setSubmitModalOpen(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setSubmitModalOpen(false);
+            }
+          }}
+        >
+          <div
+            className="projects-create-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="result-submit-dialog-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="result-submit-dialog-title" className="projects-subheading">
+              Submit result
+            </h3>
+            <div className="projects-create-fields">
+              <label>
+                Test case <span className="required-star" aria-hidden="true">*</span>
+                <select
+                  value={testCaseId}
+                  onChange={(e) => {
+                    const nextTestCaseId = e.target.value;
+                    setTestCaseId(nextTestCaseId);
+                    setStatus(normalizeRunStatusValue(rowStatusDraft[nextTestCaseId] ?? "not_run"));
+                    setTcError(null);
+                    setShowValidationPayload(false);
+                  }}
+                  data-testid="result-submit-testcase"
+                >
+                  <option value="">—</option>
+                  {selectableCases.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.title}
+                    </option>
+                  ))}
+                </select>
+                {tcError !== null ? (
+                  <p className="field-error" role="alert" data-testid="result-submit-testcase-error">
+                    {tcError}
+                  </p>
+                ) : null}
+              </label>
+              <label>
+                Status <span className="required-star" aria-hidden="true">*</span>
+                <select
+                  value={status}
+                  onChange={(e) => {
+                    const nextStatus = normalizeRunStatusValue(e.target.value);
+                    setStatus(nextStatus);
+                    if (testCaseId !== "") {
+                      setRowStatusDraft((prev) => ({ ...prev, [testCaseId]: nextStatus }));
+                    }
+                    setShowValidationPayload(false);
+                  }}
+                  data-testid="result-submit-status"
+                >
+                  {RESULT_STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {formatRunStatusLabel(s)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Duration (ms)
+                <input
+                  type="number"
+                  min={0}
+                  value={durationMs}
+                  onChange={(e) => setDurationMs(e.target.value)}
+                  data-testid="result-submit-duration"
+                />
+              </label>
+            </div>
+            <ValidationErrorPayloadPreview open={showValidationPayload} payload={submitClientPayload} />
+            <button type="button" onClick={onSubmitResult} data-testid="result-submit-button">
+              Submit
+            </button>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
