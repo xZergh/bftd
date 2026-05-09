@@ -192,3 +192,26 @@ After Penpot sign-off:
 2. Run **Phase B** for F1–F3 and F5 (highest traffic); designer pass.
 3. Add F4 (plans), F6–F9 frames; align with wiki flows for import/KPI/run snapshot copy.
 4. Freeze **component set**; then Tamagui parity pass in code.
+
+---
+
+## 9. Penpot MCP troubleshooting
+
+Official reference: [Penpot MCP server](https://help.penpot.app/mcp/) (includes **Troubleshooting** and client-specific snippets).
+
+### When tools return `No plugin instance connected for user token`
+
+That message means the **remote MCP server** accepted the HTTP call, but **no Penpot plugin** has registered a session for the **same** `userToken` your client sends. Typical causes:
+
+1. **Token mismatch** — The value in `userToken=…` must be exactly your **MCP key** from **Your account → Integrations → MCP Server** (the URL Penpot shows already embeds it). After **Regenerate MCP key**, Penpot revokes the old key immediately: update **both** Cursor (or your env var) **and** the plugin connection. The plugin’s token and the client URL must stay in lockstep.
+2. **Plugin not actually bound** — In Penpot: **File → MCP Server → Connect** for the open file. Keep the **plugin window open** while using MCP (Penpot’s checklist). Only **one browser tab** may own MCP at a time; pick the active MCP tab explicitly if you use multiple tabs.
+3. **Cursor not sending the token you think** — This repo uses a **stdio** launcher (`scripts/penpot-mcp-stdio.mjs`) that reads **`PENPOT_MCP_USER_TOKEN` only from `.env.local`** (not from the OS environment) and runs `mcp-remote` to `design.penpot.app`. After editing `.env.local`, restart Cursor so the MCP server process picks up the new file contents.
+4. **Why not raw `url` in mcp.json?** — Cursor’s docs state that **`envFile` applies only to stdio MCP servers**, not to remote HTTP URLs. A direct `url` with `${env:…}` depends on variables already present in Cursor’s process environment, which often omits `.env.local`.
+
+### Penpot’s general checklist (remote)
+
+From the same help page: restart the **plugin** connection in Penpot; **restart Cursor** (or reconnect the MCP server in the client); keep the plugin UI open while agents run tools.
+
+### First prompts (sanity)
+
+After connection works, use read-only prompts first (list pages, components, tokens) before write operations such as Phase A `execute_code`.
