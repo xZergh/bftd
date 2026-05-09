@@ -138,11 +138,15 @@ Run scripts only with the Penpot file connected. Use `storage` to persist IDs (t
 
 ### Phase A — Foundations
 
+**Runnable script (copy the execute block into MCP `execute_code`):** [`penpot-mcp-scripts/phase-a-foundations.js`](penpot-mcp-scripts/phase-a-foundations.js) — creates page `00 Foundations`, token set **`tcms-core`** (colors, spacing, radii), library colors/typographies prefixed `TCMS /`, and local components **`CMP / *`** (AppShell with subnav labels matching `projectWorkspaceNav.ts`, plus buttons, table shell, etc.). Results are summarized in **`storage.tcms.phaseA`**. Re-run is safe: existing tokens/components are skipped by name.
+
+Manual checklist (what the script implements):
+
 1. `penpot.library.local.tokens.addSet({ name: "tcms-core" })`; activate set.
-2. Add tokens: `color.bg`, `color.surface`, `color.text`, `color.muted`, `color.border`, `color.danger`, `color.success`, `space.xs`…`space.xl`, `radius.sm`, `radius.md`, typography tokens if using tokenized type.
-3. `penpot.library.local.createColor()` / `createTypography()` for semantic roles used across screens.
-4. Build **components** (boards with children → `createComponent`): `AppShell`, `PageHeader`, `DataTable`, `PrimaryButton`, `SecondaryButton`, `TextField`, `EmptyState`, `ErrorBanner`, `FixHintCallout`.
-5. Return `{ tokenSetId, componentIds }` from script; store in `storage`.
+2. Color, spacing, and border-radius tokens aligned to Tamagui-friendly names (`color.*`, `space.*`, `radius.*`).
+3. `penpot.library.local.createColor()` / `createTypography()` for shared semantic styles.
+4. `createComponent` from source boards for: `AppShell`, `PageHeader`, `DataTable`, `PrimaryButton`, `SecondaryButton`, `TextField`, `EmptyState`, `ErrorBanner`, `FixHintCallout`.
+5. `return` payload + `storage.tcms.phaseA` for follow-up MCP calls.
 
 ### Phase B — Screen scaffolds
 
