@@ -1,13 +1,26 @@
 /**
  * Penpot MCP — Phase A (foundations)
  *
- * Paste the block below into the Penpot MCP tool `execute_code` as the `code` string
- * (plugin runs it as a function body — use `return` at the end).
+ * ## How to run (Cursor + Penpot MCP)
  *
- * Preconditions: Penpot file connected to MCP; prefer an empty or dedicated page.
+ * 1. **Penpot desktop or browser:** open the design **file** you want to modify.
+ * 2. **Penpot MCP plugin:** connect that file to this repo’s Penpot MCP server (same
+ *    connection you use for other MCP tools). The plugin must show as connected for
+ *    `execute_code` to run in *this* file’s context.
+ * 3. **Cursor:** invoke the MCP tool **`execute_code`** on server **`penpot`** /
+ *    **`project-0-tcms-penpot`** (your enabled Penpot server id may differ).
+ * 4. **Code field:** paste **only** the JavaScript between the marker line
+ *    `// --- paste everything below this line into execute_code ---` and the final
+ *    `return { ... };` (inclusive). Do not wrap it in `function () { }` — the plugin
+ *    already runs it as a function body.
+ * 5. **Run once** per file (or re-run; the script skips existing tokens/components by name).
+ * 6. **Optional check:** switch to page `00 Foundations` in Penpot, then MCP **`export_shape`**
+ *    with `shapeId: "page"` to get a PNG/SVG of the whole page.
+ *
+ * Preconditions: Penpot file connected to MCP. Prefer a clean page for first run; the
+ * script creates/opens `00 Foundations`.
+ *
  * Idempotent: skips tokens/components that already exist by name.
- *
- * After success: use `export_shape` with shapeId "page" on "00 Foundations" for review.
  */
 
 /* eslint-disable no-undef -- Penpot plugin globals: penpot, penpotUtils, storage */
