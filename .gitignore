@@ -43,6 +43,10 @@ artifacts/
 .env.local
 .env.*.local
 
+# Cursor / Penpot MCP scratch (no secrets in tracked mcp.json; token lives in .env.local)
+.cursor/phase-a-exec-body.js
+.cursor/mcp-execute-payload.json
+
 # editor/OS
 .DS_Store
 Thumbs.db
