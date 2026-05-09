@@ -5,9 +5,12 @@ import {
   automatedManualLinks,
   requirementTestCaseLinks,
   requirements,
+  runTestCaseAssignments,
   runTraceabilityEdges,
   runTraceabilitySnapshots,
   testCases,
+  testPlanTestCaseLinks,
+  testPlans,
   testResults,
   testRuns
 } from "../../db/schema";
@@ -30,12 +33,25 @@ export async function createTestRun(
     buildVersion?: string;
     trigger?: string;
     finishedAt?: string;
+    testPlanId?: string;
   }
 ) {
   const finishedAt = input.finishedAt ? new Date(input.finishedAt) : null;
+  if (input.testPlanId) {
+    const planRows = await db.select().from(testPlans).where(eq(testPlans.id, input.testPlanId));
+    if (planRows.length === 0 || planRows[0].projectId !== input.projectId) {
+      throw new AppError(
+        "ENTITY_NOT_FOUND",
+        "Test plan not found in run project scope.",
+        "Use a test plan from the same project as the run.",
+        { testPlanId: input.testPlanId, projectId: input.projectId }
+      );
+    }
+  }
   const run = {
     id: randomUUID(),
     projectId: input.projectId,
+    testPlanId: input.testPlanId ?? null,
     name: input.name,
     releaseLabel: normalizeLabel(input.releaseLabel),
     sprintLabel: normalizeLabel(input.sprintLabel),
@@ -46,6 +62,23 @@ export async function createTestRun(
     finishedAt
   };
   await db.insert(testRuns).values(run);
+  if (input.testPlanId) {
+    const links = await db
+      .select({ testCaseId: testPlanTestCaseLinks.testCaseId })
+      .from(testPlanTestCaseLinks)
+      .where(eq(testPlanTestCaseLinks.testPlanId, input.testPlanId));
+    if (links.length > 0) {
+      await db.insert(runTestCaseAssignments).values(
+        links.map((link) => ({
+          id: randomUUID(),
+          runId: run.id,
+          testCaseId: link.testCaseId,
+          sourceTestPlanId: input.testPlanId!,
+          createdAt: now()
+        }))
+      );
+    }
+  }
   await captureRunSnapshot(db, run.id, input.projectId);
   return run;
 }
@@ -55,7 +88,7 @@ export async function submitTestResult(
   input: {
     runId: string;
     testCaseId: string;
-    status: "passed" | "failed" | "skipped" | "blocked";
+    status: "passed" | "failed" | "skipped" | "blocked" | "not_run";
     durationMs?: number;
     attachments?: Array<{ kind: string; ref: string }>;
   }
@@ -102,12 +135,32 @@ export async function getTestRun(db: Db, input: { runId: string; projectId?: str
     .from(testResults)
     .where(eq(testResults.runId, input.runId))
     .orderBy(asc(testResults.createdAt));
+  const assignments = await db
+    .select({ testCaseId: runTestCaseAssignments.testCaseId })
+    .from(runTestCaseAssignments)
+    .where(eq(runTestCaseAssignments.runId, input.runId));
+  const executedTestCaseIds = new Set(results.map((r) => r.testCaseId));
+  const pendingRows = assignments
+    .filter((a) => !executedTestCaseIds.has(a.testCaseId))
+    .map((a) => ({
+      id: `pending:${input.runId}:${a.testCaseId}`,
+      runId: input.runId,
+      testCaseId: a.testCaseId,
+      status: "not_run" as const,
+      durationMs: 0,
+      attachmentsJson: null as string | null,
+      createdAt: run.createdAt,
+      attachments: [] as unknown[]
+    }));
   return {
     ...run,
-    results: results.map((r) => ({
-      ...r,
-      attachments: r.attachmentsJson ? (JSON.parse(r.attachmentsJson) as unknown[]) : []
-    }))
+    results: [
+      ...results.map((r) => ({
+        ...r,
+        attachments: r.attachmentsJson ? (JSON.parse(r.attachmentsJson) as unknown[]) : []
+      })),
+      ...pendingRows
+    ]
   };
 }
 
@@ -122,9 +175,10 @@ export async function getRunAggregate(db: Db, input: { runId: string }) {
   const failed = rows.filter((r) => r.status === "failed").length;
   const skipped = rows.filter((r) => r.status === "skipped").length;
   const blocked = rows.filter((r) => r.status === "blocked").length;
+  const notRun = rows.filter((r) => r.status === "not_run").length;
   const durationMs = rows.reduce((s, r) => s + (r.durationMs ?? 0), 0);
   const passRatePct = total === 0 ? 0 : Math.round((passed / total) * 10000) / 100;
-  return { runId: input.runId, total, passed, failed, skipped, blocked, passRatePct, durationMs };
+  return { runId: input.runId, total, passed, failed, skipped, blocked, notRun, passRatePct, durationMs };
 }
 
 export async function getRunTraceabilityReport(

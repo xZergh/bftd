@@ -44,6 +44,18 @@ export type TestRunListItem = {
   finishedAt: string | null;
 };
 
+export type TestPlanListItem = {
+  id: string;
+  projectId: string;
+  name: string;
+  description: string | null;
+  releaseLabel: string | null;
+  sprintLabel: string | null;
+  createdAt: string;
+  updatedAt: string;
+  testCases: Array<{ id: string; type: string; title: string }>;
+};
+
 export type KpiCoverageFormulaInfo = {
   formulaId: string;
   label: string;

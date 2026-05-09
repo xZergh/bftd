@@ -3,7 +3,7 @@ title: "Run Service"
 type: "feature"
 status: "active"
 source_paths: ["src/domain/services/runs.ts"]
-updated_at: "2026-04-17"
+updated_at: "2026-04-22"
 ---
 
 Run service captures run metadata, result submissions, aggregates, and immutable traceability snapshots.
@@ -13,8 +13,9 @@ Run service captures run metadata, result submissions, aggregates, and immutable
 - Creates runs with optional release/sprint/env/build/trigger metadata.
 - Captures traceability snapshot at run creation time.
 - Accepts test results with attachment payloads and validates project scope.
-- Computes aggregate totals and pass-rate for run dashboards.
+- Computes aggregate totals, including `notRun` (assigned but not yet executed), and pass-rate for run dashboards.
 - Returns run snapshot-based traceability reports, optionally filtered by run labels.
+- Returns run results with synthetic `not_run` rows for assigned test cases that do not yet have submitted results.
 
 ## Snapshot behavior
 

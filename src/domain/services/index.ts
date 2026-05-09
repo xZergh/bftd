@@ -36,6 +36,15 @@ export {
 } from "./testcases";
 export { importAutomatedFromTrr, importRequirements } from "./imports";
 export {
+  createTestPlan,
+  deleteTestPlan,
+  getTestPlan,
+  linkTestPlanTestCase,
+  listTestPlans,
+  unlinkTestPlanTestCase,
+  updateTestPlan
+} from "./test-plans";
+export {
   createTestRun,
   getRunAggregate,
   getRunTraceabilityReport,

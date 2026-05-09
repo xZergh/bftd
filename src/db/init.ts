@@ -93,6 +93,7 @@ function applyAdditiveMigrations(db: Database.Database) {
   }
 
   if (names.has("test_runs")) {
+    ensureColumn(db, "test_runs", "test_plan_id", "TEXT");
     ensureColumn(db, "test_runs", "release_label", "TEXT");
     ensureColumn(db, "test_runs", "sprint_label", "TEXT");
     ensureColumn(db, "test_runs", "environment", "TEXT");
@@ -103,6 +104,12 @@ function applyAdditiveMigrations(db: Database.Database) {
 
   if (names.has("test_results")) {
     ensureColumn(db, "test_results", "attachments_json", "TEXT");
+  }
+  if (!indexExists(db, "test_plan_case_uniq")) {
+    db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS test_plan_case_uniq ON test_plan_test_case_links(test_plan_id, test_case_id)`);
+  }
+  if (!indexExists(db, "run_case_assignment_uniq")) {
+    db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS run_case_assignment_uniq ON run_test_case_assignments(run_id, test_case_id)`);
   }
 
   db.exec(`DROP INDEX IF EXISTS req_provider_node_url_uniq`);
@@ -243,6 +250,7 @@ export function initSqlite(dbPath: string) {
     CREATE TABLE IF NOT EXISTS test_runs (
       id TEXT PRIMARY KEY,
       project_id TEXT NOT NULL,
+      test_plan_id TEXT,
       name TEXT NOT NULL,
       release_label TEXT,
       sprint_label TEXT,
@@ -262,6 +270,35 @@ export function initSqlite(dbPath: string) {
       attachments_json TEXT,
       created_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS test_plans (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      release_label TEXT,
+      sprint_label TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS test_plan_test_case_links (
+      id TEXT PRIMARY KEY,
+      test_plan_id TEXT NOT NULL,
+      test_case_id TEXT NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS test_plan_case_uniq
+    ON test_plan_test_case_links(test_plan_id, test_case_id);
+
+    CREATE TABLE IF NOT EXISTS run_test_case_assignments (
+      id TEXT PRIMARY KEY,
+      run_id TEXT NOT NULL,
+      test_case_id TEXT NOT NULL,
+      source_test_plan_id TEXT,
+      created_at INTEGER NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS run_case_assignment_uniq
+    ON run_test_case_assignments(run_id, test_case_id);
 
     CREATE TABLE IF NOT EXISTS run_traceability_snapshots (
       id TEXT PRIMARY KEY,

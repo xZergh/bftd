@@ -1,0 +1,208 @@
+QA-focused test management UI layout
+
+Current baseline (from repo)
+
+
+
+
+
+Stack: React 19 + Vite + TypeScript in [apps/web](apps/web); urql to /graphql; routing in [apps/web/src/App.tsx](apps/web/src/App.tsx).
+
+
+
+Styling today: Plain CSS ([apps/web/src/index.css](apps/web/src/index.css), [apps/web/src/layout/AppShell.tsx](apps/web/src/layout/AppShell.tsx) + AppShell.css / App.css)—no Tamagui/Mantine/MUI yet ([apps/web/package.json](apps/web/package.json)).
+
+
+
+Product constraints: Local-first MVP, URL-driven project scope, no auth UI—see [.notes/FE_MVP_SPEC.md](.notes/FE_MVP_SPEC.md).
+
+
+
+UI automation today: Playwright only (apps/web/e2e/*.spec.ts), Chromium desktop, data-testid hooks (e.g. [apps/web/e2e/fe-b-projects.spec.ts](apps/web/e2e/fe-b-projects.spec.ts)); servers started via [apps/web/playwright.config.ts](apps/web/playwright.config.ts). Spec already mentions Vitest + Testing Library as optional—not wired in tcms-web yet.
+
+Why Tamagui (aligned with native mobile later)
+
+Decision: Adopt Tamagui for the web app now so the presentation layer is one design system that can later target React Native / Expo with the same token/theme model and largely the same primitive components (Stack, Text, Button, Input, sheets, dialogs where supported).
+
+Compared to a web-only library (e.g. Mantine):
+
+
+
+
+
+Pros: Strong path to reuse UI building blocks on native; compile-time optimizations (with the Vite/Babel plugin configured); consistent spacing/typography via tamagui.config.
+
+
+
+Tradeoffs vs Mantine-style admin kits: Less “batteries-included” for complex data tables (sorting, column resize, virtualization)—plan to compose ScrollView + header row + row components or adopt a headless table pattern + Tamagui-styled cells; verify React 19 + Vite 8 peer compatibility during implementation and pin versions per Tamagui’s current docs.
+
+
+
+Shared future work: Extract GraphQL operations / hooks into a shared package when the mobile app starts; tokens in tamagui.config are the single source of truth for web + Expo.
+
+flowchart LR
+  subgraph web [Web_TCMS]
+    TamaguiUI[Tamagui_primitives]
+    Urql[urql_GraphQL]
+    TamaguiUI --> Urql
+  end
+  subgraph shared [Shared_future]
+    TamaguiConfig[tamagui_config_tokens]
+    Ops[GraphQL_operations_types]
+  end
+  subgraph mobile [Expo_RN_later]
+    TamaguiNative[Tamagui_on_RN]
+  end
+  TamaguiConfig --> TamaguiUI
+  TamaguiConfig --> TamaguiNative
+  Ops --> Urql
+  Ops --> TamaguiNative
+
+UX goals for QA engineers (layout/content priorities)
+
+Apply across shell + high-traffic routes (projects, requirements, test-cases, runs, reporting):
+
+
+
+
+
+Information density with scanability: stable column sets, zebra/hover row states, sticky header row for long tables, compact vs comfortable density toggle (implemented with Tamagui Stack/XStack/YStack + themed row components).
+
+
+
+Traceability-first navigation: persistent project context (existing [ProjectPicker](apps/web/src/components/ProjectPicker)); add breadcrumbs and “back to list” patterns on detail pages.
+
+
+
+Run workflow clarity: status chips, filters (release/sprint/environment), bulk actions where the API allows; reserve primary actions for “create run”, “add result”, “open traceability”.
+
+
+
+Low-friction keyboard/mouse: focus rings, skip link (already in shell), sensible tab order in forms and tables.
+
+
+
+Testing contract: keep and extend data-testid on interactive and assertable regions (Playwright-first); avoid coupling tests to generated class names; prefer roles where stable.
+
+Implementation approach (web)
+
+
+
+
+
+Dependencies & setup: Add tamagui, @tamagui/vite-plugin (or the current recommended Vite integration from Tamagui docs), and any starter packages the docs prescribe for React 19. Wire TamaguiProvider in [apps/web/src/main.tsx](apps/web/src/main.tsx) alongside BrowserRouter and urql Provider. Configure Vite in [apps/web/vite.config.ts](apps/web/vite.config.ts) for the compiler plugin and any optimizeDeps exclusions Tamagui requires.
+
+
+
+tamagui.config.ts: Define tokens (space, radius, color palettes) and themes including semantic run colors (pass/fail/skip/blocked) and neutral surfaces; this file becomes the contract for a future Expo app.
+
+
+
+Shell first: Rebuild [AppShell](apps/web/src/layout/AppShell.tsx) with Tamagui layout + Text/Button/Anchor (or Link from react-router wrapped in styled Tamagui); map banners into themed Card/SizableText/Paragraph while preserving existing data-testids so current E2E keeps working.
+
+
+
+Page rollout (incremental): List pages first (projects, requirements, test cases, runs), then detail pages. Build list/table UIs as composable rows (virtualization optional later if lists grow). Replace global CSS incrementally; delete or narrow App.css / AppShell.css only as each region migrates.
+
+
+
+Forms & dialogs: Use Tamagui form primitives + sheets/dialogs per docs; keep validation UX consistent with API fixHint patterns already shown in the shell.
+
+Sample project with multiple requirements and tests
+
+Goal: One command produces a rich demo dataset for demos and manual QA without clicking through the UI.
+
+
+
+
+
+Preferred: Add a root-level script (e.g. scripts/seed-demo-qa-project.ts) run with tsx, using the same domain/service layer the GraphQL resolvers use ([TcmsService](src/domain/service.ts) / [createDb](src/db/client.ts)) against a chosen DB_PATH (default dev DB or an explicit path). The script should:
+
+
+
+
+
+createProject with a fixed key like DEMO-QA
+
+
+
+Create N requirements with varied status/priority/tags
+
+
+
+Create manual and automated test cases with steps
+
+
+
+Create requirement↔test links and optional automated↔manual links
+
+
+
+Optionally create a test run with mixed results for reporting screens
+
+
+
+Expose: npm run seed:demo in root [package.json](package.json) (document in [docs/LOCAL_MANUAL_TESTING.md](docs/LOCAL_MANUAL_TESTING.md)).
+
+
+
+Optional dev-only UI: A “Load sample data” button on home/dev settings is nice-to-have but increases scope; the script keeps MVP boundaries clear.
+
+Testing suite for UI
+
+Primary (extend what you have): Playwright remains the contract for “real UI + real API + SQLite”:
+
+
+
+
+
+Add/extend specs after layout migration to assert navigation, filters, and critical empty/error states still work; keep @smoke tags coherent with [apps/web/package.json](apps/web/package.json) scripts.
+
+
+
+Consider a second Playwright project for mobile viewport (e.g. devices['Pixel 5']) targeting shell + one list + one detail flow—aligns with Tamagui’s responsive goals before Expo exists.
+
+Secondary (optional): Vitest + React Testing Library in apps/web for isolated components (e.g. ProjectPicker, filter bars) with urql mocking—matches [.notes/FE_MVP_SPEC.md](.notes/FE_MVP_SPEC.md) and complements Playwright.
+
+Not required initially: Visual snapshot testing—only add if flaky-rate stays acceptable.
+
+Documentation in .wiki (after implementation approval)
+
+Per git-wiki skill, add concise pages with YAML frontmatter and link from [.wiki/index.md](.wiki/index.md):
+
+
+
+
+
+.wiki/concepts/ui-qa-layout-tamagui-and-mobile.md — UX principles, Tamagui choice, Expo/RN path (shared config + operations), table strategy tradeoffs.
+
+
+
+.wiki/flows/seed-demo-qa-project.md — how to run seed:demo, what entities it creates, safety notes (DB_PATH).
+
+
+
+.wiki/features/apps-web-ui-testing.md — Playwright layout, smoke tags, optional Vitest/RTL scope.
+
+Note: Full wiki ingest is git-HEAD-driven; these pages are manual architecture notes unless you later run an ingest pass to fold changed source files into feature pages.
+
+Risks / mitigations
+
+
+
+
+
+Compiler / Vite friction: Follow Tamagui’s current Vite guide; pin versions; add a minimal “tamagui smoke” page in dev if needed to validate the pipeline before wide migration.
+
+
+
+Dense tables: Accept composed table layout first; add virtualization only if profiling shows need.
+
+
+
+A11y: Tamagui exposes props for many primitives—explicitly set accessibilityRole / labels on native-bound components even on web where habits differ; keep skip link and landmark structure from the current shell.
+
+
+
+Test stability: Prefer data-testid and role-based selectors; debounce or waitFor where animations affect visibility.
+

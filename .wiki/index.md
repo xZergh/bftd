@@ -15,6 +15,7 @@ This wiki captures the current architecture and major feature flows from reposit
 - `[[concepts-architecture-boundaries]]` - layer model, module map, and boundaries.
 - `[[flows-request-lifecycle]]` - how GraphQL requests travel through the backend.
 - `[[entities-src-db-schema-ts]]` - core SQLite/Drizzle entities and relationships.
+- `[[entities-test-plans-and-run-assignments]]` - test plans, plan links, and run-case assignment entities.
 
 ## Core Backend Features
 
@@ -26,6 +27,7 @@ This wiki captures the current architecture and major feature flows from reposit
 - `[[features-src-domain-services-projects-ts]]` - project lifecycle and summary counters.
 - `[[features-src-domain-services-requirements-ts]]` - requirement rules and hierarchy validation.
 - `[[features-src-domain-services-testcases-ts]]` - manual/automated testcase lifecycle.
+- `[[features-src-domain-services-test-plans-ts]]` - test plan CRUD, testcase linking, and run assignment seeding.
 - `[[features-src-domain-services-runs-ts]]` - run creation, result ingestion, aggregates.
 - `[[features-src-domain-services-imports-ts]]` - requirements/TRR import orchestration.
 - `[[features-src-domain-services-design-links-ts]]` - Penpot requirement design-link management.
@@ -41,6 +43,7 @@ This wiki captures the current architecture and major feature flows from reposit
 - `[[features-apps-web-imports-ui]]` - bulk JSON imports (requirements, TRR, design links).
 - `[[features-apps-web-design-links]]` - per-project design link list / upsert / unlink UI.
 - `[[features-apps-web-testcase-version-history]]` - testcase detail version history table.
+- `[[features-apps-web-test-plans]]` - project plans tab with CRUD, testcase linking, and run plan selection.
 - `[[features-apps-web-shell-polish]]` - shared loading UI, error boundary, skip link, `@smoke` Playwright subset.
 - `[[features-apps-web-ui-testing]]` - Playwright projects (desktop + mobile), Vitest + Testing Library.
 

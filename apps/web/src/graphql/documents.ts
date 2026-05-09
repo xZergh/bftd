@@ -462,6 +462,26 @@ export const TestRunsListQuery = parse(`
   }
 `);
 
+export const TestPlansListQuery = parse(`
+  query TestPlansList($projectId: ID!) {
+    testPlans(input: { projectId: $projectId }) {
+      id
+      projectId
+      name
+      description
+      releaseLabel
+      sprintLabel
+      createdAt
+      updatedAt
+      testCases {
+        id
+        type
+        title
+      }
+    }
+  }
+`);
+
 export const TestRunDetailQuery = parse(`
   query TestRunDetail($runId: ID!, $projectId: ID) {
     testRun(input: { runId: $runId, projectId: $projectId }) {
@@ -498,6 +518,7 @@ export const RunAggregateQuery = parse(`
       failed
       skipped
       blocked
+      notRun
       passRatePct
       durationMs
     }
@@ -518,6 +539,76 @@ export const CreateTestRunMutation = parse(`
         fixHint
         context
       }
+    }
+  }
+`);
+
+export const CreateTestPlanMutation = parse(`
+  mutation CreateTestPlan($input: CreateTestPlanInput!) {
+    createTestPlan(input: $input) {
+      testPlan {
+        id
+        projectId
+        name
+        description
+        releaseLabel
+        sprintLabel
+        createdAt
+        updatedAt
+      }
+      error {
+        code
+        message
+        fixHint
+        context
+      }
+    }
+  }
+`);
+
+export const UpdateTestPlanMutation = parse(`
+  mutation UpdateTestPlan($input: UpdateTestPlanInput!) {
+    updateTestPlan(input: $input) {
+      testPlan {
+        id
+        projectId
+        name
+        description
+        releaseLabel
+        sprintLabel
+        createdAt
+        updatedAt
+      }
+      error {
+        code
+        message
+        fixHint
+        context
+      }
+    }
+  }
+`);
+
+export const DeleteTestPlanMutation = parse(`
+  mutation DeleteTestPlan($id: ID!) {
+    deleteTestPlan(input: { id: $id }) {
+      success
+    }
+  }
+`);
+
+export const LinkTestPlanTestCaseMutation = parse(`
+  mutation LinkTestPlanTestCase($testPlanId: ID!, $testCaseId: ID!) {
+    linkTestPlanTestCase(input: { testPlanId: $testPlanId, testCaseId: $testCaseId }) {
+      linked
+    }
+  }
+`);
+
+export const UnlinkTestPlanTestCaseMutation = parse(`
+  mutation UnlinkTestPlanTestCase($testPlanId: ID!, $testCaseId: ID!) {
+    unlinkTestPlanTestCase(input: { testPlanId: $testPlanId, testCaseId: $testCaseId }) {
+      success
     }
   }
 `);

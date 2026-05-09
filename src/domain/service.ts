@@ -9,13 +9,16 @@ import {
   createManualTestCase as createManualTestCaseSvc,
   createProject as createProjectRecord,
   createRequirement as createRequirementRecord,
+  createTestPlan as createTestPlanRecord,
   createTestRun as createTestRunRecord,
+  deleteTestPlan as deleteTestPlanRecord,
   deleteAutomatedTestCase as deleteAutomatedTestCaseSvc,
   deleteManualTestCase as deleteManualTestCaseSvc,
   deleteRequirement as deleteRequirementRecord,
   getProject as getProjectRecord,
   getProjectSummary as getProjectSummaryStats,
   getRequirement as getRequirementRecord,
+  getTestPlan as getTestPlanRecord,
   getRequirementDesignLinks as getRequirementDesignLinksRecords,
   getRunAggregate as getRunAggregateRecord,
   getRunTraceabilityReport as getRunTraceabilityReportRecord,
@@ -27,8 +30,10 @@ import {
   importRequirements as importRequirementsBatch,
   linkAutomatedManualTestCase as linkAutomatedManual,
   linkRequirementManualTestCase as linkRequirementManual,
+  linkTestPlanTestCase as linkTestPlanTestCaseRecord,
   listProjects as listProjectsRecords,
   listRequirements as listRequirementsRecords,
+  listTestPlans as listTestPlansRecords,
   listTestCases as listTestCasesRecords,
   listTestCaseVersionHistory,
   listTestRuns as listTestRunsRecords,
@@ -39,10 +44,12 @@ import {
   unlinkAutomatedManualTestCase as unlinkAutomatedManual,
   unlinkRequirementDesignLink as unlinkRequirementDesignLinkRecord,
   unlinkRequirementManualTestCase as unlinkRequirementManual,
+  unlinkTestPlanTestCase as unlinkTestPlanTestCaseRecord,
   updateAutomatedTestCase as updateAutomatedTestCaseSvc,
   updateManualTestCase as updateManualTestCaseSvc,
   updateProject as updateProjectRecord,
   updateRequirement as updateRequirementRecord,
+  updateTestPlan as updateTestPlanRecord,
   upsertRequirementDesignLink as upsertRequirementDesignLinkRecord
 } from "./services";
 import { kpiDailySnapshots, kpiProjectSnapshots, kpiRunSnapshots, testRuns } from "../db/schema";
@@ -192,8 +199,49 @@ export class TcmsService {
     buildVersion?: string;
     trigger?: string;
     finishedAt?: string;
+    testPlanId?: string;
   }) {
     return createTestRunRecord(this.db, input);
+  }
+
+  async createTestPlan(input: {
+    projectId: string;
+    name: string;
+    description?: string;
+    releaseLabel?: string;
+    sprintLabel?: string;
+  }) {
+    return createTestPlanRecord(this.db, input);
+  }
+
+  async listTestPlans(input: { projectId: string }) {
+    return listTestPlansRecords(this.db, input);
+  }
+
+  async getTestPlan(input: { id: string; projectId?: string }) {
+    return getTestPlanRecord(this.db, input);
+  }
+
+  async updateTestPlan(input: {
+    id: string;
+    name?: string;
+    description?: string | null;
+    releaseLabel?: string | null;
+    sprintLabel?: string | null;
+  }) {
+    return updateTestPlanRecord(this.db, input);
+  }
+
+  async deleteTestPlan(input: { id: string }) {
+    return deleteTestPlanRecord(this.db, input);
+  }
+
+  async linkTestPlanTestCase(input: { testPlanId: string; testCaseId: string }) {
+    return linkTestPlanTestCaseRecord(this.db, input);
+  }
+
+  async unlinkTestPlanTestCase(input: { testPlanId: string; testCaseId: string }) {
+    return unlinkTestPlanTestCaseRecord(this.db, input);
   }
 
   async listTestRuns(input: { projectId: string }) {
@@ -211,7 +259,7 @@ export class TcmsService {
   async submitTestResult(input: {
     runId: string;
     testCaseId: string;
-    status: "passed" | "failed" | "skipped" | "blocked";
+    status: "passed" | "failed" | "skipped" | "blocked" | "not_run";
     durationMs?: number;
     attachments?: Array<{ kind: string; ref: string }>;
   }) {

@@ -76,10 +76,13 @@ async function submitResult(
   status: "passed" | "failed" | "skipped" | "blocked",
   durationMs: string
 ) {
+  await page.getByTestId("result-submit-open").click();
+  await expect(page.getByTestId("result-submit-dialog")).toBeVisible();
   await page.getByTestId("result-submit-testcase").selectOption(manualId);
   await page.getByTestId("result-submit-status").selectOption(status);
   await page.getByTestId("result-submit-duration").fill(durationMs);
   await page.getByTestId("result-submit-button").click();
+  await expect(page.getByTestId("result-submit-dialog")).toHaveCount(0);
 }
 
 test.describe("FE-E runs", () => {
@@ -147,6 +150,9 @@ test.describe("FE-E runs", () => {
     const suffix = `${Date.now()}-c`;
     await seedProjectManualAndOpenRun(page, suffix);
 
+    await page.getByTestId("result-submit-open").click();
+    await expect(page.getByTestId("result-submit-dialog")).toBeVisible();
+    await page.getByTestId("result-submit-testcase").selectOption("");
     await page.getByTestId("result-submit-button").click();
 
     await expect(page.getByTestId("result-submit-testcase-error")).toBeVisible();

@@ -65,6 +65,7 @@ export const typeDefs = /* GraphQL */ `
   type TestRun {
     id: ID!
     projectId: ID!
+    testPlanId: ID
     name: String!
     releaseLabel: String
     sprintLabel: String
@@ -73,6 +74,18 @@ export const typeDefs = /* GraphQL */ `
     trigger: String
     createdAt: DateTime!
     finishedAt: DateTime
+  }
+
+  type TestPlan {
+    id: ID!
+    projectId: ID!
+    name: String!
+    description: String
+    releaseLabel: String
+    sprintLabel: String
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    testCases: [TestCase!]!
   }
 
   type ResultAttachment {
@@ -102,6 +115,7 @@ export const typeDefs = /* GraphQL */ `
     failed: Int!
     skipped: Int!
     blocked: Int!
+    notRun: Int!
     passRatePct: Float!
     durationMs: Int!
   }
@@ -365,6 +379,7 @@ export const typeDefs = /* GraphQL */ `
   input CreateTestRunInput {
     projectId: ID!
     name: String!
+    testPlanId: ID
     releaseLabel: String
     sprintLabel: String
     environment: String
@@ -639,6 +654,45 @@ export const typeDefs = /* GraphQL */ `
     runId: ID!
   }
 
+  input TestPlansListInput {
+    projectId: ID!
+  }
+
+  input TestPlanByInput {
+    id: ID!
+    projectId: ID
+  }
+
+  input CreateTestPlanInput {
+    projectId: ID!
+    name: String!
+    description: String
+    releaseLabel: String
+    sprintLabel: String
+  }
+
+  input UpdateTestPlanInput {
+    id: ID!
+    name: String
+    description: String
+    releaseLabel: String
+    sprintLabel: String
+  }
+
+  input DeleteTestPlanInput {
+    id: ID!
+  }
+
+  input LinkTestPlanTestCaseInput {
+    testPlanId: ID!
+    testCaseId: ID!
+  }
+
+  input UnlinkTestPlanTestCaseInput {
+    testPlanId: ID!
+    testCaseId: ID!
+  }
+
   type CreateProjectPayload {
     project: Project
     error: AppError
@@ -679,6 +733,11 @@ export const typeDefs = /* GraphQL */ `
     error: AppError
   }
 
+  type TestPlanPayload {
+    testPlan: TestPlan
+    error: AppError
+  }
+
   type Query {
     projects(input: ListProjectsInput): [Project!]!
     project(input: ProjectByInput!): Project
@@ -688,7 +747,9 @@ export const typeDefs = /* GraphQL */ `
     testCases(input: TestCasesListInput!): [TestCase!]!
     testCase(input: TestCaseByInput!): TestCase
     testRuns(input: TestRunsListInput!): [TestRun!]!
+    testPlans(input: TestPlansListInput!): [TestPlan!]!
     testRun(input: TestRunByInput!): TestRunDetail
+    testPlan(input: TestPlanByInput!): TestPlan
     runAggregate(input: RunAggregateInput!): RunAggregate!
     runTraceabilityReport(input: RunTraceabilityReportInput!): RunTraceabilityReport!
     traceabilityGraph(input: TraceabilityGraphInput!): TraceabilityGraph!
@@ -717,6 +778,11 @@ export const typeDefs = /* GraphQL */ `
     tombstoneTestCase(input: TombstoneTestCaseInput!): UnlinkResult!
     restoreTestCase(input: RestoreTestCaseInput!): UnlinkResult!
     createTestRun(input: CreateTestRunInput!): CreateTestRunPayload!
+    createTestPlan(input: CreateTestPlanInput!): TestPlanPayload!
+    updateTestPlan(input: UpdateTestPlanInput!): TestPlanPayload!
+    deleteTestPlan(input: DeleteTestPlanInput!): UnlinkResult!
+    linkTestPlanTestCase(input: LinkTestPlanTestCaseInput!): LinkMutationResult!
+    unlinkTestPlanTestCase(input: UnlinkTestPlanTestCaseInput!): UnlinkResult!
     submitTestResult(input: SubmitTestResultInput!): SubmitTestResultPayload!
     importRequirements(input: ImportRequirementsInput!): ImportRequirementsResult!
     importAutomatedFromTrr(input: ImportAutomatedFromTrrInput!): ImportAutomatedFromTrrResult!

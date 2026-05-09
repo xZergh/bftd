@@ -37,6 +37,13 @@ export function ProjectSubNav({ projectId, active }: Props) {
         Test cases
       </RouterLink>
       <RouterLink
+        to={`${base}/plans`}
+        data-testid="project-nav-plans"
+        aria-current={navCurrent(active, "plans")}
+      >
+        Plans
+      </RouterLink>
+      <RouterLink
         to={`${base}/runs`}
         data-testid="project-nav-runs"
         aria-current={navCurrent(active, "runs")}
