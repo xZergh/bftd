@@ -205,8 +205,8 @@ That message means the **remote MCP server** accepted the HTTP call, but **no Pe
 
 1. **Token mismatch** — The value in `userToken=…` must be exactly your **MCP key** from **Your account → Integrations → MCP Server** (the URL Penpot shows already embeds it). After **Regenerate MCP key**, Penpot revokes the old key immediately: update **both** Cursor (or your env var) **and** the plugin connection. The plugin’s token and the client URL must stay in lockstep.
 2. **Plugin not actually bound** — In Penpot: **File → MCP Server → Connect** for the open file. Keep the **plugin window open** while using MCP (Penpot’s checklist). Only **one browser tab** may own MCP at a time; pick the active MCP tab explicitly if you use multiple tabs.
-3. **Cursor not sending the token you think** — This repo uses a **stdio** launcher (`scripts/penpot-mcp-stdio.mjs`) that reads **`PENPOT_MCP_USER_TOKEN` only from `.env.local`** (not from the OS environment) and runs `mcp-remote` to `design.penpot.app`. After editing `.env.local`, restart Cursor so the MCP server process picks up the new file contents.
-4. **Why not raw `url` in mcp.json?** — Cursor’s docs state that **`envFile` applies only to stdio MCP servers**, not to remote HTTP URLs. A direct `url` with `${env:…}` depends on variables already present in Cursor’s process environment, which often omits `.env.local`.
+3. **Cursor not sending the token you think** — `.cursor/mcp.json` uses Penpot’s **`type: "http"`** URL with **`${env:PENPOT_MCP_USER_TOKEN}`**. Cursor does **not** read `.env.local` for that interpolation. After you change the token in `.env.local`, run **`npm run penpot:sync-mcp-token`** (or `scripts/sync-penpot-mcp-token-from-envlocal.ps1`), which copies the value into your **Windows User** env var `PENPOT_MCP_USER_TOKEN`, then **fully restart Cursor** so MCP sees it.
+4. **Why not rely on `.env.local` alone?** — Cursor’s docs: **`envFile` is only for stdio MCP servers**, not for remote `url` entries. Syncing into a real user env var is the supported way to keep secrets in `.env.local` while satisfying `${env:…}` in the Penpot stream URL.
 
 ### Penpot’s general checklist (remote)
 

@@ -11,6 +11,7 @@
     "dev:api": "tsx watch src/server.ts",
     "dev:web": "npm run dev -w tcms-web",
     "seed:demo": "tsx scripts/seed-demo-qa-project.ts",
+    "penpot:sync-mcp-token": "powershell -ExecutionPolicy Bypass -File ./scripts/sync-penpot-mcp-token-from-envlocal.ps1",
     "start:e2e-api": "cross-env DB_PATH=./data/e2e-playwright.sqlite PORT=4000 tsx src/server.ts",
     "e2e:web": "npm run e2e -w tcms-web",
     "e2e:smoke:web": "npm run e2e:smoke -w tcms-web",
