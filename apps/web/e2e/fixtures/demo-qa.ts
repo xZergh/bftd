@@ -74,6 +74,76 @@ export async function openDemoRuns(page: Page) {
   await expect(page.getByTestId("runs-page")).toBeVisible();
 }
 
+export async function openDemoImports(page: Page) {
+  await openDemoProjectOverview(page);
+  await page.getByTestId("project-nav-imports").click();
+  await expect(page.getByTestId("imports-page")).toBeVisible();
+}
+
+export async function openDemoDesignLinks(page: Page) {
+  await openDemoProjectOverview(page);
+  await page.getByTestId("project-nav-design-links").click();
+  await expect(page.getByTestId("design-links-page")).toBeVisible();
+}
+
+/** Assert the seeded demo regression run row is present. */
+export async function expectDemoRunSeeded(page: Page) {
+  await expect(page.locator('[data-testid="run-row"]').filter({ hasText: DEMO.runName })).toBeVisible();
+}
+
+/** Assert overview KPI tiles match the DEMO-QA seed baseline (minimum counts). */
+export async function expectDemoOverviewSeedKpis(page: Page) {
+  await expect(page.getByTestId("project-kpi-requirements").locator(".project-kpi-value")).toHaveText("3");
+  await expect(page.getByTestId("project-kpi-manual").locator(".project-kpi-value")).toHaveText("3");
+  await expect(page.getByTestId("project-kpi-automated").locator(".project-kpi-value")).toHaveText("1");
+  await expect(page.getByTestId("project-kpi-plans").locator(".project-kpi-value")).toHaveText("1");
+}
+
+/** Create a manual test case on DEMO-QA linked to the given requirement key. */
+export async function createDemoManualTestCase(
+  page: Page,
+  opts: { title: string; reqKey: string; stepName: string }
+) {
+  await page.getByTestId("testcase-create-type").selectOption("manual");
+  await page.getByTestId("testcase-create-title").fill(opts.title);
+  await page.getByTestId(`testcase-create-manual-req-${opts.reqKey}`).check();
+  await page.getByTestId("testcase-create-manual-step-name-0").fill(opts.stepName);
+  await page.getByTestId("testcase-create-submit").click();
+  const row = page.locator('[data-testid="testcase-row"]').filter({ hasText: opts.title });
+  await expect(row).toBeVisible();
+  const manualId = await row.getAttribute("data-testcase-id");
+  expect(manualId).toBeTruthy();
+  return { row, manualId: manualId! };
+}
+
+/** Create a run on DEMO-QA, open its detail page, and return the run name. */
+export async function createDemoRunAndOpenDetail(page: Page, runName: string) {
+  await page.getByTestId("run-create-name").fill(runName);
+  await page.getByTestId("run-create-submit").click();
+  const runRow = page.locator('[data-testid="run-row"]').filter({ hasText: runName });
+  await expect(runRow).toBeVisible();
+  await runRow.getByTestId("run-open").click();
+  await expect(page.getByTestId("run-detail-page")).toBeVisible();
+  await expect(page.getByTestId("run-detail-name")).toHaveText(runName);
+  return runName;
+}
+
+/** Create ephemeral manual TC + empty run on DEMO-QA and open run detail. */
+export async function seedDemoRunWithManual(page: Page, suffix: string) {
+  const manualTitle = `Manual ${suffix}`;
+  const stepName = `Step ${suffix}`;
+  const runName = `Run ${suffix}`;
+  const reqKey = DEMO.requirements.R2;
+
+  await openDemoTestCases(page);
+  const { manualId } = await createDemoManualTestCase(page, { title: manualTitle, reqKey, stepName });
+
+  await openDemoRuns(page);
+  await createDemoRunAndOpenDetail(page, runName);
+
+  return { manualId, manualTitle, runName };
+}
+
 /** Assert the seeded demo regression plan row is present. */
 export async function expectDemoPlanSeeded(page: Page) {
   await expect(page.locator('[data-testid="plan-row"]').filter({ hasText: DEMO.planName })).toBeVisible();

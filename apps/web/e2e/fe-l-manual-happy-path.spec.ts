@@ -1,66 +1,55 @@
 import { expect, test } from "@playwright/test";
+import {
+  DEMO,
+  createDemoManualTestCase,
+  createDemoRunAndOpenDetail,
+  openDemoProjectOverview,
+  openDemoReporting,
+  openDemoRequirements,
+  openDemoRuns,
+  openDemoTestCases
+} from "./fixtures/demo-qa";
 
 test.describe.configure({ mode: "serial" });
 
-test.describe("FE-L manual happy path", () => {
-  test("clean project workflow: requirement + testcase + run + reporting", async ({ page }) => {
+test.describe("FE-L manual happy path (DEMO-QA)", () => {
+  test("workflow adds requirement, testcase, run, and updates reporting", async ({ page }) => {
     const suffix = `${Date.now()}`;
-    const projectName = `FE-L ${suffix}`;
-    const projectKey = `fe-l-${suffix}`;
     const reqKey = `REQ-${suffix}`;
     const reqTitle = `Requirement ${suffix}`;
     const manualTitle = `Manual ${suffix}`;
     const stepName = `Step ${suffix}`;
     const runName = `Run ${suffix}`;
 
-    await page.goto("/projects");
-    await page.getByTestId("nav-projects-menu").click();
-    await page.getByTestId("nav-projects-new").click();
-    await page.getByTestId("project-create-name").fill(projectName);
-    await page.getByTestId("project-create-key").fill(projectKey);
-    await page.getByTestId("project-create-submit").click();
-
-    const projectRow = page.locator(`tr[data-project-key="${projectKey}"]`);
-    await expect(projectRow).toBeVisible();
-    await projectRow.getByTestId("project-name-link").click();
-    await expect(page.getByTestId("project-detail-page")).toBeVisible();
+    await openDemoProjectOverview(page);
+    await expect(page.getByTestId("project-dashboard-kpi")).toBeVisible();
     await expect(page.getByTestId("shell-transport-error")).toHaveCount(0);
     await expect(page.getByTestId("shell-app-error")).toHaveCount(0);
 
-    await page.getByTestId("project-nav-requirements").click();
-    await expect(page.getByTestId("requirements-page")).toBeVisible();
+    await openDemoReporting(page);
+    const reqBefore = Number(await page.getByTestId("kpi-current-total-requirements").textContent());
+    const manualBefore = Number(await page.getByTestId("kpi-current-total-manual").textContent());
+    const runsBefore = Number(await page.getByTestId("kpi-current-total-runs").textContent());
+
+    await openDemoRequirements(page);
     await page.getByTestId("requirement-create-key").fill(reqKey);
     await page.getByTestId("requirement-create-title").fill(reqTitle);
     await page.getByTestId("requirement-create-submit").click();
     await expect(page.locator(`tr[data-requirement-key="${reqKey}"]`)).toBeVisible();
 
-    await page.getByTestId("project-nav-overview").click();
-    await page.getByTestId("project-nav-test-cases").click();
-    await expect(page.getByTestId("testcases-page")).toBeVisible();
-    await page.getByTestId("testcase-create-type").selectOption("manual");
-    await page.getByTestId("testcase-create-title").fill(manualTitle);
-    await page.getByTestId(`testcase-create-manual-req-${reqKey}`).check();
-    await page.getByTestId("testcase-create-manual-step-name-0").fill(stepName);
-    await page.getByTestId("testcase-create-submit").click();
+    await openDemoTestCases(page);
+    const { manualId } = await createDemoManualTestCase(page, {
+      title: manualTitle,
+      reqKey,
+      stepName
+    });
 
-    const manualRow = page.locator(`tr[data-testid="testcase-row"]`).filter({ hasText: manualTitle });
-    await expect(manualRow).toBeVisible();
-    const manualId = await manualRow.getAttribute("data-testcase-id");
-    expect(manualId).toBeTruthy();
+    await openDemoRuns(page);
+    await createDemoRunAndOpenDetail(page, runName);
 
-    await page.getByTestId("project-nav-overview").click();
-    await page.getByTestId("project-nav-runs").click();
-    await expect(page.getByTestId("runs-page")).toBeVisible();
-    await page.getByTestId("run-create-name").fill(runName);
-    await page.getByTestId("run-create-submit").click();
-
-    const runRow = page.locator(`tr[data-testid="run-row"]`).filter({ hasText: runName });
-    await expect(runRow).toBeVisible();
-    await runRow.getByTestId("run-open").click();
-    await expect(page.getByTestId("run-detail-page")).toBeVisible();
     await page.getByTestId("result-submit-open").click();
     await expect(page.getByTestId("result-submit-dialog")).toBeVisible();
-    await page.getByTestId("result-submit-testcase").selectOption(manualId!);
+    await page.getByTestId("result-submit-testcase").selectOption(manualId);
     await page.getByTestId("result-submit-status").selectOption("passed");
     await page.getByTestId("result-submit-duration").fill("30");
     await page.getByTestId("result-submit-button").click();
@@ -68,13 +57,12 @@ test.describe("FE-L manual happy path", () => {
     await expect(page.getByTestId("run-aggregate-total")).toHaveText("1", { timeout: 8000 });
     await expect(page.getByTestId("run-aggregate-passed")).toHaveText("1");
 
-    await page.getByTestId("project-nav-runs").click();
-    await page.getByTestId("project-nav-overview").click();
-    await page.getByTestId("project-nav-reporting").click();
-    await expect(page.getByTestId("reporting-page")).toBeVisible();
-    await expect(page.getByTestId("kpi-current-total-requirements")).toHaveText("1");
-    await expect(page.getByTestId("kpi-current-total-manual")).toHaveText("1");
-    await expect(page.getByTestId("kpi-current-total-runs")).toHaveText("1");
+    await openDemoReporting(page);
+    await expect(page.getByTestId("kpi-current-total-requirements")).toHaveText(String(reqBefore + 1));
+    await expect(page.getByTestId("kpi-current-total-manual")).toHaveText(String(manualBefore + 1));
+    await expect(page.getByTestId("kpi-current-total-runs")).toHaveText(String(runsBefore + 1));
+    await expect(page.getByTestId("traceability-tree")).toContainText(DEMO.requirementTitles.R1);
+    await expect(page.getByTestId("traceability-tree")).toContainText(reqTitle);
     await expect(page.getByTestId("shell-transport-error")).toHaveCount(0);
     await expect(page.getByTestId("shell-app-error")).toHaveCount(0);
   });
