@@ -115,7 +115,7 @@ jobs:
         run: npm ci
 
       - name: Install Playwright Chromium
-        run: npm run e2e:install -w tcms-web
+        run: npm run e2e:install:ci -w tcms-web
 
       - name: Web E2E (Playwright)
         run: npm run ci:e2e:web
