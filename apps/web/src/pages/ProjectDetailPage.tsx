@@ -8,6 +8,7 @@ import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayl
 import {
   ArchiveProjectMutation,
   ProjectByIdQuery,
+  ProjectSummaryQuery,
   UpdateProjectMutation
 } from "../graphql/documents";
 import { REQUIRED_MSG, trimmedNonEmpty } from "../forms/mandatoryFields";
@@ -30,6 +31,7 @@ export function ProjectDetailPage() {
   const [showValidationPayload, setShowValidationPayload] = useState(false);
   const [savePhase, setSavePhase] = useState<"idle" | "saving">("idle");
   const [failBump, setFailBump] = useState(0);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [detailResult, reexecuteDetail] = useQuery({
     query: ProjectByIdQuery,
@@ -37,10 +39,18 @@ export function ProjectDetailPage() {
     pause: projectId === undefined || projectId === ""
   });
 
+  const [summaryResult] = useQuery({
+    query: ProjectSummaryQuery,
+    variables: { projectId: projectId ?? "" },
+    pause: projectId === undefined || projectId === ""
+  });
+
   const [, updateProject] = useMutation(UpdateProjectMutation);
   const [, archiveProject] = useMutation(ArchiveProjectMutation);
 
   const project = detailResult.data?.project;
+  const summary = summaryResult.data?.projectSummary;
+  const base = projectId !== undefined ? `/projects/${projectId}` : "";
 
   /**
    * Hydrate when opening a project (`projectId` / `project.id`), not when `project` is replaced by refetch.
@@ -227,102 +237,153 @@ export function ProjectDetailPage() {
   return (
     <section className="projects-page" data-testid="project-detail-page">
       <ProjectWorkspaceHeader
-        title="Project"
+        title="Overview"
         titleId="project-detail-heading"
         projectId={projectId}
         active="project"
       />
 
-      <dl className="project-detail-meta">
-        <div>
-          <dt>Key</dt>
-          <dd>
-            <code data-testid="project-detail-key">{project.key}</code>
-          </dd>
+      {summary ? (
+        <div className="project-dashboard-kpi" data-testid="project-dashboard-kpi">
+          <RouterLink to={`${base}/requirements`} className="project-kpi-tile" data-testid="project-kpi-requirements">
+            <span className="project-kpi-value">{summary.totalRequirements}</span>
+            <span className="project-kpi-label">Requirements</span>
+          </RouterLink>
+          <RouterLink to={`${base}/test-cases`} className="project-kpi-tile" data-testid="project-kpi-manual">
+            <span className="project-kpi-value">{summary.totalManualCases}</span>
+            <span className="project-kpi-label">Manual tests</span>
+          </RouterLink>
+          <RouterLink to={`${base}/test-cases`} className="project-kpi-tile" data-testid="project-kpi-automated">
+            <span className="project-kpi-value">{summary.totalAutomatedCases}</span>
+            <span className="project-kpi-label">Automated tests</span>
+          </RouterLink>
+          <RouterLink to={`${base}/plans`} className="project-kpi-tile" data-testid="project-kpi-plans">
+            <span className="project-kpi-value">{summary.totalPlans}</span>
+            <span className="project-kpi-label">Plans</span>
+          </RouterLink>
         </div>
-        <div>
-          <dt>Status</dt>
-          <dd data-testid="project-detail-status">
-            {project.isArchived ? "Archived" : "Active"}
-          </dd>
-        </div>
-      </dl>
+      ) : null}
 
-      <div className="projects-create project-detail-edit">
-        <h3 className="projects-subheading">Edit</h3>
-        <div className="projects-create-fields">
-          <label>
-            Name <span className="required-star" aria-hidden="true">*</span>
-            <input
-              type="text"
-              value={nameDraft}
-              onChange={(e) => {
-                setNameDraft(e.target.value);
-                setNameError(null);
-                setShowValidationPayload(false);
-              }}
-              data-testid="project-edit-name"
-              required
-              aria-invalid={nameError !== null}
-              aria-describedby={nameError !== null ? "project-edit-name-err" : undefined}
-            />
-            {nameError !== null && (
-              <p id="project-edit-name-err" className="field-error" role="alert" data-testid="project-edit-name-error">
-                {nameError}
-              </p>
-            )}
-          </label>
-          <label>
-            New key <span className="hint">(optional)</span>
-            <input
-              type="text"
-              value={keyNewDraft}
-              onChange={(e) => {
-                setKeyNewDraft(e.target.value);
-                setShowValidationPayload(false);
-              }}
-              data-testid="project-edit-key-new"
-              placeholder={project.key}
-            />
-          </label>
-          <label>
-            Description <span className="hint">(optional)</span>
-            <textarea
-              rows={3}
-              value={descriptionDraft}
-              onChange={(e) => {
-                setDescriptionDraft(e.target.value);
-                setShowValidationPayload(false);
-              }}
-              data-testid="project-edit-description"
-            />
-          </label>
+      <div className="project-overview-grid">
+        <div className="project-overview-summary">
+          <h3 className="projects-subheading">Summary</h3>
+          <dl className="project-detail-meta">
+            <div>
+              <dt>Key</dt>
+              <dd>
+                <code data-testid="project-detail-key">{project.key}</code>
+              </dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd data-testid="project-detail-status">
+                {project.isArchived ? "Archived" : "Active"}
+              </dd>
+            </div>
+            {summary ? (
+              <div>
+                <dt>Latest run</dt>
+                <dd data-testid="project-detail-latest-run">
+                  {summary.latestRunId ? (
+                    <RouterLink to={`${base}/runs/${summary.latestRunId}`} data-testid="project-latest-run-link">
+                      {summary.latestRunName}
+                    </RouterLink>
+                  ) : (
+                    "None"
+                  )}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
         </div>
-        <ValidationErrorPayloadPreview open={showValidationPayload} payload={updateProjectClientPayload} />
-        <div className="form-edit-actions">
-          <span
-            className={`form-save-status form-save-status--${saveState}`}
-            data-testid="form-save-status"
-            data-save-state={saveState}
+        <div className="project-detail-edit">
+          <button
+            type="button"
+            className="project-settings-toggle"
+            aria-expanded={settingsOpen}
+            onClick={() => setSettingsOpen((o) => !o)}
+            data-testid="project-settings-toggle"
           >
-            {saveStatusLabel}
-          </span>
-          <button type="button" onClick={onSaveClick} data-testid="project-save">
-            Save changes
+            Project settings {settingsOpen ? "▾" : "▸"}
           </button>
+          {settingsOpen ? (
+            <>
+              <h3 className="projects-subheading">Edit</h3>
+            <div className="projects-create-fields">
+              <label>
+                Name <span className="required-star" aria-hidden="true">*</span>
+                <input
+                  type="text"
+                  value={nameDraft}
+                  onChange={(e) => {
+                    setNameDraft(e.target.value);
+                    setNameError(null);
+                    setShowValidationPayload(false);
+                  }}
+                  data-testid="project-edit-name"
+                  required
+                  aria-invalid={nameError !== null}
+                  aria-describedby={nameError !== null ? "project-edit-name-err" : undefined}
+                />
+                {nameError !== null && (
+                  <p id="project-edit-name-err" className="field-error" role="alert" data-testid="project-edit-name-error">
+                    {nameError}
+                  </p>
+                )}
+              </label>
+              <label>
+                New key <span className="hint">(optional)</span>
+                <input
+                  type="text"
+                  value={keyNewDraft}
+                  onChange={(e) => {
+                    setKeyNewDraft(e.target.value);
+                    setShowValidationPayload(false);
+                  }}
+                  data-testid="project-edit-key-new"
+                  placeholder={project.key}
+                />
+              </label>
+              <label>
+                Description <span className="hint">(optional)</span>
+                <textarea
+                  rows={3}
+                  value={descriptionDraft}
+                  onChange={(e) => {
+                    setDescriptionDraft(e.target.value);
+                    setShowValidationPayload(false);
+                  }}
+                  data-testid="project-edit-description"
+                />
+              </label>
+            </div>
+            <ValidationErrorPayloadPreview open={showValidationPayload} payload={updateProjectClientPayload} />
+            <div className="form-edit-actions">
+              <span
+                className={`form-save-status form-save-status--${saveState}`}
+                data-testid="form-save-status"
+                data-save-state={saveState}
+              >
+                {saveStatusLabel}
+              </span>
+              <button type="button" onClick={onSaveClick} data-testid="project-save">
+                Save changes
+              </button>
+            </div>
+              <div className="project-detail-actions">
+                {project.isArchived ? (
+                  <button type="button" onClick={() => setArchived(false)} data-testid="project-restore">
+                    Restore project
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => setArchived(true)} data-testid="project-archive">
+                    Archive project
+                  </button>
+                )}
+              </div>
+            </>
+          ) : null}
         </div>
-      </div>
-
-      <div className="project-detail-actions">
-        {project.isArchived ? (
-          <button type="button" onClick={() => setArchived(false)} data-testid="project-restore">
-            Restore project
-          </button>
-        ) : (
-          <button type="button" onClick={() => setArchived(true)} data-testid="project-archive">
-            Archive project
-          </button>
-        )}
       </div>
     </section>
   );

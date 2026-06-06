@@ -78,6 +78,21 @@ export const ArchiveProjectMutation = parse(`
   }
 `);
 
+export const PurgeArchivedProjectsMutation = parse(`
+  mutation PurgeArchivedProjects {
+    purgeArchivedProjects {
+      deletedCount
+      deletedProjectKeys
+      error {
+        code
+        message
+        fixHint
+        context
+      }
+    }
+  }
+`);
+
 export const IntentionallyInvalidQuery = parse(`
   query IntentionallyInvalid {
     thisFieldDoesNotExistOnQuery
@@ -104,6 +119,29 @@ export const CreateProjectMutation = parse(`
   }
 `);
 
+export const ProjectSummaryQuery = parse(`
+  query ProjectSummary($projectId: ID!) {
+    projectSummary(input: { projectId: $projectId }) {
+      totalRequirements
+      totalManualCases
+      totalAutomatedCases
+      totalPlans
+      latestRunId
+      latestRunName
+    }
+  }
+`);
+
+export const ProjectSettingsQuery = parse(`
+  query ProjectSettings($projectId: ID!) {
+    projectSettings(input: { projectId: $projectId }) {
+      requirementStatuses
+      requirementPriorities
+      requirementTypes
+    }
+  }
+`);
+
 export const RequirementsListQuery = parse(`
   query RequirementsList($projectId: ID!) {
     requirements(input: { projectId: $projectId }) {
@@ -111,9 +149,14 @@ export const RequirementsListQuery = parse(`
       externalKey
       title
       description
+      releaseLabel
+      sprintLabel
+      requirementType
       status
       priority
       tags
+      parentRequirementId
+      linkedManualTestCaseCount
       createdAt
       updatedAt
     }
@@ -164,8 +207,16 @@ export const UpdateRequirementMutation = parse(`
     updateRequirement(input: $input) {
       requirement {
         id
+        externalKey
         title
         description
+        releaseLabel
+        sprintLabel
+        requirementType
+        status
+        priority
+        tags
+        linkedManualTestCaseCount
       }
       error {
         code
@@ -192,8 +243,12 @@ export const TestCasesListQuery = parse(`
       type
       title
       externalId
+      releaseLabel
+      sprintLabel
       isDeleted
       deletedAt
+      linkedRequirementCount
+      linkedManualTestCaseCount
       createdAt
       updatedAt
     }

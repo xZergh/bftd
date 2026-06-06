@@ -85,6 +85,7 @@ export function ProjectsListPage() {
   const { clearShellMessages, setTransportMessage, setPayloadAppError } = useShellErrors();
   const [searchParams, setSearchParams] = useSearchParams();
   const [includeArchived, setIncludeArchived] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -222,11 +223,33 @@ export function ProjectsListPage() {
 
   const projectsRaw: ProjectListItem[] = listResult.data?.projects ?? [];
 
+  const filteredBySearch = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const matches = (p: ProjectListItem) => {
+      if (q === "") {
+        return true;
+      }
+      return (
+        p.name.toLowerCase().includes(q) ||
+        p.key.toLowerCase().includes(q) ||
+        (p.description ?? "").toLowerCase().includes(q)
+      );
+    };
+    let out = projectsRaw.filter(matches);
+    if (rowEdit !== null && !out.some((p) => p.id === rowEdit.id)) {
+      const editing = projectsRaw.find((p) => p.id === rowEdit.id);
+      if (editing !== undefined) {
+        out = [...out, editing];
+      }
+    }
+    return out;
+  }, [projectsRaw, searchQuery, rowEdit]);
+
   const sortedProjects = useMemo(() => {
-    const copy = [...projectsRaw];
+    const copy = [...filteredBySearch];
     copy.sort((a, b) => compareProjects(a, b, sortKey, sortDir));
     return copy;
-  }, [projectsRaw, sortKey, sortDir]);
+  }, [filteredBySearch, sortKey, sortDir]);
 
   const editingProject = useMemo(
     () => (rowEdit === null ? null : projectsRaw.find((p) => p.id === rowEdit.id) ?? null),
@@ -372,14 +395,15 @@ export function ProjectsListPage() {
     );
   };
 
+  const tableColSpan = 2 + (includeArchived ? 1 : 0) + 1;
+  const searchActive = searchQuery.trim() !== "";
+  const showSearchEmptyRow =
+    !listResult.fetching && projectsRaw.length > 0 && sortedProjects.length === 0;
+
   return (
     <section aria-labelledby="projects-heading">
       <div data-testid="projects-page">
-        <YStack gap="$4" maxWidth="100%">
-          <H2 id="projects-heading" size="$7" fontWeight="700" color="$color12">
-            Projects
-          </H2>
-
+        <YStack gap="$3" maxWidth="100%">
           {createModalOpen ? (
             <div
               className="projects-modal-backdrop"
@@ -485,22 +509,84 @@ export function ProjectsListPage() {
             </div>
           ) : null}
 
-          <XStack alignItems="center" gap="$3" flexWrap="wrap" className="projects-list-toolbar">
-            <label className="projects-show-archived-toggle" htmlFor="project-list-include-archived">
-              <span className="projects-show-archived-switch">
-                <input
-                  id="project-list-include-archived"
-                  type="checkbox"
-                  checked={includeArchived}
-                  onChange={(e) => setIncludeArchived(e.target.checked)}
-                  data-testid="project-list-include-archived-switch"
+          <XStack
+            role="group"
+            aria-labelledby="projects-heading"
+            alignItems="center"
+            justifyContent="flex-start"
+            flexWrap="wrap"
+            gap="$3"
+            width="100%"
+            className="projects-list-toolbar"
+          >
+            <XStack
+              alignItems="center"
+              flexWrap="wrap"
+              gap="$2"
+              flexShrink={1}
+              minWidth={0}
+              className="projects-toolbar-head"
+            >
+              <H2
+                tag="h1"
+                id="projects-heading"
+                size="$5"
+                fontWeight="700"
+                color="$color12"
+                margin={0}
+                lineHeight="$1"
+                flexShrink={0}
+              >
+                Projects
+              </H2>
+              <XStack className="projects-toolbar-search" alignItems="center" gap="$2" flexShrink={1} minWidth={0}>
+                <Label htmlFor="project-list-search" className="sr-only">
+                  Search projects by name, key, or description
+                </Label>
+                <Input
+                  id="project-list-search"
+                  className="projects-toolbar-search-input"
+                  size="$3"
+                  flexGrow={1}
+                  flexShrink={1}
+                  minWidth={0}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder="Name, key, or description"
+                  autoComplete="off"
+                  aria-label="Filter projects by name, key, or description"
+                  data-testid="project-list-search"
                 />
-                <span className="projects-show-archived-track" aria-hidden />
-                <span className="projects-show-archived-thumb" aria-hidden />
-              </span>
-              <span className="projects-show-archived-label">Show archived</span>
-            </label>
-            {listResult.fetching && <PageLoading inline dataTestId="projects-list-loading" />}
+                {searchActive ? (
+                  <Button
+                    size="$2"
+                    chromeless
+                    type="button"
+                    onPress={() => setSearchQuery("")}
+                    data-testid="project-list-search-clear"
+                  >
+                    Clear
+                  </Button>
+                ) : null}
+              </XStack>
+            </XStack>
+            <XStack className="projects-toolbar-actions" alignItems="center" gap="$3" flexWrap="wrap" flexShrink={0}>
+              <label className="projects-show-archived-toggle" htmlFor="project-list-include-archived">
+                <span className="projects-show-archived-switch">
+                  <input
+                    id="project-list-include-archived"
+                    type="checkbox"
+                    checked={includeArchived}
+                    onChange={(e) => setIncludeArchived(e.target.checked)}
+                    data-testid="project-list-include-archived-switch"
+                  />
+                  <span className="projects-show-archived-track" aria-hidden />
+                  <span className="projects-show-archived-thumb" aria-hidden />
+                </span>
+                <span className="projects-show-archived-label">Show archived</span>
+              </label>
+              {listResult.fetching ? <PageLoading inline dataTestId="projects-list-loading" /> : null}
+            </XStack>
           </XStack>
 
           {projectsRaw.length === 0 && !listResult.fetching ? (
@@ -508,7 +594,7 @@ export function ProjectsListPage() {
               No projects yet. Open the Projects menu and choose New project.
             </Paragraph>
           ) : (
-            <YStack overflow="scroll" borderWidth={1} borderColor="$borderColor" borderRadius="$4">
+            <YStack overflow="auto" maxWidth="100%">
               <table className="projects-table">
                 <thead>
                   <tr>
@@ -535,6 +621,20 @@ export function ProjectsListPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {showSearchEmptyRow ? (
+                    <tr>
+                      <td colSpan={tableColSpan}>
+                        <XStack flexWrap="wrap" alignItems="center" gap="$2" paddingVertical="$1">
+                          <Paragraph margin={0} data-testid="projects-list-search-empty" color="$color10" size="$3">
+                            No projects match this search. Try a different term.
+                          </Paragraph>
+                          <Button size="$2" chromeless onPress={() => setSearchQuery("")} data-testid="projects-list-search-empty-clear">
+                            Clear filter
+                          </Button>
+                        </XStack>
+                      </td>
+                    </tr>
+                  ) : null}
                   {sortedProjects.map((p) => (
                     <tr key={p.id} data-project-key={p.key} data-testid="project-row">
                       <td className="projects-table-name-cell">

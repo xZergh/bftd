@@ -10,12 +10,11 @@ test.describe("FE-A app shell", () => {
     await expect(page.getByTestId("app-root")).toBeVisible();
     await expect(page.getByTestId("nav-projects-menu")).toBeVisible();
 
-    await page.getByTestId("nav-projects-menu").click();
     await page.getByTestId("nav-projects").click();
     await expect(page).toHaveURL(/\/projects$/);
     await expect(page.getByTestId("projects-page")).toBeVisible();
 
-    await page.getByTestId("nav-home").click();
+    await page.getByTestId("nav-shell-crumb").click();
     await expect(page).toHaveURL(/\/projects$/);
 
     await page.goto("/dev/shell");

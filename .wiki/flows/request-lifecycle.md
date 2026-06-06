@@ -1,10 +1,11 @@
 ---
-title: "Request Lifecycle"
+
+## title: "Request Lifecycle"
+
 type: "flow"
 status: "active"
 source_paths: ["src/app.ts", "src/graphql/resolvers.ts", "src/domain/service.ts"]
 updated_at: "2026-04-17"
----
 
 GraphQL request handling flow:
 

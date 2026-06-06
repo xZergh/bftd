@@ -1,6 +1,11 @@
-import { and, eq } from "drizzle-orm";
+import { and, count, eq, inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { AppError } from "../errors";
+import {
+  assertRequirementPriority,
+  assertRequirementStatus,
+  assertRequirementType
+} from "../projectSettings";
 import { requirementTestCaseLinks, requirements } from "../../db/schema";
 import { normalizeLabel } from "./labels";
 
@@ -48,6 +53,25 @@ async function assertParentInProject(db: Db, projectId: string, parentId: string
   }
 }
 
+async function manualLinkCountsByRequirement(db: Db, requirementIds: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (requirementIds.length === 0) {
+    return out;
+  }
+  for (const id of requirementIds) {
+    out.set(id, 0);
+  }
+  const rows = await db
+    .select({ requirementId: requirementTestCaseLinks.requirementId, c: count() })
+    .from(requirementTestCaseLinks)
+    .where(inArray(requirementTestCaseLinks.requirementId, requirementIds))
+    .groupBy(requirementTestCaseLinks.requirementId);
+  for (const row of rows) {
+    out.set(row.requirementId, Number(row.c));
+  }
+  return out;
+}
+
 export async function createRequirement(
   db: Db,
   input: {
@@ -65,6 +89,12 @@ export async function createRequirement(
   }
 ) {
   await assertParentInProject(db, input.projectId, input.parentRequirementId);
+  const requirementType = input.requirementType ?? "functional";
+  const status = input.status ?? "draft";
+  const priority = input.priority ?? "medium";
+  assertRequirementType(requirementType);
+  assertRequirementStatus(status);
+  assertRequirementPriority(priority);
   const req = {
     id: randomUUID(),
     projectId: input.projectId,
@@ -73,21 +103,29 @@ export async function createRequirement(
     description: input.description ?? null,
     releaseLabel: normalizeLabel(input.releaseLabel),
     sprintLabel: normalizeLabel(input.sprintLabel),
-    requirementType: input.requirementType ?? "functional",
-    status: input.status ?? "draft",
-    priority: input.priority ?? "medium",
+    requirementType,
+    status,
+    priority,
     tagsJson: tagsToJson(input.tags),
     parentRequirementId: input.parentRequirementId ?? null,
     createdAt: now(),
     updatedAt: now()
   };
   await db.insert(requirements).values(req);
-  return mapRequirementRow(req);
+  return { ...mapRequirementRow(req), linkedManualTestCaseCount: 0 };
 }
 
 export async function listRequirements(db: Db, input: { projectId: string }) {
   const rows = await db.select().from(requirements).where(eq(requirements.projectId, input.projectId));
-  return rows.map(mapRequirementRow).sort((a, b) => a.externalKey.localeCompare(b.externalKey));
+  const mapped = rows.map(mapRequirementRow).sort((a, b) => a.externalKey.localeCompare(b.externalKey));
+  const linkCounts = await manualLinkCountsByRequirement(
+    db,
+    mapped.map((r) => r.id)
+  );
+  return mapped.map((r) => ({
+    ...r,
+    linkedManualTestCaseCount: linkCounts.get(r.id) ?? 0
+  }));
 }
 
 export async function getRequirement(db: Db, input: { id: string; projectId?: string }) {
@@ -95,7 +133,9 @@ export async function getRequirement(db: Db, input: { id: string; projectId?: st
   if (rows.length === 0) return null;
   const r = rows[0];
   if (input.projectId && r.projectId !== input.projectId) return null;
-  return mapRequirementRow(r);
+  const mapped = mapRequirementRow(r);
+  const counts = await manualLinkCountsByRequirement(db, [mapped.id]);
+  return { ...mapped, linkedManualTestCaseCount: counts.get(mapped.id) ?? 0 };
 }
 
 export async function updateRequirement(
@@ -129,9 +169,18 @@ export async function updateRequirement(
   if (input.description !== undefined) patch.description = input.description;
   if (input.releaseLabel !== undefined) patch.releaseLabel = normalizeLabel(input.releaseLabel ?? undefined);
   if (input.sprintLabel !== undefined) patch.sprintLabel = normalizeLabel(input.sprintLabel ?? undefined);
-  if (input.requirementType !== undefined) patch.requirementType = input.requirementType;
-  if (input.status !== undefined) patch.status = input.status;
-  if (input.priority !== undefined) patch.priority = input.priority;
+  if (input.requirementType !== undefined) {
+    assertRequirementType(input.requirementType);
+    patch.requirementType = input.requirementType;
+  }
+  if (input.status !== undefined) {
+    assertRequirementStatus(input.status);
+    patch.status = input.status;
+  }
+  if (input.priority !== undefined) {
+    assertRequirementPriority(input.priority);
+    patch.priority = input.priority;
+  }
   if (input.tags !== undefined) patch.tagsJson = tagsToJson(input.tags);
   if (input.parentRequirementId !== undefined) patch.parentRequirementId = input.parentRequirementId;
 

@@ -4,12 +4,12 @@ TCMS serves the **GraphQL Explorer** (interactive query IDE) at the same URL as 
 
 ## Open the Explorer
 
-1. Start the API (see [`README.md`](../README.md) or [`LOCAL_MANUAL_TESTING.md`](LOCAL_MANUAL_TESTING.md)).
-2. In a browser, open **`http://localhost:<PORT>/graphql`** (default port **4000**).
+1. Start the API (see `[README.md](../README.md)` or `[LOCAL_MANUAL_TESTING.md](LOCAL_MANUAL_TESTING.md)`).
+2. In a browser, open `**http://localhost:<PORT>/graphql`** (default port **4000**).
 
 Use a normal browser navigation (GET). Do not send `POST` with `application/json` from the address bar—the Explorer is the HTML page returned when the client asks for HTML (browsers send `Accept: text/html`).
 
-If you only need the JSON API, use `POST /graphql` with a JSON body (`query`, `variables`, `operationName`) as documented in [`API_CONTRACTS.md`](API_CONTRACTS.md).
+If you only need the JSON API, use `POST /graphql` with a JSON body (`query`, `variables`, `operationName`) as documented in `[API_CONTRACTS.md](API_CONTRACTS.md)`.
 
 ## Using the Explorer
 
@@ -20,7 +20,7 @@ If you only need the JSON API, use `POST /graphql` with a JSON body (`query`, `v
 
 ## Schema source of truth
 
-The committed SDL snapshot is [`contracts/graphql-schema.snapshot.graphql`](../contracts/graphql-schema.snapshot.graphql). Regenerate it after schema changes with `npm run ci:schema:update` (see [`DEVELOPER_GUIDE.md`](DEVELOPER_GUIDE.md)).
+The committed SDL snapshot is `[contracts/graphql-schema.snapshot.graphql](../contracts/graphql-schema.snapshot.graphql)`. Regenerate it after schema changes with `npm run ci:schema:update` (see `[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)`).
 
 ## Production note
 

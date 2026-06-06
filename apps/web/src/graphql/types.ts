@@ -13,9 +13,14 @@ export type RequirementListItem = {
   externalKey: string;
   title: string;
   description: string | null;
+  releaseLabel: string | null;
+  sprintLabel: string | null;
+  requirementType: string | null;
   status: string | null;
   priority: string | null;
   tags: string[];
+  parentRequirementId: string | null;
+  linkedManualTestCaseCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -25,10 +30,29 @@ export type TestCaseListItem = {
   type: string;
   title: string;
   externalId: string | null;
+  releaseLabel: string | null;
+  sprintLabel: string | null;
   isDeleted: boolean;
   deletedAt: string | null;
+  linkedRequirementCount: number;
+  linkedManualTestCaseCount: number;
   createdAt: string;
   updatedAt: string;
+};
+
+export type ProjectSummaryPayload = {
+  totalRequirements: number;
+  totalManualCases: number;
+  totalAutomatedCases: number;
+  totalPlans: number;
+  latestRunId: string | null;
+  latestRunName: string | null;
+};
+
+export type ProjectEnumSettings = {
+  requirementStatuses: string[];
+  requirementPriorities: string[];
+  requirementTypes: string[];
 };
 
 export type TestRunListItem = {

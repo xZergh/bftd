@@ -16,14 +16,24 @@ describe("GraphQL integration - core", () => {
 
     const sRes = await t.agent.post("/graphql").send({
       query: `query($input: ProjectSummaryInput!) {
-        projectSummary(input: $input) { totalRequirements totalManualCases totalAutomatedCases }
+        projectSummary(input: $input) {
+          totalRequirements
+          totalManualCases
+          totalAutomatedCases
+          totalPlans
+          latestRunId
+          latestRunName
+        }
       }`,
       variables: { input: { projectId } }
     });
     expect(sRes.body.data.projectSummary).toEqual({
       totalRequirements: 0,
       totalManualCases: 0,
-      totalAutomatedCases: 0
+      totalAutomatedCases: 0,
+      totalPlans: 0,
+      latestRunId: null,
+      latestRunName: null
     });
 
     await t.close();

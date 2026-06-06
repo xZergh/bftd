@@ -13,19 +13,23 @@ function navCurrent(active: ProjectWorkspaceSection, section: ProjectWorkspaceSe
 export function ProjectSubNav({ projectId, active }: Props) {
   const base = `/projects/${projectId}`;
 
+  const chipLinkStyle = { color: "var(--tcms-text)" as const };
+
   return (
     <>
       <RouterLink
         to={base}
-        data-testid="project-nav-project"
+        data-testid="project-nav-overview"
         aria-current={navCurrent(active, "project")}
+        style={chipLinkStyle}
       >
-        Project
+        Overview
       </RouterLink>
       <RouterLink
         to={`${base}/requirements`}
         data-testid="project-nav-requirements"
         aria-current={navCurrent(active, "requirements")}
+        style={chipLinkStyle}
       >
         Requirements
       </RouterLink>
@@ -33,6 +37,7 @@ export function ProjectSubNav({ projectId, active }: Props) {
         to={`${base}/test-cases`}
         data-testid="project-nav-test-cases"
         aria-current={navCurrent(active, "test-cases")}
+        style={chipLinkStyle}
       >
         Test cases
       </RouterLink>
@@ -40,6 +45,7 @@ export function ProjectSubNav({ projectId, active }: Props) {
         to={`${base}/plans`}
         data-testid="project-nav-plans"
         aria-current={navCurrent(active, "plans")}
+        style={chipLinkStyle}
       >
         Plans
       </RouterLink>
@@ -47,6 +53,7 @@ export function ProjectSubNav({ projectId, active }: Props) {
         to={`${base}/runs`}
         data-testid="project-nav-runs"
         aria-current={navCurrent(active, "runs")}
+        style={chipLinkStyle}
       >
         Runs
       </RouterLink>
@@ -54,6 +61,7 @@ export function ProjectSubNav({ projectId, active }: Props) {
         to={`${base}/reporting`}
         data-testid="project-nav-reporting"
         aria-current={navCurrent(active, "reporting")}
+        style={chipLinkStyle}
       >
         Reporting
       </RouterLink>
@@ -61,6 +69,7 @@ export function ProjectSubNav({ projectId, active }: Props) {
         to={`${base}/imports`}
         data-testid="project-nav-imports"
         aria-current={navCurrent(active, "imports")}
+        style={chipLinkStyle}
       >
         Imports
       </RouterLink>
@@ -68,6 +77,7 @@ export function ProjectSubNav({ projectId, active }: Props) {
         to={`${base}/design-links`}
         data-testid="project-nav-design-links"
         aria-current={navCurrent(active, "design-links")}
+        style={chipLinkStyle}
       >
         Design links
       </RouterLink>

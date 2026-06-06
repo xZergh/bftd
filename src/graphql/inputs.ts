@@ -56,6 +56,9 @@ export const projectSummaryInput = z.object({
   releaseLabel: z.string().optional(),
   sprintLabel: z.string().optional()
 });
+export const projectSettingsInput = z.object({
+  projectId: z.string().min(1)
+});
 export const runTraceabilityInput = z.object({
   runId: z.string().min(1),
   releaseLabel: z.string().optional(),

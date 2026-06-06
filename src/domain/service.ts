@@ -1,4 +1,6 @@
 import { and, eq } from "drizzle-orm";
+import { AppError } from "./errors";
+import { defaultProjectEnumSettings } from "./projectSettings";
 import {
   appendTestCaseVersion,
   archiveProject as archiveProjectRecord,
@@ -32,6 +34,7 @@ import {
   linkRequirementManualTestCase as linkRequirementManual,
   linkTestPlanTestCase as linkTestPlanTestCaseRecord,
   listProjects as listProjectsRecords,
+  purgeArchivedProjects as purgeArchivedProjectsRecords,
   listRequirements as listRequirementsRecords,
   listTestPlans as listTestPlansRecords,
   listTestCases as listTestCasesRecords,
@@ -188,6 +191,20 @@ export class TcmsService {
 
   async getProjectSummary(input: { projectId: string; releaseLabel?: string; sprintLabel?: string }) {
     return getProjectSummaryStats(this.db, input);
+  }
+
+  async getProjectSettings(input: { projectId: string }) {
+    const project = await getProjectRecord(this.db, { id: input.projectId });
+    if (!project) {
+      throw new AppError("ENTITY_NOT_FOUND", "Project not found.", "Use a valid project id.", {
+        projectId: input.projectId
+      });
+    }
+    return defaultProjectEnumSettings();
+  }
+
+  async purgeArchivedProjects() {
+    return purgeArchivedProjectsRecords(this.db);
   }
 
   async createTestRun(input: {

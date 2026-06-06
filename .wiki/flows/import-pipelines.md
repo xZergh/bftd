@@ -1,5 +1,6 @@
 ---
-title: "Import Pipelines"
+
+## title: "Import Pipelines"
 type: "flow"
 status: "active"
 source_paths:
@@ -8,7 +9,6 @@ source_paths:
   - "src/graphql/resolvers.ts"
   - "apps/web/src/pages/ProjectImportsPage.tsx"
 updated_at: "2026-04-09"
----
 
 Import pipeline flow:
 
