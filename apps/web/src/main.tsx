@@ -15,7 +15,7 @@ const graphqlClient = new Client({
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+    <TamaguiProvider config={tamaguiConfig} defaultTheme="dark">
       <BrowserRouter>
         <Provider value={graphqlClient}>
           <ShellErrorsProvider>

@@ -12,6 +12,7 @@
     "e2e:smoke": "playwright test --grep @smoke",
     "e2e:ci": "playwright test",
     "e2e:install": "playwright install --with-deps chromium",
+    "e2e:install:ci": "playwright install chromium",
     "test": "vitest run"
   },
   "dependencies": {

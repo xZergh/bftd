@@ -1,26 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { openDemoProjectOverview, openDemoReporting } from "./fixtures/demo-qa";
 
-test.describe("FE-M project workspace subnav", () => {
+test.describe("FE-M project workspace subnav (DEMO-QA)", () => {
   test("reporting page exposes full nav links", async ({ page }) => {
-    const suffix = `${Date.now()}`;
-    const projectKey = `fe-m-${suffix}`;
+    await openDemoReporting(page);
 
-    await page.goto("/projects");
-    await page.getByTestId("nav-projects-menu").click();
-    await page.getByTestId("nav-projects-new").click();
-    await page.getByTestId("project-create-name").fill(`FE-M ${suffix}`);
-    await page.getByTestId("project-create-key").fill(projectKey);
-    await page.getByTestId("project-create-submit").click();
-
-    const prow = page.locator(`tr[data-project-key="${projectKey}"]`);
-    await expect(prow).toBeVisible();
-    await prow.getByTestId("project-name-link").click();
-    await expect(page.getByTestId("project-detail-page")).toBeVisible();
-
-    await page.getByTestId("project-nav-reporting").click();
-    await expect(page.getByTestId("reporting-page")).toBeVisible();
-
-    await expect(page.getByTestId("project-nav-project")).toBeVisible();
+    await expect(page.getByTestId("project-nav-overview")).toBeVisible();
     await expect(page.getByTestId("project-nav-requirements")).toBeVisible();
     await expect(page.getByTestId("project-nav-test-cases")).toBeVisible();
     await expect(page.getByTestId("project-nav-plans")).toBeVisible();
@@ -43,20 +28,7 @@ test.describe("FE-M project workspace subnav", () => {
   });
 
   test("test cases link opens inline create row", async ({ page }) => {
-    const suffix = `${Date.now()}`;
-    const projectKey = `fe-m-tc-${suffix}`;
-
-    await page.goto("/projects");
-    await page.getByTestId("nav-projects-menu").click();
-    await page.getByTestId("nav-projects-new").click();
-    await page.getByTestId("project-create-name").fill(`FE-M TC ${suffix}`);
-    await page.getByTestId("project-create-key").fill(projectKey);
-    await page.getByTestId("project-create-submit").click();
-
-    const prow = page.locator(`tr[data-project-key="${projectKey}"]`);
-    await expect(prow).toBeVisible();
-    await prow.getByTestId("project-name-link").click();
-    await expect(page.getByTestId("project-detail-page")).toBeVisible();
+    await openDemoProjectOverview(page);
 
     await page.getByTestId("project-nav-test-cases").click();
     await expect(page.getByTestId("testcases-page")).toBeVisible();

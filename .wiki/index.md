@@ -3,7 +3,7 @@ title: "Project Wiki"
 type: "index"
 status: "active"
 last_commit: "a77e32279703922c9fcd0e3cfbcc4eb2186e01df"
-updated_at: "2026-04-19"
+updated_at: "2026-05-09"
 ---
 
 # TCMS Project Wiki
@@ -53,12 +53,14 @@ This wiki captures the current architecture and major feature flows from reposit
 - `[[flows-import-pipelines]]` - requirements and TRR import execution model.
 - `[[flows-run-traceability-snapshot]]` - run snapshot capture and edge materialization.
 - `[[flows-seed-demo-qa-project]]` - CLI seed for project `DEMO-QA` with sample requirements, tests, and run results.
+- `[[flows-penpot-mcp-chunked-execute]]` - Penpot MCP chunked `execute_code` (Phases A–C generators, staging keys, verification).
 
 ## Concepts
 
 - `[[concepts-error-contract]]` - deterministic API and GraphQL error contract.
 - `[[concepts-import-identity-rules]]` - identity semantics for import upserts.
 - `[[concepts-ui-qa-layout-tamagui-and-mobile]]` - Tamagui-based QA UI layout and path to Expo/native.
+- `[[concepts-tcms-visual-direction]]` - dark dense tables-first UI, tree-grouped tables, demo seed copy for Penpot.
 
 ## Notes
 

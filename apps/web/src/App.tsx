@@ -1,4 +1,5 @@
 import { Route, Routes } from "react-router-dom";
+import { AdminPage } from "./pages/AdminPage";
 import { AppShell } from "./layout/AppShell";
 import { E2eThrowRoute } from "./pages/E2eThrowRoute";
 import { HomePage } from "./pages/HomePage";
@@ -22,6 +23,7 @@ export default function App() {
       <Route element={<AppShell />}>
         <Route index element={<HomePage />} />
         {import.meta.env.DEV ? <Route path="dev/shell" element={<ShellDiagnosticsPage />} /> : null}
+        {import.meta.env.DEV ? <Route path="admin" element={<AdminPage />} /> : null}
         {import.meta.env.DEV ? <Route path="e2e-throw" element={<E2eThrowRoute />} /> : null}
         <Route path="projects" element={<ProjectsListPage />} />
         <Route path="projects/:projectId/requirements/:requirementId" element={<RequirementDetailPage />} />

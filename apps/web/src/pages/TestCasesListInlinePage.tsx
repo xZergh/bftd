@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
 import { ProjectWorkspaceHeader } from "../components/ProjectWorkspaceHeader";
+import { SortableTh } from "../components/requirements/requirementsTableHelpers";
+import { SplitWorkspace } from "../components/workspace/SplitWorkspace";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
+import { demoPlaceholders } from "../constants/demoPlaceholders";
+import { TestCaseDetailPage } from "./TestCaseDetailPage";
 import {
   CreateAutomatedTestCaseMutation,
   CreateManualTestCaseMutation,
@@ -14,6 +18,7 @@ import {
 import { formatGraphQlTransportError } from "../graphql/formatGraphQlError";
 import { REQUIRED_MSG, trimmedNonEmpty } from "../forms/mandatoryFields";
 import type { RequirementListItem, TestCaseListItem } from "../graphql/types";
+import { useColumnSort } from "../hooks/useColumnSort";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import "./ProjectsPage.css";
 
@@ -21,6 +26,8 @@ type StepDraft = { name: string; expectedResult: string };
 
 export function TestCasesListInlinePage() {
   const { projectId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedTcId = searchParams.get("tc");
   const { clearShellMessages, setTransportMessage, setPayloadAppError } = useShellErrors();
   const [typeFilter, setTypeFilter] = useState<"" | "manual" | "automated">("");
   const [includeDeleted, setIncludeDeleted] = useState(false);
@@ -205,6 +212,48 @@ export function TestCasesListInlinePage() {
     title
   ]);
 
+  const requirements: RequirementListItem[] = reqResult.data?.requirements ?? [];
+  const manualsForAuto: TestCaseListItem[] = manualListResult.data?.testCases ?? [];
+  const rows: TestCaseListItem[] = listResult.data?.testCases ?? [];
+
+  const sortAccessors = useMemo(
+    () => ({
+      type: (t: TestCaseListItem) => t.type,
+      title: (t: TestCaseListItem) => t.title,
+      releaseLabel: (t: TestCaseListItem) => t.releaseLabel,
+      sprintLabel: (t: TestCaseListItem) => t.sprintLabel,
+      linkedRequirementCount: (t: TestCaseListItem) => t.linkedRequirementCount,
+      status: (t: TestCaseListItem) => (t.isDeleted ? "deleted" : "active")
+    }),
+    []
+  );
+  const { sorted, sortKey, sortDir, toggleSort } = useColumnSort(rows, sortAccessors);
+
+  const selectRow = useCallback(
+    (id: string) => {
+      setSearchParams(
+        (prev) => {
+          const n = new URLSearchParams(prev);
+          n.set("tc", id);
+          return n;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
+
+  const closeInspector = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.delete("tc");
+        return n;
+      },
+      { replace: true }
+    );
+  }, [setSearchParams]);
+
   if (paused) {
     return null;
   }
@@ -216,39 +265,26 @@ export function TestCasesListInlinePage() {
     );
   }
 
-  const requirements: RequirementListItem[] = reqResult.data?.requirements ?? [];
-  const manualsForAuto: TestCaseListItem[] = manualListResult.data?.testCases ?? [];
-  const rows: TestCaseListItem[] = listResult.data?.testCases ?? [];
-
-  return (
-    <section className="projects-page" data-testid="testcases-page">
-      <ProjectWorkspaceHeader title="Test cases" titleId="testcases-heading" projectId={projectId} active="test-cases" />
-
-      <div className="projects-list-toolbar">
-        <label className="projects-checkbox-label">
-          Type
-          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)} data-testid="testcase-list-type-filter">
-            <option value="">All</option>
-            <option value="manual">Manual</option>
-            <option value="automated">Automated</option>
-          </select>
-        </label>
-        <label className="projects-checkbox-label">
-          <input type="checkbox" checked={includeDeleted} onChange={(e) => setIncludeDeleted(e.target.checked)} data-testid="testcase-list-include-deleted" />
-          Show deleted
-        </label>
-        {listResult.fetching && <PageLoading inline dataTestId="testcases-list-loading" />}
-      </div>
-
-      <table className="projects-table">
-        <thead>
-          <tr>
-            <th scope="col">Type</th>
-            <th scope="col">Title</th>
-            <th scope="col"> </th>
-          </tr>
-        </thead>
-        <tbody>
+  const table = (
+    <table className="projects-table projects-table--dense">
+      <thead>
+        <tr>
+          <SortableTh label="Type" sortKey="type" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+          <SortableTh label="Title" sortKey="title" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+          <SortableTh label="Release" sortKey="releaseLabel" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+          <SortableTh label="Sprint" sortKey="sprintLabel" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+          <SortableTh
+            label="Req links"
+            sortKey="linkedRequirementCount"
+            activeSortKey={sortKey}
+            sortDir={sortDir}
+            onSort={toggleSort}
+          />
+          <SortableTh label="Status" sortKey="status" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+          <th scope="col"> </th>
+        </tr>
+      </thead>
+      <tbody>
           <tr className="projects-table-create-row" data-testid="testcase-create-row">
             <td>
               <div className="projects-table-inline-field">
@@ -283,7 +319,7 @@ export function TestCasesListInlinePage() {
                   className="projects-table-inline-input"
                   data-testid="testcase-create-title"
                   aria-label="Title"
-                  placeholder="Title"
+                  placeholder={demoPlaceholders.testCase.title}
                 />
                 {titleError !== null && <p className="field-error" role="alert" data-testid="testcase-create-title-error">{titleError}</p>}
               </div>
@@ -297,7 +333,7 @@ export function TestCasesListInlinePage() {
 
           {showExtendedCreate && createType === "manual" ? (
             <tr className="projects-table-create-row">
-              <td colSpan={3}>
+              <td colSpan={7}>
                 <div className="projects-table-inline-field">
                   <span>
                     Linked requirements <span className="required-star" aria-hidden="true">*</span>
@@ -338,7 +374,7 @@ export function TestCasesListInlinePage() {
 
           {showExtendedCreate && createType === "automated" ? (
             <tr className="projects-table-create-row">
-              <td colSpan={3}>
+              <td colSpan={7}>
                 <div className="projects-table-inline-field">
                   <span>
                     Linked test cases <span className="required-star" aria-hidden="true">*</span>
@@ -379,7 +415,7 @@ export function TestCasesListInlinePage() {
 
           {showExtendedCreate && createType === "manual" ? (
             <tr className="projects-table-create-row">
-              <td colSpan={3}>
+              <td colSpan={7}>
                 <div className="testcase-steps-editor" data-testid="testcase-create-steps">
                   <span className="projects-subheading">Steps</span>
                   {steps.map((s, i) => (
@@ -430,7 +466,7 @@ export function TestCasesListInlinePage() {
 
           {showValidationPayload ? (
             <tr className="projects-table-create-meta-row">
-              <td colSpan={3}>
+              <td colSpan={7}>
                 <ValidationErrorPayloadPreview open={showValidationPayload} payload={createPayload} />
               </td>
             </tr>
@@ -438,20 +474,26 @@ export function TestCasesListInlinePage() {
 
           {listResult.fetching && rows.length === 0 ? (
             <tr data-testid="testcases-list-loading">
-              <td colSpan={3}>
+              <td colSpan={7}>
                 <PageLoading />
               </td>
             </tr>
           ) : null}
           {!listResult.fetching && rows.length === 0 ? (
             <tr data-testid="testcases-list-empty">
-              <td colSpan={3}>
+              <td colSpan={7}>
                 <p className="projects-empty">No test cases yet.</p>
               </td>
             </tr>
           ) : null}
-          {rows.map((t) => (
-            <tr key={t.id} data-testid="testcase-row" data-testcase-id={t.id}>
+          {sorted.map((t) => (
+            <tr
+              key={t.id}
+              data-testid="testcase-row"
+              data-testcase-id={t.id}
+              className={selectedTcId === t.id ? "projects-table-row--selected" : undefined}
+              onClick={() => selectRow(t.id)}
+            >
               <td>
                 <span className="badge active" data-testid="testcase-row-type">
                   {t.type}
@@ -463,7 +505,11 @@ export function TestCasesListInlinePage() {
                 ) : null}
               </td>
               <td>{t.title}</td>
-              <td>
+              <td>{t.releaseLabel ?? "—"}</td>
+              <td>{t.sprintLabel ?? "—"}</td>
+              <td>{t.type === "manual" ? t.linkedRequirementCount : t.linkedManualTestCaseCount}</td>
+              <td>{t.isDeleted ? "deleted" : "active"}</td>
+              <td onClick={(e) => e.stopPropagation()}>
                 <RouterLink to={`/projects/${projectId}/test-cases/${t.id}`} data-testid="testcase-open">
                   Open
                 </RouterLink>
@@ -472,6 +518,43 @@ export function TestCasesListInlinePage() {
           ))}
         </tbody>
       </table>
+  );
+
+  return (
+    <section className="projects-page" data-testid="testcases-page">
+      <ProjectWorkspaceHeader title="Test cases" titleId="testcases-heading" projectId={projectId} active="test-cases" />
+
+      <div className="projects-list-toolbar">
+        <label className="projects-checkbox-label">
+          Type
+          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)} data-testid="testcase-list-type-filter">
+            <option value="">All</option>
+            <option value="manual">Manual</option>
+            <option value="automated">Automated</option>
+          </select>
+        </label>
+        <label className="projects-checkbox-label">
+          <input type="checkbox" checked={includeDeleted} onChange={(e) => setIncludeDeleted(e.target.checked)} data-testid="testcase-list-include-deleted" />
+          Show deleted
+        </label>
+        {listResult.fetching && <PageLoading inline dataTestId="testcases-list-loading" />}
+      </div>
+
+      <SplitWorkspace
+        sectionKey="test-cases"
+        data-testid="testcases-split"
+        main={table}
+        inspector={
+          selectedTcId ? (
+            <TestCaseDetailPage
+              variant="inspector"
+              embedProjectId={projectId}
+              embedTestCaseId={selectedTcId}
+              onInspectorClose={closeInspector}
+            />
+          ) : null
+        }
+      />
     </section>
   );
 }

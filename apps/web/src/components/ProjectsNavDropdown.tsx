@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { RouterLink } from "../tamagui/RouterLink";
 
-export function ProjectsNavDropdown() {
+const MENU_ID = "projects-nav-dropdown-menu";
+
+type Props = {
+  /** True on `/projects` only; false inside `/projects/:id/...` so the workspace chip carries primary context. */
+  projectsListPageActive: boolean;
+};
+
+export function ProjectsNavDropdown({ projectsListPageActive }: Props) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -29,33 +36,54 @@ export function ProjectsNavDropdown() {
 
   const close = useCallback(() => setOpen(false), []);
 
+  const splitClass = ["projects-nav-dropdown-split", open ? "projects-nav-dropdown-split--open" : ""]
+    .filter(Boolean)
+    .join(" ");
+
+  const linkClass = [
+    "projects-nav-projects-link",
+    projectsListPageActive ? "projects-nav-projects-link--active" : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const caretClass = ["projects-nav-split-caret", open ? "projects-nav-split-caret--open" : ""].filter(Boolean).join(" ");
+
   return (
     <div className="projects-nav-dropdown" ref={wrapRef}>
-      <button
-        type="button"
-        className="projects-nav-dropdown-trigger"
-        aria-expanded={open}
-        aria-haspopup="menu"
-        data-testid="nav-projects-menu"
-        onClick={() => setOpen((v) => !v)}
-      >
-        Projects
-        <span className="projects-nav-dropdown-caret" aria-hidden>
-          ▾
-        </span>
-      </button>
+      <div className={splitClass}>
+        <RouterLink to="/projects" data-testid="nav-projects" className={linkClass} onClick={close}>
+          Projects
+        </RouterLink>
+        <button
+          type="button"
+          className={caretClass}
+          aria-expanded={open}
+          aria-haspopup="menu"
+          aria-controls={open ? MENU_ID : undefined}
+          aria-label="Open project actions menu"
+          data-testid="nav-projects-menu"
+          onClick={() => setOpen((v) => !v)}
+        >
+          <span className="projects-nav-dropdown-caret" aria-hidden>
+            ▾
+          </span>
+        </button>
+      </div>
       {open ? (
-        <ul className="projects-nav-dropdown-menu" role="menu">
-          <li role="none">
-            <RouterLink to="/projects" role="menuitem" data-testid="nav-projects" onClick={close}>
-              All projects
-            </RouterLink>
-          </li>
+        <ul id={MENU_ID} className="projects-nav-dropdown-menu projects-nav-dropdown-menu--split" role="menu">
           <li role="none">
             <RouterLink to="/projects?new=1" role="menuitem" data-testid="nav-projects-new" onClick={close}>
               New project
             </RouterLink>
           </li>
+          {import.meta.env.DEV ? (
+            <li role="none">
+              <RouterLink to="/admin" role="menuitem" data-testid="nav-admin" onClick={close}>
+                Admin
+              </RouterLink>
+            </li>
+          ) : null}
         </ul>
       ) : null}
     </div>
