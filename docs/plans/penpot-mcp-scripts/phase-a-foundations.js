@@ -72,6 +72,18 @@ function hasToken(set, name) {
   return set.tokens.some((t) => t.name === name);
 }
 
+/** Penpot path tokens may not match `t.name` exactly; still skip duplicates on re-run. */
+function tryAddToken(set, spec) {
+  if (hasToken(set, spec.name)) return;
+  try {
+    set.addToken(spec);
+  } catch (e) {
+    const msg = String(e && e.message ? e.message : e);
+    if (/already exists/i.test(msg)) return;
+    throw e;
+  }
+}
+
 function ensureTokens(set) {
   const colors = [
     ["color.bg", "#F7F7F8"],
@@ -80,15 +92,13 @@ function ensureTokens(set) {
     ["color.muted", "#5C5C66"],
     ["color.border", "#D0D0D8"],
     ["color.primary", "#3355CC"],
-    ["color.danger", "#CC3344"],
+    ["color.danger.fg", "#CC3344"],
     ["color.success", "#228855"],
     ["color.warning.bg", "#FFF4CC"],
     ["color.danger.bg", "#FCE8EA"]
   ];
   for (const [name, hex] of colors) {
-    if (!hasToken(set, name)) {
-      set.addToken({ type: "color", name, value: hex });
-    }
+    tryAddToken(set, { type: "color", name, value: hex });
   }
   const spacings = [
     ["space.1", "4"],
@@ -99,18 +109,14 @@ function ensureTokens(set) {
     ["space.6", "32"]
   ];
   for (const [name, px] of spacings) {
-    if (!hasToken(set, name)) {
-      set.addToken({ type: "spacing", name, value: px });
-    }
+    tryAddToken(set, { type: "spacing", name, value: px });
   }
   const radii = [
     ["radius.sm", "4"],
     ["radius.md", "8"]
   ];
   for (const [name, px] of radii) {
-    if (!hasToken(set, name)) {
-      set.addToken({ type: "borderRadius", name, value: px });
-    }
+    tryAddToken(set, { type: "borderRadius", name, value: px });
   }
 }
 
@@ -134,7 +140,17 @@ function ensureLibraryTypography(name, font, sizePx, weight) {
   if (font) {
     let variant = font.variants.find((v) => String(v.fontWeight) === String(weight));
     if (!variant) variant = font.variants[0];
-    t.setFont(font, variant || undefined);
+    if (variant) {
+      if (typeof t.setFont === "function") {
+        t.setFont(font, variant);
+      } else {
+        t.fontId = font.fontId;
+        t.fontVariantId = variant.fontVariantId;
+        t.fontFamilies = font.fontFamily;
+        t.fontWeight = String(variant.fontWeight);
+        t.fontStyle = variant.fontStyle || "normal";
+      }
+    }
   }
   t.fontSize = String(sizePx);
   t.lineHeight = "1.4";
@@ -339,7 +355,7 @@ function buildFixHintCallout(font) {
   b.borderRadius = 6;
   flexColumn(b, 6, 12);
   mkText(b, "Action blocked", { name: "Title", size: 13, color: "#111111", font, weight: "600" });
-  mkText(b, "fixHint: Unlink manual test case REQ-… before delete.", {
+  mkText(b, "fixHint: Unlink manual test case REQ-... before delete.", {
     name: "Hint",
     size: 12,
     color: "#333333",
@@ -452,7 +468,7 @@ function layoutSourcesOnCanvas(root, boards) {
 }
 
 const page = ensureFoundationsPage();
-const root = penpot.root;
+const root = page.root;
 const font = pickFont();
 
 const set = ensureTokenSet();

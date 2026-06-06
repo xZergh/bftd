@@ -3,6 +3,8 @@
 Branch: `docs/penpot-flows-mcp-plan` (created from `main` after pull).  
 Audience: designers and implementers automating a first Penpot draft via the **Penpot MCP** (`execute_code`, `penpot_api_info`, `export_shape`), then refining in Penpot and shipping in **`apps/web`** (React + Tamagui + urql).
 
+**Web-first foundations checklist** (what to review before scaling screens): [`design-requirements-foundations.md`](design-requirements-foundations.md).
+
 Canonical product journey (from `.notes/FE_TRACKED_BACKLOG.md`): **project → import or create requirements → manual tests + links → automated tests + links → plans (optional) → run + results → KPI / traceability**. Imports and design links can be prioritized early for adoption.
 
 ---
@@ -118,23 +120,44 @@ These are not separate routes but **states** or **banners** worth standardizing 
 
 ## 4. Penpot file structure (recommended)
 
-**Pages (Penpot `Page` objects):**
+Penpot does not nest **pages** like folders; use a **stable prefix** so the page list reads as IA: `Area · Subarea · …` (or `Area / Subarea / …` if you prefer slash). Boards inside each page stay flat; group them with naming (`CMP / …`, `SCR / …`).
+
+**Review workflow (current default):** validate **tokens and key components** in the **web app** (and screenshots / PR previews) first; treat Penpot as optional for deep canvas work. **Flows** (`01 Flows / …`) can wait until shells and elements are agreed.
+
+### 4.1 Foundations (folder-style pages)
+
+| Page name (example) | Contents |
+|---------------------|----------|
+| `00 Foundations · Tokens` | Token set `tcms-core`, semantic color/spacing/radius tokens; short **Text** note linking to Tamagui theme names |
+| `00 Foundations · Styles` | Library colors / typographies (`TCMS / …`) used across components |
+| `00 Foundations · Elements · {Name}` | One page per **key component** you want to review in isolation (e.g. `… · AppShell`, `… · DataTable`, `… · PageHeader`). Each page: one main board `CMP / {Name}` (source) + optional variant boards (states, errors) |
+
+Start with a **small set** (AppShell, PageHeader, DataTable, PrimaryButton, EmptyState, ErrorBanner / FixHint) and expand after sign-off.
+
+### 4.2 Screens (folder-style pages)
+
+| Page name (example) | Contents |
+|---------------------|----------|
+| `02 Screens · MVP · {route tail}` | One **page per route or route group** so the sidebar does not become one endless canvas. Example: `02 Screens · MVP · requirements` holds all requirement-related **`SCR / …`** boards; `… · runs` holds run boards |
+| Board naming (unchanged intent) | `SCR / {route segment} - {state}` on each page |
+
+Wire pages can follow the same pattern when you add them again, e.g. `03 Wire · requirements · tree-table-v1` with board `Wireframe / …`.
+
+### 4.3 Flows (later)
 
 | Page name | Contents |
 |-----------|----------|
-| `00 Foundations` | Token sets, color styles, typography styles, core components only |
-| `01 Flows / Journeys` | User-flow boards (swimlanes or numbered steps), one board per flow phase |
-| `02 Screens / MVP` | Route-aligned frames, instances of shell + components |
+| `01 Flows · Journeys` | **Deferred** until foundations + core screens are stable. Then: vertical column of boards `FLOW / F1-entry`, … with step callouts mapped to the flow tables in §2 |
 
-**Naming convention for boards:** `SCR / {RouteSegment} — {State}` examples: `SCR / requirements — list-empty`, `SCR / runs — create-with-plan`.
-
-**Flows page layout:** use a **vertical flex** column of boards: `FLOW / F1-entry`, `FLOW / F2-requirements`, … each board contains step callouts `1.`, `2.` mapped to the tables above.
+**Naming convention for boards:** keep **`CMP / …`**, **`SCR / …`**, **`Wireframe / …`**, **`FLOW / …`** prefixes so exports and search stay consistent (ASCII hyphen inside slugs).
 
 ---
 
 ## 5. MCP automation — phased `execute_code` scripts
 
 Run scripts only with the Penpot file connected. Use `storage` to persist IDs (token set, component roots, page names). Do not `console.log` return payloads.
+
+**Refresh / reset:** **`npm run penpot:run-mcp-phases:fresh`** runs **Phase X** (wipe every page’s root, best-effort delete extra pages, clear `storage.tcms`) then A–C — [`phase-x-wipe-all-canvas.js`](penpot-mcp-scripts/phase-x-wipe-all-canvas.js). **`npm run penpot:run-mcp-phases:backup`** runs **Phase Z** (rename to `BACKUP YYYY-MM-DD / …`) then A–C — [`phase-z-backup-canonical-pages.js`](penpot-mcp-scripts/phase-z-backup-canonical-pages.js). **`npm run penpot:run-mcp-phases:reset`** runs **Phase Y** (`BACKUP PRE-RESET …`), a **`saveVersion`** snapshot, then A–C — [`phase-y-reset-canonical-pages.js`](penpot-mcp-scripts/phase-y-reset-canonical-pages.js). Setting **fresh** (`PENPOT_NUKE_ALL_PAGES`) skips Y/Z. Plugins do not document **page delete**; reset uses **rename off canonical names** plus **file version** for review. Requires `PENPOT_MCP_USER_TOKEN` and `npm install` under `.cursor/penpot-phase-a-chunks/`.
 
 ### Phase A — Foundations
 
@@ -150,16 +173,20 @@ Manual checklist (what the script implements):
 
 ### Phase B — Screen scaffolds
 
-For each `SCR / …` board:
+**Runnable script:** [`penpot-mcp-scripts/phase-b-screen-scaffolds.js`](penpot-mcp-scripts/phase-b-screen-scaffolds.js) — page **`02 Screens / MVP`**: boards **`SCR / …`** (AppShell + PageHeader + optional subtitle + **wire pointer** in **Main** only). For **each** spec, a matching **`03 Wire / …`** page holds a **`Wireframe / …`** board (content-mode-specific low-fi: empty, plain, table, fix, fix-error, run-form, tree-table). Chunk payloads: `npm run penpot:gen-phase-b`, then MCP `execute_code` on `.cursor/penpot-phase-b-chunks/exec-*.json` in order (`storage.__tcmsPhB`). Re-run skips existing `SCR /` board names; **`wirePages`** in `storage.tcms.phaseB` lists refreshed wire artifacts.
 
-1. `penpot.createBoard()` (or API equivalent via shapes), set `name`, `resize(1440, 900)` (or 1280) for desktop MVP.
-2. `penpotUtils.addFlexLayout(board, "column")`; set padding/gaps from tokens via `board.flex` and `shape.applyToken` where applicable.
-3. Append `AppShell` instance; inside main slot, append `PageHeader` + placeholder `Rectangle` blocks for tables (tokenized fill).
-4. Duplicate for **empty** vs **populated** by cloning boards and swapping text.
+Manual steps (what the script encodes):
+
+1. `penpot.createBoard()` per screen, `resize(1280, 900)`, outer column flex + padding.
+2. `penpotUtils.addFlexLayout` where needed; inner **Main** gets column flex after removing the default placeholder rect.
+3. `LibraryComponent.instance()` for **`CMP / AppShell`** and **`CMP / PageHeader`** only on MVP; detailed UI lives on **`03 Wire / …`** boards.
+4. Re-run skips existing `SCR /` board names; **`refreshAllScreenWires`** rewrites every **`03 Wire / …`** board from script.
 
 ### Phase C — Flow map
 
-1. On page `01 Flows / Journeys`, create parent board `FLOW / INDEX` with a **grid** or **flex** of thumbnails: small clones or `Text` checklist linking to full frames (Penpot does not require hyperlinks—use naming + order).
+**Runnable script:** [`penpot-mcp-scripts/phase-c-flow-map.js`](penpot-mcp-scripts/phase-c-flow-map.js) — page **`01 Flows / Journeys`**, board **`FLOW / INDEX`**: **`Text`** checklist (ASCII; F1–F9 routes; points at `02 Screens / MVP` and DEMO-QA seed copy). Chunks: `npm run penpot:gen-phase-c`, then MCP `execute_code` on `.cursor/penpot-phase-c-chunks/exec-*.json` in order (`storage.__tcmsPhC`). Idempotent if `FLOW / INDEX` already exists.
+
+1. Optional extension: add thumbnails (small clones) or a **grid** layout inside `FLOW / INDEX`.
 2. Optional: `export_shape` with `shapeId: "page"` after each page for PNG review.
 
 ### Phase D — Verification
@@ -188,10 +215,13 @@ After Penpot sign-off:
 
 ## 8. Next actions (execution order)
 
-1. Connect MCP; run **Phase A**; export foundations page.
-2. Run **Phase B** for F1–F3 and F5 (highest traffic); designer pass.
-3. Add F4 (plans), F6–F9 frames; align with wiki flows for import/KPI/run snapshot copy.
-4. Freeze **component set**; then Tamagui parity pass in code.
+1. **Web / product review:** walk `apps/web` with demo seed; capture what to lock for **tokens + key components** (no Penpot required).
+2. **Penpot (optional):** create pages per §4.1 (`00 Foundations · …`); one board per component you care about; export or screenshot for async review.
+3. **Screens:** add `02 Screens · MVP · …` pages per §4.2 when you are ready to pin route states; keep each page small enough to review in one sitting.
+4. **Flows:** add `01 Flows · Journeys` (§4.3) after shells and elements are agreed.
+5. Freeze **component set**; Tamagui parity pass in code.
+
+MCP **Phase A–C** scripts remain a **bootstrap** for the older flat page layout; they do not yet generate the §4.1–4.3 folder-style page names—either adjust the scripts or create those pages manually.
 
 ---
 

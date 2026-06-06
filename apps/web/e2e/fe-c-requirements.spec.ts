@@ -1,58 +1,20 @@
 import { expect, test } from "@playwright/test";
+import { DEMO, demoProjectIdFromPage, openDemoRequirements, openDemoReporting } from "./fixtures/demo-qa";
 
 test.describe.configure({ mode: "serial" });
 
-const GQL_URL = "http://127.0.0.1:4000/graphql";
+test.describe("FE-C requirements (DEMO-QA)", () => {
+  test("edit requirement on DEMO-R3", async ({ page }) => {
+    await openDemoRequirements(page);
 
-async function graphql(
-  request: import("@playwright/test").APIRequestContext,
-  query: string,
-  variables: Record<string, unknown>
-) {
-  const res = await request.post(GQL_URL, {
-    headers: { "Content-Type": "application/json" },
-    data: { query, variables }
-  });
-  expect(res.ok(), await res.text()).toBeTruthy();
-  return (await res.json()) as {
-    data?: unknown;
-    errors?: { message: string }[];
-  };
-}
-
-test.describe("FE-C requirements", () => {
-  test("create and edit requirement", async ({ page }) => {
-    const suffix = `${Date.now()}`;
-    const projectName = `FE-C ${suffix}`;
-    const projectKey = `fe-c-${suffix}`;
-    const reqKey = `REQ-${suffix}`;
-    const title = `Requirement ${suffix}`;
-    const edited = `${title} (edited)`;
-
-    await page.goto("/projects");
-    await page.getByTestId("nav-projects-menu").click();
-    await page.getByTestId("nav-projects-new").click();
-    await page.getByTestId("project-create-name").fill(projectName);
-    await page.getByTestId("project-create-key").fill(projectKey);
-    await page.getByTestId("project-create-submit").click();
-
-    const row = page.locator(`tr[data-project-key="${projectKey}"]`);
-    await expect(row).toBeVisible();
-    await row.getByTestId("project-name-link").click();
-    await expect(page.getByTestId("project-detail-page")).toBeVisible();
-
-    await page.getByTestId("project-nav-requirements").click();
-    await expect(page.getByTestId("requirements-page")).toBeVisible();
-
-    await page.getByTestId("requirement-create-key").fill(reqKey);
-    await page.getByTestId("requirement-create-title").fill(title);
-    await page.getByTestId("requirement-create-submit").click();
-
+    const reqKey = DEMO.requirements.R3;
     const reqRow = page.locator(`tr[data-requirement-key="${reqKey}"]`);
     await expect(reqRow).toBeVisible();
     await reqRow.getByTestId("requirement-open").click();
 
     await expect(page.getByTestId("requirement-detail-page")).toBeVisible();
+    const original = await page.getByTestId("requirement-edit-title").inputValue();
+    const edited = `${original} (edited)`;
     await page.getByTestId("requirement-edit-title").fill(edited);
     await expect(page.getByTestId("form-save-status")).toHaveAttribute("data-save-state", "saved", {
       timeout: 8000
@@ -67,58 +29,18 @@ test.describe("FE-C requirements", () => {
     await expect(page.getByTestId("validation-error-payload-json")).toContainText("UpdateRequirement");
   });
 
-  test("delete blocked when manual testcase linked shows fixHint", async ({ page, request }) => {
-    const suffix = `${Date.now()}-blk`;
-    const projectName = `FE-C-blk ${suffix}`;
-    const projectKey = `fe-c-b-${suffix}`;
-    const reqKey = `REQ-BLK-${suffix}`;
-
-    await page.goto("/projects");
-    await page.getByTestId("nav-projects-menu").click();
-    await page.getByTestId("nav-projects-new").click();
-    await page.getByTestId("project-create-name").fill(projectName);
-    await page.getByTestId("project-create-key").fill(projectKey);
-    await page.getByTestId("project-create-submit").click();
-
-    const prow = page.locator(`tr[data-project-key="${projectKey}"]`);
-    await expect(prow).toBeVisible();
-    const href = await prow.getByTestId("project-name-link").getAttribute("href");
-    expect(href).toMatch(/^\/projects\/.+/);
-    const projectId = href!.slice("/projects/".length);
+  test("delete blocked when manual testcase linked shows fixHint", async ({ page }) => {
+    const projectId = await demoProjectIdFromPage(page);
+    const reqKey = DEMO.requirements.R1;
 
     await page.goto(`/projects/${projectId}/requirements`);
-    await page.getByTestId("requirement-create-key").fill(reqKey);
-    await page.getByTestId("requirement-create-title").fill("Linked req");
-    await page.getByTestId("requirement-create-submit").click();
+    await expect(page.getByTestId("requirements-page")).toBeVisible();
 
     const rrow = page.locator(`tr[data-requirement-key="${reqKey}"]`);
     await expect(rrow).toBeVisible();
     const rHref = await rrow.getByTestId("requirement-open").getAttribute("href");
     expect(rHref).toContain("/requirements/");
     const requirementId = rHref!.split("/requirements/")[1]!;
-
-    const createManual = `
-      mutation CreateManualForFeC($input: CreateManualTestCaseInput!) {
-        createManualTestCase(input: $input) {
-          testCase { id }
-          error { code message fixHint }
-        }
-      }
-    `;
-    const manualJson = await graphql(request, createManual, {
-      input: {
-        projectId,
-        title: "FE-C blocker manual",
-        requirementIds: [requirementId],
-        steps: [{ name: "Step 1" }]
-      }
-    });
-    expect(manualJson.errors).toBeUndefined();
-    const payload = manualJson.data as {
-      createManualTestCase?: { error?: { message: string }; testCase?: { id: string } };
-    };
-    expect(payload?.createManualTestCase?.error).toBeFalsy();
-    expect(payload?.createManualTestCase?.testCase?.id).toBeTruthy();
 
     await page.goto(`/projects/${projectId}/requirements/${requirementId}`);
     await expect(page.getByTestId("requirement-detail-page")).toBeVisible();

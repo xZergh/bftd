@@ -36,7 +36,7 @@ Standalone backend-first Test Case Management System (TCMS) for small QA teams.
 - GraphQL API
 - SQLite + Drizzle ORM
 - Vitest + Supertest test stack
-- **Web UI:** React + Vite workspace package [`apps/web`](apps/web) (`tcms-web`)
+- **Web UI:** React + Vite workspace package `[apps/web](apps/web)` (`tcms-web`)
 
 ## Local setup
 

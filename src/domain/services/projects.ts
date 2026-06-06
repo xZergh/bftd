@@ -1,6 +1,6 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { randomBytes, randomUUID } from "node:crypto";
-import { projects, requirements, testCases } from "../../db/schema";
+import { projects, requirements, testCases, testPlans, testRuns } from "../../db/schema";
 import { AppError } from "../errors";
 import { normalizeLabel } from "./labels";
 
@@ -173,9 +173,23 @@ export async function getProjectSummary(
         sprintLabel ? eq(testCases.sprintLabel, sprintLabel) : undefined
       )
     );
+  const planRows = await db
+    .select({ id: testPlans.id })
+    .from(testPlans)
+    .where(eq(testPlans.projectId, input.projectId));
+  const latestRunRows = await db
+    .select({ id: testRuns.id, name: testRuns.name })
+    .from(testRuns)
+    .where(eq(testRuns.projectId, input.projectId))
+    .orderBy(desc(testRuns.createdAt))
+    .limit(1);
+  const latestRun = latestRunRows[0];
   return {
     totalRequirements: reqCount.length,
     totalManualCases: caseRows.filter((c) => c.type === "manual").length,
-    totalAutomatedCases: caseRows.filter((c) => c.type === "automated").length
+    totalAutomatedCases: caseRows.filter((c) => c.type === "automated").length,
+    totalPlans: planRows.length,
+    latestRunId: latestRun?.id ?? null,
+    latestRunName: latestRun?.name ?? null
   };
 }

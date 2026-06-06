@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Label, YStack } from "tamagui";
+import { Label, XStack } from "tamagui";
 import { useQuery } from "urql";
 import { ProjectsListQuery } from "../graphql/documents";
 import type { ProjectListItem } from "../graphql/types";
 
+/** Loads the full project list; project detail is fetched on each page route (shell does not duplicate ProjectById). */
 export function ProjectPicker() {
   const navigate = useNavigate();
   const { projectId } = useParams();
@@ -14,44 +16,64 @@ export function ProjectPicker() {
   });
 
   const value = projectId ?? "";
+  const projects = data?.projects ?? [];
+  const selected = useMemo(() => projects.find((p) => p.id === value), [projects, value]);
+  const selectTitle =
+    selected !== undefined
+      ? `${selected.name} (${selected.key})${selected.isArchived ? " · archived" : ""}`
+      : value === ""
+        ? "All projects"
+        : undefined;
 
   return (
-    <YStack gap="$1" minWidth={180} maxWidth={280}>
-      <Label htmlFor="project-picker-select" size="$2" color="$color11" fontWeight="600">
-        Project
-      </Label>
-      <select
-        id="project-picker-select"
-        data-testid="project-picker"
-        aria-label="Select project"
-        disabled={fetching && !data}
-        value={value}
-        style={{
-          width: "100%",
-          padding: "0.35rem 0.5rem",
-          fontSize: "0.9rem",
-          borderRadius: 6,
-          borderWidth: 1,
-          borderStyle: "solid",
-          borderColor: "#d4d4d8"
-        }}
-        onChange={(e) => {
-          const next = e.target.value;
-          if (next === "") {
-            navigate("/projects");
-          } else {
-            navigate(`/projects/${next}`);
-          }
-        }}
+    <XStack
+      gap="$2"
+      alignItems="center"
+      flex={1}
+      flexBasis={0}
+      minWidth={0}
+      justifyContent="flex-end"
+      flexWrap="wrap"
+      style={{ minWidth: "min(100%, 18rem)" }}
+    >
+      <Label
+        htmlFor="project-picker-select"
+        size="$1"
+        color="$color10"
+        fontWeight="500"
+        letterSpacing={0.02}
+        textTransform="uppercase"
+        flexShrink={0}
+        className="project-picker-label"
       >
-        <option value="">All projects</option>
-        {(data?.projects ?? []).map((p: ProjectListItem) => (
-          <option key={p.id} value={p.id}>
-            {p.name} ({p.key})
-            {p.isArchived ? " · archived" : ""}
-          </option>
-        ))}
-      </select>
-    </YStack>
+        Open
+      </Label>
+      <div className="project-picker-select-wrap">
+        <select
+          id="project-picker-select"
+          data-testid="project-picker"
+          aria-label="Choose project or all projects list"
+          title={selectTitle}
+          disabled={fetching && !data}
+          value={value}
+          onChange={(e) => {
+            const next = e.target.value;
+            if (next === "") {
+              navigate("/projects");
+            } else {
+              navigate(`/projects/${next}`);
+            }
+          }}
+        >
+          <option value="">All projects</option>
+          {projects.map((p: ProjectListItem) => (
+            <option key={p.id} value={p.id}>
+              {p.name} ({p.key})
+              {p.isArchived ? " · archived" : ""}
+            </option>
+          ))}
+        </select>
+      </div>
+    </XStack>
   );
 }

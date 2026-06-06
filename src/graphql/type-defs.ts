@@ -32,6 +32,7 @@ export const typeDefs = /* GraphQL */ `
     priority: String
     tags: [String!]!
     parentRequirementId: ID
+    linkedManualTestCaseCount: Int!
     createdAt: DateTime!
     updatedAt: DateTime!
   }
@@ -57,6 +58,8 @@ export const typeDefs = /* GraphQL */ `
     sprintLabel: String
     isDeleted: Boolean!
     deletedAt: DateTime
+    linkedRequirementCount: Int!
+    linkedManualTestCaseCount: Int!
     createdAt: DateTime!
     updatedAt: DateTime!
     steps: [TestCaseStep!]!
@@ -174,6 +177,15 @@ export const typeDefs = /* GraphQL */ `
     totalRequirements: Int!
     totalManualCases: Int!
     totalAutomatedCases: Int!
+    totalPlans: Int!
+    latestRunId: ID
+    latestRunName: String
+  }
+
+  type ProjectEnumSettings {
+    requirementStatuses: [String!]!
+    requirementPriorities: [String!]!
+    requirementTypes: [String!]!
   }
 
   type ImportErrorItem {
@@ -392,6 +404,10 @@ export const typeDefs = /* GraphQL */ `
     projectId: ID!
     releaseLabel: String
     sprintLabel: String
+  }
+
+  input ProjectSettingsInput {
+    projectId: ID!
   }
 
   input RunTraceabilityReportInput {
@@ -738,10 +754,17 @@ export const typeDefs = /* GraphQL */ `
     error: AppError
   }
 
+  type PurgeArchivedProjectsPayload {
+    deletedCount: Int!
+    deletedProjectKeys: [String!]!
+    error: AppError
+  }
+
   type Query {
     projects(input: ListProjectsInput): [Project!]!
     project(input: ProjectByInput!): Project
     projectSummary(input: ProjectSummaryInput!): ProjectSummary!
+    projectSettings(input: ProjectSettingsInput!): ProjectEnumSettings!
     requirements(input: RequirementsListInput!): [Requirement!]!
     requirement(input: RequirementByInput!): Requirement
     testCases(input: TestCasesListInput!): [TestCase!]!
@@ -790,5 +813,6 @@ export const typeDefs = /* GraphQL */ `
     upsertRequirementDesignLink(input: RequirementDesignLinkInput!): RequirementDesignLinkPayload!
     unlinkRequirementDesignLink(input: UnlinkRequirementDesignLinkInput!): UnlinkResult!
     importRequirementDesignLinks(input: ImportRequirementDesignLinksInput!): ImportRequirementDesignLinksResult!
+    purgeArchivedProjects: PurgeArchivedProjectsPayload!
   }
 `;

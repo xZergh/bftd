@@ -43,7 +43,7 @@ test.describe("FE-J plans", () => {
     await page.getByTestId("plan-create-submit").click();
     const planRow = page.locator(`tr[data-testid="plan-row"]`).filter({ hasText: planName });
     await expect(planRow).toBeVisible();
-    await planRow.getByTestId("plan-manage").click();
+    await planRow.click();
     await expect(page.getByTestId("plan-manage-panel")).toBeVisible();
     const planCaseCheckbox = page.getByTestId(`plan-case-${manualId}`);
     await planCaseCheckbox.click();

@@ -16,6 +16,7 @@ export {
   slugifyProjectKey,
   updateProject
 } from "./projects";
+export { purgeArchivedProjects } from "./project-purge";
 export {
   createRequirement,
   deleteRequirement,

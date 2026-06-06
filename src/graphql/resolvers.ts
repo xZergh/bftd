@@ -13,6 +13,7 @@ import {
   projectByInput,
   projectInput,
   projectSummaryInput,
+  projectSettingsInput,
   recalcKpiInput,
   requirementByInput,
   requirementDesignLinkInput,
@@ -114,6 +115,7 @@ function mapRequirement(r: {
   priority: string | null;
   tags: string[];
   parentRequirementId: string | null;
+  linkedManualTestCaseCount?: number;
   createdAt: Date;
   updatedAt: Date;
 }) {
@@ -130,6 +132,40 @@ function mapRequirement(r: {
     priority: r.priority,
     tags: r.tags ?? [],
     parentRequirementId: r.parentRequirementId,
+    linkedManualTestCaseCount: r.linkedManualTestCaseCount ?? 0,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt
+  };
+}
+
+function mapTestCaseListRow(r: {
+  id: string;
+  projectId: string;
+  type: string;
+  title: string;
+  externalId: string | null;
+  releaseLabel: string | null;
+  sprintLabel: string | null;
+  isDeleted: boolean;
+  deletedAt: Date | null;
+  linkedRequirementCount?: number;
+  linkedManualTestCaseCount?: number;
+  createdAt: Date;
+  updatedAt: Date;
+  steps?: unknown[];
+}) {
+  return {
+    id: r.id,
+    projectId: r.projectId,
+    type: r.type,
+    title: r.title,
+    externalId: r.externalId,
+    releaseLabel: r.releaseLabel,
+    sprintLabel: r.sprintLabel,
+    isDeleted: r.isDeleted,
+    deletedAt: r.deletedAt,
+    linkedRequirementCount: r.linkedRequirementCount ?? 0,
+    linkedManualTestCaseCount: r.linkedManualTestCaseCount ?? 0,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt
   };
@@ -151,6 +187,14 @@ export const resolvers = {
       const input = projectSummaryInput.parse(args.input);
       return ctx.service.getProjectSummary(input);
     },
+    projectSettings: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      const input = projectSettingsInput.parse(args.input);
+      try {
+        return await ctx.service.getProjectSettings(input);
+      } catch (e) {
+        rethrowDomainErrorAsGraphQLError(e);
+      }
+    },
     requirements: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       const input = requirementsListInput.parse(args.input);
       const rows = await ctx.service.listRequirements(input);
@@ -168,11 +212,12 @@ export const resolvers = {
         type: input.type as "manual" | "automated" | undefined,
         includeDeleted: input.includeDeleted
       });
-      return rows;
+      return rows.map(mapTestCaseListRow);
     },
     testCase: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       const input = testCaseByInput.parse(args.input);
-      return ctx.service.getTestCase(input);
+      const tc = await ctx.service.getTestCase(input);
+      return tc ? mapTestCaseListRow({ ...tc, linkedRequirementCount: 0, linkedManualTestCaseCount: 0 }) : null;
     },
     testRuns: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       const input = testRunsListInput.parse(args.input);
@@ -480,6 +525,14 @@ export const resolvers = {
     importRequirementDesignLinks: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       const input = importRequirementDesignLinksInput.parse(args.input);
       return ctx.service.importRequirementDesignLinks(input);
+    },
+    purgeArchivedProjects: async (_root: unknown, _args: unknown, ctx: Context) => {
+      try {
+        const result = await ctx.service.purgeArchivedProjects();
+        return { ...result, error: null };
+      } catch (error) {
+        return { deletedCount: 0, deletedProjectKeys: [], error: formatError(error) };
+      }
     }
   },
   TestRunDetail: {

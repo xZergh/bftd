@@ -47,12 +47,14 @@ test.describe("FE-B projects", () => {
     await expect(page.getByTestId("project-detail-status")).toContainText("Active");
 
     const renamed = `${name} (autosaved)`;
+    await page.getByTestId("project-settings-toggle").click();
     await page.getByTestId("project-edit-name").fill(renamed);
     await expect(page.getByTestId("form-save-status")).toHaveAttribute("data-save-state", "saved", {
       timeout: 8000
     });
     await expect(page.getByTestId("project-edit-name")).toHaveValue(renamed);
 
+    await page.getByTestId("project-settings-toggle").click();
     await page.getByTestId("project-archive").click();
     await expect(page).toHaveURL(/\/projects$/);
 

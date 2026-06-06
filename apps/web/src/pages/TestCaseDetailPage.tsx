@@ -29,6 +29,13 @@ import "./ProjectsPage.css";
 
 type StepDraft = { name: string; expectedResult: string };
 
+type TestCaseDetailEmbedProps = {
+  variant?: "full" | "inspector";
+  embedProjectId?: string;
+  embedTestCaseId?: string;
+  onInspectorClose?: () => void;
+};
+
 type ManualEditBaseline = { title: string; stepsJson: string };
 
 type TestCaseVersionRow = {
@@ -66,8 +73,15 @@ function stepsFromTestCase(
   }));
 }
 
-export function TestCaseDetailPage() {
-  const { projectId, testCaseId } = useParams();
+export function TestCaseDetailPage({
+  variant = "full",
+  embedProjectId,
+  embedTestCaseId,
+  onInspectorClose
+}: TestCaseDetailEmbedProps = {}) {
+  const { projectId: routeProjectId, testCaseId: routeTestCaseId } = useParams();
+  const projectId = embedProjectId ?? routeProjectId;
+  const testCaseId = embedTestCaseId ?? routeTestCaseId;
   const { clearShellMessages, setTransportMessage, setPayloadAppError } = useShellErrors();
 
   const [titleDraft, setTitleDraft] = useState("");
@@ -613,8 +627,34 @@ export function TestCaseDetailPage() {
   const editable = !tc.isDeleted;
 
   return (
-    <section className="projects-page" data-testid="testcase-detail-page">
-      <ProjectWorkspaceHeader title="Test case" projectId={projectId as string} active="test-cases" />
+    <section
+      className={`projects-page${variant === "inspector" ? " projects-page--inspector-embed" : ""}`}
+      data-testid="testcase-detail-page"
+    >
+      {variant === "full" ? (
+        <ProjectWorkspaceHeader title="Test case" projectId={projectId as string} active="test-cases" />
+      ) : (
+        <div className="detail-panel-header">
+          <div className="detail-panel-header-actions">
+            <RouterLink
+              to={`/projects/${projectId}/test-cases/${testCaseId}`}
+              data-testid="testcase-open-full"
+            >
+              Open full page
+            </RouterLink>
+            {onInspectorClose ? (
+              <button
+                type="button"
+                className="detail-panel-close"
+                onClick={onInspectorClose}
+                data-testid="testcase-inspector-close"
+              >
+                Close
+              </button>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       <dl className="project-detail-meta">
         <div>

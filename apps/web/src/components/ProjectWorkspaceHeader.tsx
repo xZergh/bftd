@@ -1,6 +1,8 @@
+import { useLayoutEffect } from "react";
+import { useOutletContext } from "react-router-dom";
 import type { ReactNode } from "react";
-import { ProjectSubNav } from "./ProjectSubNav";
 import type { ProjectWorkspaceSection } from "./projectWorkspaceNav";
+import type { WorkspaceOutletContextValue } from "../layout/workspaceOutletContext";
 
 type Props = {
   title: ReactNode;
@@ -9,15 +11,20 @@ type Props = {
   active: ProjectWorkspaceSection;
 };
 
+/** Registers title + section nav with AppShell; renders nothing in-page (chrome lives in the shell). */
 export function ProjectWorkspaceHeader({ title, titleId, projectId, active }: Props) {
-  return (
-    <div className="project-detail-header">
-      {titleId !== undefined ? <h2 id={titleId}>{title}</h2> : <h2>{title}</h2>}
-      <div className="project-detail-header-right">
-        <div className="project-detail-header-links">
-          <ProjectSubNav projectId={projectId} active={active} />
-        </div>
-      </div>
-    </div>
-  );
+  const ctx = useOutletContext<WorkspaceOutletContextValue | undefined>();
+
+  useLayoutEffect(() => {
+    const set = ctx?.setWorkspaceChrome;
+    if (set === undefined) {
+      return;
+    }
+    set({ title, titleId, projectId, active });
+    return () => {
+      set(null);
+    };
+  }, [active, ctx?.setWorkspaceChrome, projectId, title, titleId]);
+
+  return null;
 }

@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { Link, type LinkProps } from "react-router-dom";
 
 const baseStyle: CSSProperties = {
-  color: "#2563eb",
+  color: "var(--tcms-link, #93c5fd)",
   fontWeight: 500,
   textDecoration: "none"
 };

@@ -4,9 +4,30 @@
   box-sizing: border-box;
 }
 
+/* Charcoal tool UI tokens (see .wiki/concepts/tcms-visual-direction.md) */
+:root {
+  --tcms-bg: #09090b;
+  --tcms-surface: #18181b;
+  --tcms-elevated: #27272a;
+  --tcms-border: #3f3f46;
+  --tcms-text: #e4e4e7;
+  --tcms-text-muted: #a1a1aa;
+  --tcms-link: #93c5fd;
+  --tcms-row-hover: #3f3f46;
+  --tcms-accent: #5eead4;
+  --tcms-accent-muted: #0d9488;
+  --tcms-input-border: #52525b;
+}
+
+html {
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
+  background: var(--tcms-bg);
+  color: var(--tcms-text);
 }
 
 .skip-to-main {
@@ -46,4 +67,33 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Shell nav: project picker uses remaining row width (avoids hard max-width truncation). */
+.project-picker-label {
+  line-height: 1.2;
+  user-select: none;
+}
+
+.project-picker-select-wrap {
+  flex: 1 1 14rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.project-picker-select-wrap select {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  padding: 0.28rem 0.45rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.3;
+  border-radius: 6px;
+  border: 1px solid var(--tcms-input-border);
+  background: var(--tcms-elevated);
+  color: var(--tcms-text);
+  cursor: pointer;
+  color-scheme: dark;
 }

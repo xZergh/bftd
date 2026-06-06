@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, count, eq, inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { AppError } from "../errors";
 import {
@@ -16,6 +16,44 @@ type Db = ReturnType<typeof import("../../db/client").createDb>;
 
 function now() {
   return new Date();
+}
+
+async function requirementLinkCountsByManualCase(db: Db, manualIds: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (manualIds.length === 0) {
+    return out;
+  }
+  for (const id of manualIds) {
+    out.set(id, 0);
+  }
+  const rows = await db
+    .select({ manualTestCaseId: requirementTestCaseLinks.manualTestCaseId, c: count() })
+    .from(requirementTestCaseLinks)
+    .where(inArray(requirementTestCaseLinks.manualTestCaseId, manualIds))
+    .groupBy(requirementTestCaseLinks.manualTestCaseId);
+  for (const row of rows) {
+    out.set(row.manualTestCaseId, Number(row.c));
+  }
+  return out;
+}
+
+async function manualLinkCountsByAutomatedCase(db: Db, automatedIds: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (automatedIds.length === 0) {
+    return out;
+  }
+  for (const id of automatedIds) {
+    out.set(id, 0);
+  }
+  const rows = await db
+    .select({ automatedTestCaseId: automatedManualLinks.automatedTestCaseId, c: count() })
+    .from(automatedManualLinks)
+    .where(inArray(automatedManualLinks.automatedTestCaseId, automatedIds))
+    .groupBy(automatedManualLinks.automatedTestCaseId);
+  for (const row of rows) {
+    out.set(row.automatedTestCaseId, Number(row.c));
+  }
+  return out;
 }
 
 export async function createManualTestCase(
@@ -156,7 +194,16 @@ export async function listTestCases(
         input.includeDeleted ? undefined : eq(testCases.isDeleted, false)
       )
     );
-  return rows.sort((a, b) => a.title.localeCompare(b.title));
+  const sorted = rows.sort((a, b) => a.title.localeCompare(b.title));
+  const manualIds = sorted.filter((r) => r.type === "manual").map((r) => r.id);
+  const automatedIds = sorted.filter((r) => r.type === "automated").map((r) => r.id);
+  const reqCounts = await requirementLinkCountsByManualCase(db, manualIds);
+  const manCounts = await manualLinkCountsByAutomatedCase(db, automatedIds);
+  return sorted.map((r) => ({
+    ...r,
+    linkedRequirementCount: r.type === "manual" ? (reqCounts.get(r.id) ?? 0) : 0,
+    linkedManualTestCaseCount: r.type === "automated" ? (manCounts.get(r.id) ?? 0) : 0
+  }));
 }
 
 export async function getTestCase(db: Db, input: { id: string; projectId?: string; includeDeleted?: boolean }) {
