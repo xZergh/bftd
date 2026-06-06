@@ -39,7 +39,7 @@ test.describe("FE-F reporting (DEMO-QA)", () => {
 
     await expect(page.getByTestId("run-trace-edge-count")).toHaveText("3", { timeout: 15000 });
     await expect(page.getByTestId("run-trace-edge-row")).toHaveCount(3);
-    await expect(page.getByTestId("run-trace-req-title").first()).toContainText("sign in", { timeout: 10000 });
-    await expect(page.getByTestId("run-trace-manual-title").first()).toContainText("login", { timeout: 10000 });
+    await expect(page.getByTestId("run-trace-req-title").filter({ hasText: /sign in/i })).toHaveCount(1);
+    await expect(page.getByTestId("run-trace-manual-title").filter({ hasText: /login/i })).toHaveCount(1);
   });
 });

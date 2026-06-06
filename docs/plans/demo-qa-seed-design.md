@@ -73,7 +73,7 @@ Specs that still create isolated projects (runs, imports, design links, etc.) ca
 
 ## Manual QA checklist (seed walk)
 
-1. `/projects` — `DEMO-QA` visible; open overview KPI strip (3 reqs, 3 manual, 1 plan, latest run).
+1. `/projects` — `DEMO-QA` visible; open overview KPI strip (3 reqs, 3 manual, 1 plan); latest run in Summary.
 2. Requirements — sort columns; inline create row placeholders match DEMO keys; open `DEMO-R3` inspector/full page.
 3. Test cases — four rows; automated row shows manual link count.
 4. Plans — `Demo regression plan` selected via `?plan=`; four linked cases.

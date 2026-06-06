@@ -1,5 +1,6 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery } from "urql";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { PageLoading } from "../components/PageLoading";
 import { ProjectsListQuery, PurgeArchivedProjectsMutation } from "../graphql/documents";
 import { formatGraphQlTransportError } from "../graphql/formatGraphQlError";
@@ -9,6 +10,7 @@ import "./ProjectsPage.css";
 
 export function AdminPage() {
   const { clearShellMessages, setTransportMessage, setPayloadAppError } = useShellErrors();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const [listResult, reexecuteList] = useQuery({
     query: ProjectsListQuery,
@@ -35,6 +37,7 @@ export function AdminPage() {
       setPayloadAppError(appErr);
       return;
     }
+    setConfirmOpen(false);
     await reexecuteList({ requestPolicy: "network-only" });
   }, [clearShellMessages, purgeArchived, reexecuteList, setPayloadAppError, setTransportMessage]);
 
@@ -75,12 +78,31 @@ export function AdminPage() {
             type="button"
             data-testid="admin-purge-archived"
             disabled={archived.length === 0}
-            onClick={() => void onPurge()}
+            onClick={() => setConfirmOpen(true)}
           >
             Purge all archived projects from database
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Purge archived projects?"
+        message={
+          <>
+            Permanently delete <strong>{archived.length}</strong> archived project
+            {archived.length === 1 ? "" : "s"} and all related requirements, test cases, runs, and plans. This cannot
+            be undone.
+          </>
+        }
+        confirmLabel="Purge permanently"
+        onConfirm={() => void onPurge()}
+        onCancel={() => setConfirmOpen(false)}
+        dialogTestId="admin-purge-confirm-dialog"
+        confirmTestId="admin-purge-confirm"
+        cancelTestId="admin-purge-cancel"
+        destructive
+      />
     </section>
   );
 }

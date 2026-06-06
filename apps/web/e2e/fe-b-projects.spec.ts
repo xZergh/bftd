@@ -54,9 +54,8 @@ test.describe("FE-B projects", () => {
     });
     await expect(page.getByTestId("project-edit-name")).toHaveValue(renamed);
 
-    await page.getByTestId("project-settings-toggle").click();
     await page.getByTestId("project-archive").click();
-    await expect(page).toHaveURL(/\/projects$/);
+    await expect(page).toHaveURL(/\/projects\/?$/, { timeout: 8000 });
 
     await expect(page.locator(`tr[data-project-key="${key}"]`)).toHaveCount(0);
 

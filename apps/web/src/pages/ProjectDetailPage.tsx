@@ -264,34 +264,6 @@ export function ProjectDetailPage() {
         </div>
       ) : null}
 
-      <div className="project-dashboard-quicklinks" data-testid="project-dashboard-quicklinks">
-        <h3 className="projects-subheading">Quick links</h3>
-        <ul className="project-quicklink-list">
-          <li>
-            <RouterLink to={`${base}/requirements`}>Requirements</RouterLink>
-          </li>
-          <li>
-            <RouterLink to={`${base}/test-cases`}>Test cases</RouterLink>
-          </li>
-          <li>
-            <RouterLink to={`${base}/plans`}>Plans</RouterLink>
-          </li>
-          <li>
-            <RouterLink to={`${base}/runs`}>Runs</RouterLink>
-          </li>
-          <li>
-            <RouterLink to={`${base}/reporting`}>Reporting</RouterLink>
-          </li>
-          {summary?.latestRunId ? (
-            <li>
-              <RouterLink to={`${base}/runs/${summary.latestRunId}`} data-testid="project-latest-run-link">
-                Latest run: {summary.latestRunName}
-              </RouterLink>
-            </li>
-          ) : null}
-        </ul>
-      </div>
-
       <div className="project-overview-grid">
         <div className="project-overview-summary">
           <h3 className="projects-subheading">Summary</h3>
@@ -308,6 +280,20 @@ export function ProjectDetailPage() {
                 {project.isArchived ? "Archived" : "Active"}
               </dd>
             </div>
+            {summary ? (
+              <div>
+                <dt>Latest run</dt>
+                <dd data-testid="project-detail-latest-run">
+                  {summary.latestRunId ? (
+                    <RouterLink to={`${base}/runs/${summary.latestRunId}`} data-testid="project-latest-run-link">
+                      {summary.latestRunName}
+                    </RouterLink>
+                  ) : (
+                    "None"
+                  )}
+                </dd>
+              </div>
+            ) : null}
           </dl>
         </div>
         <div className="project-detail-edit">

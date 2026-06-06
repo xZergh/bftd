@@ -31,6 +31,8 @@ test.describe("FE-N admin purge", () => {
     await expect(page.locator(`tr[data-project-key="${projectKey}"]`)).toBeVisible();
 
     await page.getByTestId("admin-purge-archived").click();
+    await expect(page.getByTestId("admin-purge-confirm-dialog")).toBeVisible();
+    await page.getByTestId("admin-purge-confirm").click();
     await expect(page.getByTestId("admin-archived-empty")).toBeVisible({ timeout: 10000 });
 
     await page.goto("/projects");

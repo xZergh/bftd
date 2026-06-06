@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { DEMO, demoProjectIdFromPage, openDemoRequirements, openDemoReporting } from "./fixtures/demo-qa";
+import { DEMO, demoProjectIdFromPage, openDemoRequirements } from "./fixtures/demo-qa";
 
 test.describe.configure({ mode: "serial" });
 
@@ -27,6 +27,11 @@ test.describe("FE-C requirements (DEMO-QA)", () => {
     await expect(page.getByTestId("requirement-edit-title-error")).toBeVisible();
     await expect(page.getByTestId("validation-error-payload-preview")).toBeVisible();
     await expect(page.getByTestId("validation-error-payload-json")).toContainText("UpdateRequirement");
+
+    await page.getByTestId("requirement-edit-title").fill(original);
+    await expect(page.getByTestId("form-save-status")).toHaveAttribute("data-save-state", "saved", {
+      timeout: 8000
+    });
   });
 
   test("delete blocked when manual testcase linked shows fixHint", async ({ page }) => {
