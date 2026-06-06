@@ -22,13 +22,24 @@ export default defineConfig({
     {
       name: "chromium-demo-qa",
       use: { ...devices["Desktop Chrome"] },
-      testMatch: ["**/fe-c-requirements.spec.ts", "**/fe-f-reporting.spec.ts", "**/fe-m-project-subnav.spec.ts"],
+      testMatch: [
+        "**/fe-c-requirements.spec.ts",
+        "**/fe-d-testcases.spec.ts",
+        "**/fe-f-reporting.spec.ts",
+        "**/fe-m-project-subnav.spec.ts"
+      ],
       fullyParallel: false
     },
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
-      testIgnore: ["**/fe-k-mobile-shell.spec.ts", "**/fe-c-requirements.spec.ts", "**/fe-f-reporting.spec.ts", "**/fe-m-project-subnav.spec.ts"]
+      testIgnore: [
+        "**/fe-k-mobile-shell.spec.ts",
+        "**/fe-c-requirements.spec.ts",
+        "**/fe-d-testcases.spec.ts",
+        "**/fe-f-reporting.spec.ts",
+        "**/fe-m-project-subnav.spec.ts"
+      ]
     },
     {
       name: "mobile-chrome",

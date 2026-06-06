@@ -13,7 +13,8 @@ test.describe("FE-C requirements (DEMO-QA)", () => {
     await reqRow.getByTestId("requirement-open").click();
 
     await expect(page.getByTestId("requirement-detail-page")).toBeVisible();
-    const original = await page.getByTestId("requirement-edit-title").inputValue();
+    const original = DEMO.requirementTitles.R3;
+    await expect(page.getByTestId("requirement-edit-title")).toHaveValue(original, { timeout: 8000 });
     const edited = `${original} (edited)`;
     await page.getByTestId("requirement-edit-title").fill(edited);
     await expect(page.getByTestId("form-save-status")).toHaveAttribute("data-save-state", "saved", {

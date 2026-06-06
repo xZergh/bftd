@@ -10,6 +10,12 @@ export const DEMO_QA_REQUIREMENT_KEYS = {
   R3: "DEMO-R3"
 } as const;
 
+export const DEMO_QA_REQUIREMENT_TITLES = {
+  R1: "User can sign in with email and password",
+  R2: "Session expires after configured idle timeout",
+  R3: "Password reset sends a single-use link"
+} as const;
+
 export const DEMO_QA_MANUAL_TITLES = {
   login: "Manual: successful login with valid credentials",
   idleTimeout: "Manual: idle timeout logs user out",

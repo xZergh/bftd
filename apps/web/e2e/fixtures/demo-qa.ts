@@ -8,6 +8,11 @@ export const DEMO = {
     R2: "DEMO-R2",
     R3: "DEMO-R3"
   },
+  requirementTitles: {
+    R1: "User can sign in with email and password",
+    R2: "Session expires after configured idle timeout",
+    R3: "Password reset sends a single-use link"
+  },
   manualTitles: {
     login: "Manual: successful login with valid credentials",
     idleTimeout: "Manual: idle timeout logs user out",
@@ -55,4 +60,22 @@ export async function openDemoReporting(page: Page) {
   await openDemoProjectOverview(page);
   await page.getByTestId("project-nav-reporting").click();
   await expect(page.getByTestId("reporting-page")).toBeVisible();
+}
+
+/** Assert all three seeded requirements appear in the table with keys and titles. */
+export async function expectDemoRequirementsSeeded(page: Page) {
+  for (const id of ["R1", "R2", "R3"] as const) {
+    const key = DEMO.requirements[id];
+    const row = page.locator(`tr[data-requirement-key="${key}"]`);
+    await expect(row).toBeVisible();
+    await expect(row.getByLabel("Title")).toHaveValue(DEMO.requirementTitles[id]);
+  }
+}
+
+/** Assert all four seeded test cases (3 manual + 1 automated) appear in the table. */
+export async function expectDemoTestCasesSeeded(page: Page) {
+  const titles = [...Object.values(DEMO.manualTitles), DEMO.automatedTitle];
+  for (const title of titles) {
+    await expect(page.locator('[data-testid="testcase-row"]').filter({ hasText: title })).toBeVisible();
+  }
 }

@@ -6,6 +6,7 @@ import {
   DEMO_QA_PROJECT_KEY,
   DEMO_QA_PROJECT_NAME,
   DEMO_QA_REQUIREMENT_KEYS,
+  DEMO_QA_REQUIREMENT_TITLES,
   DEMO_QA_RUN_NAME,
   type DemoQaSeedManifest
 } from "./demo-qa-constants";
@@ -39,7 +40,7 @@ export async function seedDemoQaProject(
   const r1 = await service.createRequirement({
     projectId,
     externalKey: DEMO_QA_REQUIREMENT_KEYS.R1,
-    title: "User can sign in with email and password",
+    title: DEMO_QA_REQUIREMENT_TITLES.R1,
     description: "Covers primary authentication for the web client.",
     releaseLabel: "1.0",
     sprintLabel: "Sprint-1",
@@ -63,7 +64,7 @@ export async function seedDemoQaProject(
   const r3 = await service.createRequirement({
     projectId,
     externalKey: DEMO_QA_REQUIREMENT_KEYS.R3,
-    title: "Password reset sends a single-use link",
+    title: DEMO_QA_REQUIREMENT_TITLES.R3,
     description: "Self-service recovery flow.",
     releaseLabel: "1.0",
     sprintLabel: "Sprint-2",
