@@ -58,20 +58,17 @@ export function TestCasesListInlinePage() {
   const [listResult, reexecuteCases] = useQuery({
     query: TestCasesListQuery,
     variables: { projectId: projectId ?? "", type: typeFilter === "" ? undefined : typeFilter, includeDeleted },
-    pause: queryPaused,
-    requestPolicy: "network-only"
+    pause: queryPaused
   });
   const [reqResult] = useQuery({
     query: RequirementsListQuery,
     variables: { projectId: projectId ?? "" },
-    pause: queryPaused,
-    requestPolicy: "network-only"
+    pause: queryPaused
   });
   const [manualListResult, reexecuteManualList] = useQuery({
     query: TestCasesListQuery,
     variables: { projectId: projectId ?? "", type: "manual", includeDeleted: false },
-    pause: queryPaused,
-    requestPolicy: "network-only"
+    pause: queryPaused
   });
   const [, createManual] = useMutation(CreateManualTestCaseMutation);
   const [, createAutomated] = useMutation(CreateAutomatedTestCaseMutation);
@@ -80,7 +77,9 @@ export function TestCasesListInlinePage() {
     if (!listResult.error) {
       return;
     }
-    setTransportMessage(formatGraphQlTransportError(listResult.error));
+    queueMicrotask(() => {
+      setTransportMessage(formatGraphQlTransportError(listResult.error!));
+    });
   }, [listResult.error, setTransportMessage]);
 
   const createManualClientPayload = useMemo(() => {

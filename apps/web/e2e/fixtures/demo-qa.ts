@@ -62,6 +62,23 @@ export async function openDemoReporting(page: Page) {
   await expect(page.getByTestId("reporting-page")).toBeVisible();
 }
 
+export async function openDemoPlans(page: Page) {
+  await openDemoProjectOverview(page);
+  await page.getByTestId("project-nav-plans").click();
+  await expect(page.getByTestId("plans-page")).toBeVisible();
+}
+
+export async function openDemoRuns(page: Page) {
+  await openDemoProjectOverview(page);
+  await page.getByTestId("project-nav-runs").click();
+  await expect(page.getByTestId("runs-page")).toBeVisible();
+}
+
+/** Assert the seeded demo regression plan row is present. */
+export async function expectDemoPlanSeeded(page: Page) {
+  await expect(page.locator('[data-testid="plan-row"]').filter({ hasText: DEMO.planName })).toBeVisible();
+}
+
 /** Assert all three seeded requirements appear in the table with keys and titles. */
 export async function expectDemoRequirementsSeeded(page: Page) {
   for (const id of ["R1", "R2", "R3"] as const) {

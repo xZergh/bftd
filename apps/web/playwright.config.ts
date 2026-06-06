@@ -26,6 +26,7 @@ export default defineConfig({
         "**/fe-c-requirements.spec.ts",
         "**/fe-d-testcases.spec.ts",
         "**/fe-f-reporting.spec.ts",
+        "**/fe-j-plans.spec.ts",
         "**/fe-m-project-subnav.spec.ts"
       ],
       fullyParallel: false
@@ -38,6 +39,7 @@ export default defineConfig({
         "**/fe-c-requirements.spec.ts",
         "**/fe-d-testcases.spec.ts",
         "**/fe-f-reporting.spec.ts",
+        "**/fe-j-plans.spec.ts",
         "**/fe-m-project-subnav.spec.ts"
       ]
     },

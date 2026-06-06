@@ -52,7 +52,7 @@ export async function seedDemoQaProject(
   const r2 = await service.createRequirement({
     projectId,
     externalKey: DEMO_QA_REQUIREMENT_KEYS.R2,
-    title: "Session expires after configured idle timeout",
+    title: DEMO_QA_REQUIREMENT_TITLES.R2,
     description: "Security requirement for idle logout.",
     releaseLabel: "1.0",
     sprintLabel: "Sprint-1",

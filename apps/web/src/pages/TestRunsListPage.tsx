@@ -23,20 +23,30 @@ export function TestRunsListPage() {
   const [showValidationPayload, setShowValidationPayload] = useState(false);
 
   const paused = projectId === undefined || projectId === "";
+  const [deferQueries, setDeferQueries] = useState(true);
+  useEffect(() => {
+    if (paused) {
+      return;
+    }
+    setDeferQueries(true);
+    queueMicrotask(() => {
+      setDeferQueries(false);
+    });
+  }, [paused, projectId]);
+
+  const queryPaused = paused || deferQueries;
 
   const [listResult, reexecuteList] = useQuery({
     query: TestRunsListQuery,
     variables: { projectId: projectId ?? "" },
-    pause: paused,
-    requestPolicy: "network-only"
+    pause: queryPaused
   });
 
   const [, createRun] = useMutation(CreateTestRunMutation);
   const [plansResult] = useQuery({
     query: TestPlansListQuery,
     variables: { projectId: projectId ?? "" },
-    pause: paused,
-    requestPolicy: "network-only"
+    pause: queryPaused
   });
 
   useEffect(() => {
@@ -59,7 +69,9 @@ export function TestRunsListPage() {
     if (!listResult.error) {
       return;
     }
-    setTransportMessage(formatGraphQlTransportError(listResult.error));
+    queueMicrotask(() => {
+      setTransportMessage(formatGraphQlTransportError(listResult.error!));
+    });
   }, [listResult.error, setTransportMessage]);
 
   const createRunClientPayload = useMemo(() => {

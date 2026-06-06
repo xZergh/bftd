@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Label, XStack } from "tamagui";
 import { useQuery } from "urql";
 import { ProjectsListQuery } from "../graphql/documents";
@@ -8,11 +8,26 @@ import type { ProjectListItem } from "../graphql/types";
 /** Loads the full project list; project detail is fetched on each page route (shell does not duplicate ProjectById). */
 export function ProjectPicker() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { projectId } = useParams();
+  const onProjectsList = location.pathname === "/projects";
+  const [deferQuery, setDeferQuery] = useState(onProjectsList);
+
+  useEffect(() => {
+    if (!onProjectsList) {
+      setDeferQuery(false);
+      return;
+    }
+    setDeferQuery(true);
+    queueMicrotask(() => {
+      setDeferQuery(false);
+    });
+  }, [onProjectsList]);
 
   const [{ data, fetching }] = useQuery({
     query: ProjectsListQuery,
-    variables: { includeArchived: true }
+    variables: { includeArchived: true },
+    pause: deferQuery
   });
 
   const value = projectId ?? "";

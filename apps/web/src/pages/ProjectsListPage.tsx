@@ -98,11 +98,18 @@ export function ProjectsListPage() {
   const [showValidationPayload, setShowValidationPayload] = useState(false);
 
   const [rowEdit, setRowEdit] = useState<RowEdit | null>(null);
+  const [deferQuery, setDeferQuery] = useState(true);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setDeferQuery(false);
+    });
+  }, []);
 
   const [listResult, reexecuteList] = useQuery({
     query: ProjectsListQuery,
     variables: { includeArchived },
-    requestPolicy: "network-only"
+    pause: deferQuery
   });
 
   const [, createProject] = useMutation(CreateProjectMutation);

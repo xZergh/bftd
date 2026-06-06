@@ -64,6 +64,7 @@ E2E web runs on **5174** by default so dev servers on 4000/5173 can stay up. Set
 | `fe-c-requirements` | Edit `DEMO-R3`; delete-blocked on `DEMO-R1` |
 | `fe-d-testcases` | Seeded requirements/test cases lists; cross-render; create/tombstone on DEMO-QA |
 | `fe-f-reporting` | KPI totals and traceability |
+| `fe-j-plans` | Seeded plan row; create plan/run on DEMO-QA |
 | `fe-m-project-subnav` | Nav chrome on reporting / test cases |
 | `fe-b-projects` | **Own** ephemeral project (create/archive) |
 | `fe-n-admin` | **Own** ephemeral archived project → admin purge |
