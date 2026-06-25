@@ -27,7 +27,9 @@ test.describe("FE-J polish", () => {
 
   test("project picker is keyboard-focusable", async ({ page }) => {
     await page.goto("/projects");
+    await expect(page.getByTestId("projects-page")).toBeVisible();
     const picker = page.getByTestId("project-picker");
+    await expect(picker).toBeVisible();
     await picker.focus();
     await expect(picker).toBeFocused();
   });

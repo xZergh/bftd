@@ -4,7 +4,19 @@ import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
 import { ProjectWorkspaceHeader } from "../components/ProjectWorkspaceHeader";
 import { RequirementDetailPanel } from "../components/requirements/RequirementDetailPanel";
+import { RequirementsColumnSettings } from "../components/requirements/RequirementsColumnSettings";
 import { RequirementTableRow } from "../components/requirements/RequirementTableRow";
+import {
+  REQUIREMENT_HIERARCHY_COLUMN,
+  REQUIREMENT_HIDEABLE_COLUMNS,
+  requirementTableColumnCount
+} from "../components/requirements/requirementsColumnConfig";
+import {
+  buildParentSelectOptions,
+  buildRequirementTree,
+  flattenRequirementTree,
+  requirementParentKeyById
+} from "../components/requirements/requirementsHierarchy";
 import {
   SortableTh,
   useRequirementSortAccessors
@@ -28,6 +40,8 @@ import { REQUIRED_MSG, trimmedNonEmpty } from "../forms/mandatoryFields";
 import type { ProjectEnumSettings, RequirementListItem } from "../graphql/types";
 import { useColumnSort } from "../hooks/useColumnSort";
 import { useDebouncedAutosaveEffect } from "../hooks/useDebouncedAutosaveEffect";
+import { useRequirementColumnVisibility } from "../hooks/useRequirementColumnVisibility";
+import { useRequirementTreeCollapse } from "../hooks/useRequirementTreeCollapse";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import "./ProjectsPage.css";
 
@@ -52,6 +66,7 @@ export function RequirementsListPage() {
   const [createRelease, setCreateRelease] = useState("");
   const [createSprint, setCreateSprint] = useState("");
   const [createTags, setCreateTags] = useState("");
+  const [createParentId, setCreateParentId] = useState("");
   const [externalKeyError, setExternalKeyError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
   const [showValidationPayload, setShowValidationPayload] = useState(false);
@@ -74,9 +89,31 @@ export function RequirementsListPage() {
   const [, createRequirement] = useMutation(CreateRequirementMutation);
 
   const enumSettings = settingsResult.data?.projectSettings ?? defaultEnumSettings;
-  const sortAccessors = useRequirementSortAccessors();
   const rows: RequirementListItem[] = listResult.data?.requirements ?? [];
+  const sortAccessors = useRequirementSortAccessors(rows);
+  const { visibility: columnVisibility, toggleColumn } = useRequirementColumnVisibility();
+  const { collapsedIds, toggleCollapsed } = useRequirementTreeCollapse(projectId ?? "");
   const { sorted, sortKey, sortDir, toggleSort } = useColumnSort(rows, sortAccessors);
+  const tableColSpan = requirementTableColumnCount(columnVisibility);
+  const parentKeyById = useMemo(() => requirementParentKeyById(rows), [rows]);
+  const parentSelectOptions = useMemo(() => buildParentSelectOptions(rows), [rows]);
+  const inspectorParentOptions = useMemo(
+    () => (selectedReqId ? buildParentSelectOptions(rows, selectedReqId) : []),
+    [rows, selectedReqId]
+  );
+
+  const displayRows = useMemo(() => {
+    if (sortKey !== null) {
+      return sorted.map((row) => ({
+        row,
+        depth: 0,
+        hasChildren: rows.some((r) => r.parentRequirementId === row.id),
+        isCollapsed: false
+      }));
+    }
+    const tree = buildRequirementTree(rows);
+    return flattenRequirementTree(tree, collapsedIds);
+  }, [collapsedIds, rows, sortKey, sorted]);
 
   useLayoutEffect(() => {
     if (paused) {
@@ -141,11 +178,13 @@ export function RequirementsListPage() {
           requirementType: createType,
           releaseLabel: createRelease.trim() || null,
           sprintLabel: createSprint.trim() || null,
-          tags: parseCommaTags(createTags)
+          tags: parseCommaTags(createTags),
+          parentRequirementId: createParentId || null
         }
       }
     };
   }, [
+    createParentId,
     createPriority,
     createRelease,
     createSprint,
@@ -193,7 +232,8 @@ export function RequirementsListPage() {
         requirementType: createType,
         releaseLabel: createRelease.trim() || undefined,
         sprintLabel: createSprint.trim() || undefined,
-        tags: parseCommaTags(createTags)
+        tags: parseCommaTags(createTags),
+        parentRequirementId: createParentId || undefined
       }
     });
     if (res.error) {
@@ -210,11 +250,13 @@ export function RequirementsListPage() {
     setCreateRelease("");
     setCreateSprint("");
     setCreateTags("");
+    setCreateParentId("");
     clearCreateRequirementDraft(projectId!);
     reexecuteList({ requestPolicy: "network-only" });
   }, [
     cancelDraftWrite,
     clearShellMessages,
+    createParentId,
     createPriority,
     createRelease,
     createRequirement,
@@ -264,145 +306,182 @@ export function RequirementsListPage() {
     <table className="projects-table projects-table--dense">
       <thead>
         <tr>
-          <SortableTh label="Key" sortKey="externalKey" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-          <SortableTh label="Title" sortKey="title" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-          <SortableTh label="Status" sortKey="status" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-          <SortableTh label="Priority" sortKey="priority" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-          <SortableTh label="Type" sortKey="requirementType" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-          <SortableTh label="Release" sortKey="releaseLabel" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-          <SortableTh label="Sprint" sortKey="sprintLabel" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-          <SortableTh label="Tags" sortKey="tags" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-          <SortableTh
-            label="Linked TC"
-            sortKey="linkedManualTestCaseCount"
-            activeSortKey={sortKey}
-            sortDir={sortDir}
-            onSort={toggleSort}
-          />
-          <th scope="col"> </th>
+          <th scope="col" className="requirements-hierarchy-head">
+            {REQUIREMENT_HIERARCHY_COLUMN.label}
+          </th>
+          {REQUIREMENT_HIDEABLE_COLUMNS.map((col) =>
+            columnVisibility[col.id] ? (
+              <SortableTh
+                key={col.id}
+                label={col.label}
+                sortKey={col.sortKey}
+                activeSortKey={sortKey}
+                sortDir={sortDir}
+                onSort={toggleSort}
+              />
+            ) : null
+          )}
+          <th scope="col" className="requirements-table-actions-head">
+            <RequirementsColumnSettings visibility={columnVisibility} onToggle={toggleColumn} />
+          </th>
         </tr>
       </thead>
       <tbody>
         <tr className="projects-table-create-row" data-testid="requirement-create-row">
-          <td>
-            <input
-              type="text"
-              value={externalKey}
-              onChange={(e) => {
-                setExternalKey(e.target.value);
-                setExternalKeyError(null);
-                setShowValidationPayload(false);
-              }}
-              data-testid="requirement-create-key"
-              placeholder={demoPlaceholders.requirement.externalKey}
-              className="projects-table-inline-input"
-              aria-label="External key"
-            />
-            {externalKeyError !== null && (
-              <p className="field-error" role="alert" data-testid="requirement-create-key-error">
-                {externalKeyError}
-              </p>
-            )}
-          </td>
-          <td>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value);
-                setTitleError(null);
-                setShowValidationPayload(false);
-              }}
-              data-testid="requirement-create-title"
-              placeholder={demoPlaceholders.requirement.title}
-              className="projects-table-inline-input"
-              aria-label="Title"
-            />
-            {titleError !== null && (
-              <p className="field-error" role="alert" data-testid="requirement-create-title-error">
-                {titleError}
-              </p>
-            )}
-          </td>
-          <td>
+          <td data-column="hierarchy">
             <select
-              value={createStatus}
-              onChange={(e) => setCreateStatus(e.target.value)}
-              className="projects-table-inline-input"
-              data-testid="requirement-create-status"
-              aria-label="Status"
+              value={createParentId}
+              onChange={(e) => setCreateParentId(e.target.value)}
+              className="projects-table-inline-input requirements-create-parent"
+              data-testid="requirement-create-parent"
+              aria-label="Parent requirement"
             >
-              {enumSettings.requirementStatuses.map((s) => (
-                <option key={s} value={s}>
-                  {s}
+              <option value="">No parent (root)</option>
+              {parentSelectOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {"\u00a0".repeat(opt.depth * 2)}
+                  {opt.label}
                 </option>
               ))}
             </select>
           </td>
-          <td>
-            <select
-              value={createPriority}
-              onChange={(e) => setCreatePriority(e.target.value)}
-              className="projects-table-inline-input"
-              data-testid="requirement-create-priority"
-              aria-label="Priority"
-            >
-              {enumSettings.requirementPriorities.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </td>
-          <td>
-            <select
-              value={createType}
-              onChange={(e) => setCreateType(e.target.value)}
-              className="projects-table-inline-input"
-              data-testid="requirement-create-type"
-              aria-label="Type"
-            >
-              {enumSettings.requirementTypes.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </td>
-          <td>
-            <input
-              type="text"
-              value={createRelease}
-              onChange={(e) => setCreateRelease(e.target.value)}
-              placeholder={demoPlaceholders.requirement.releaseLabel}
-              className="projects-table-inline-input"
-              data-testid="requirement-create-release"
-              aria-label="Release"
-            />
-          </td>
-          <td>
-            <input
-              type="text"
-              value={createSprint}
-              onChange={(e) => setCreateSprint(e.target.value)}
-              placeholder={demoPlaceholders.requirement.sprintLabel}
-              className="projects-table-inline-input"
-              data-testid="requirement-create-sprint"
-              aria-label="Sprint"
-            />
-          </td>
-          <td>
-            <input
-              type="text"
-              value={createTags}
-              onChange={(e) => setCreateTags(e.target.value)}
-              placeholder={demoPlaceholders.requirement.tags}
-              className="projects-table-inline-input"
-              data-testid="requirement-create-tags"
-              aria-label="Tags"
-            />
-          </td>
-          <td colSpan={2}>
+          {columnVisibility.parent ? <td data-column="parent" /> : null}
+          {columnVisibility.externalKey ? (
+            <td data-column="externalKey">
+              <input
+                type="text"
+                value={externalKey}
+                onChange={(e) => {
+                  setExternalKey(e.target.value);
+                  setExternalKeyError(null);
+                  setShowValidationPayload(false);
+                }}
+                data-testid="requirement-create-key"
+                placeholder={demoPlaceholders.requirement.externalKey}
+                className="projects-table-inline-input"
+                aria-label="External key"
+              />
+              {externalKeyError !== null && (
+                <p className="field-error" role="alert" data-testid="requirement-create-key-error">
+                  {externalKeyError}
+                </p>
+              )}
+            </td>
+          ) : null}
+          {columnVisibility.title ? (
+            <td data-column="title">
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  setTitleError(null);
+                  setShowValidationPayload(false);
+                }}
+                data-testid="requirement-create-title"
+                placeholder={demoPlaceholders.requirement.title}
+                className="projects-table-inline-input"
+                aria-label="Title"
+              />
+              {titleError !== null && (
+                <p className="field-error" role="alert" data-testid="requirement-create-title-error">
+                  {titleError}
+                </p>
+              )}
+            </td>
+          ) : null}
+          {columnVisibility.status ? (
+            <td data-column="status">
+              <select
+                value={createStatus}
+                onChange={(e) => setCreateStatus(e.target.value)}
+                className="projects-table-inline-input"
+                data-testid="requirement-create-status"
+                aria-label="Status"
+              >
+                {enumSettings.requirementStatuses.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </td>
+          ) : null}
+          {columnVisibility.priority ? (
+            <td data-column="priority">
+              <select
+                value={createPriority}
+                onChange={(e) => setCreatePriority(e.target.value)}
+                className="projects-table-inline-input"
+                data-testid="requirement-create-priority"
+                aria-label="Priority"
+              >
+                {enumSettings.requirementPriorities.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </td>
+          ) : null}
+          {columnVisibility.requirementType ? (
+            <td data-column="requirementType">
+              <select
+                value={createType}
+                onChange={(e) => setCreateType(e.target.value)}
+                className="projects-table-inline-input"
+                data-testid="requirement-create-type"
+                aria-label="Type"
+              >
+                {enumSettings.requirementTypes.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </td>
+          ) : null}
+          {columnVisibility.releaseLabel ? (
+            <td data-column="releaseLabel">
+              <input
+                type="text"
+                value={createRelease}
+                onChange={(e) => setCreateRelease(e.target.value)}
+                placeholder={demoPlaceholders.requirement.releaseLabel}
+                className="projects-table-inline-input"
+                data-testid="requirement-create-release"
+                aria-label="Release"
+              />
+            </td>
+          ) : null}
+          {columnVisibility.sprintLabel ? (
+            <td data-column="sprintLabel">
+              <input
+                type="text"
+                value={createSprint}
+                onChange={(e) => setCreateSprint(e.target.value)}
+                placeholder={demoPlaceholders.requirement.sprintLabel}
+                className="projects-table-inline-input"
+                data-testid="requirement-create-sprint"
+                aria-label="Sprint"
+              />
+            </td>
+          ) : null}
+          {columnVisibility.tags ? (
+            <td data-column="tags">
+              <input
+                type="text"
+                value={createTags}
+                onChange={(e) => setCreateTags(e.target.value)}
+                placeholder={demoPlaceholders.requirement.tags}
+                className="projects-table-inline-input"
+                data-testid="requirement-create-tags"
+                aria-label="Tags"
+              />
+            </td>
+          ) : null}
+          {columnVisibility.linkedManualTestCaseCount ? <td data-column="linkedManualTestCaseCount" /> : null}
+          <td data-column="actions">
             <button type="button" onClick={() => void onCreate()} data-testid="requirement-create-submit">
               Create
             </button>
@@ -410,33 +489,39 @@ export function RequirementsListPage() {
         </tr>
         {showValidationPayload ? (
           <tr className="projects-table-create-meta-row">
-            <td colSpan={10}>
+            <td colSpan={tableColSpan}>
               <ValidationErrorPayloadPreview open={showValidationPayload} payload={createRequirementClientPayload} />
             </td>
           </tr>
         ) : null}
         {listResult.fetching && rows.length === 0 ? (
           <tr data-testid="requirements-list-loading">
-            <td colSpan={10}>
+            <td colSpan={tableColSpan}>
               <PageLoading />
             </td>
           </tr>
         ) : null}
         {!listResult.fetching && rows.length === 0 ? (
           <tr data-testid="requirements-list-empty">
-            <td colSpan={10}>
+            <td colSpan={tableColSpan}>
               <p className="projects-empty">No requirements yet.</p>
             </td>
           </tr>
         ) : null}
-        {sorted.map((r) => (
+        {displayRows.map((item) => (
           <RequirementTableRow
-            key={r.id}
-            row={r}
+            key={item.row.id}
+            row={item.row}
             projectId={projectId}
-            selected={selectedReqId === r.id}
+            selected={selectedReqId === item.row.id}
             enumSettings={enumSettings}
-            onSelect={() => selectRow(r.id)}
+            columnVisibility={columnVisibility}
+            hierarchy={item}
+            parentExternalKey={parentKeyById.get(item.row.id) ?? null}
+            onToggleCollapse={
+              item.hasChildren ? () => toggleCollapsed(item.row.id) : undefined
+            }
+            onSelect={() => selectRow(item.row.id)}
             onSaved={() => reexecuteList({ requestPolicy: "network-only" })}
           />
         ))}
@@ -463,6 +548,7 @@ export function RequirementsListPage() {
               projectId={projectId}
               requirementId={selectedReqId}
               variant="inspector"
+              parentOptions={inspectorParentOptions}
               onClose={closeInspector}
               onDeleted={() => {
                 closeInspector();

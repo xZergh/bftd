@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import type { RequirementListItem } from "../../graphql/types";
 import { sortIndicator } from "../../hooks/useColumnSort";
+import { requirementParentKeyById } from "./requirementsHierarchy";
 
 type Props = {
   label: string;
@@ -58,7 +59,13 @@ export function useRequirementRowPatch() {
   );
 }
 
-/** Stable memo helper for requirements list sort keys. */
-export function useRequirementSortAccessors() {
-  return useMemo(() => requirementSortAccessors, []);
+/** Sort accessors including derived parent external key. */
+export function useRequirementSortAccessors(rows: RequirementListItem[]) {
+  return useMemo(() => {
+    const parentKeys = requirementParentKeyById(rows);
+    return {
+      ...requirementSortAccessors,
+      parent: (r: RequirementListItem) => parentKeys.get(r.id) ?? ""
+    };
+  }, [rows]);
 }

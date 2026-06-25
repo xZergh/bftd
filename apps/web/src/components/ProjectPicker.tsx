@@ -68,8 +68,8 @@ export function ProjectPicker() {
           id="project-picker-select"
           data-testid="project-picker"
           aria-label="Choose project or all projects list"
+          aria-busy={fetching}
           title={selectTitle}
-          disabled={fetching && !data}
           value={value}
           onChange={(e) => {
             const next = e.target.value;

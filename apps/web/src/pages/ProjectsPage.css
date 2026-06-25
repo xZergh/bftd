@@ -129,6 +129,161 @@
   color: var(--tcms-link);
 }
 
+.requirements-hierarchy-head {
+  width: 6.5rem;
+  min-width: 6.5rem;
+  white-space: nowrap;
+}
+
+.requirements-hierarchy-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  min-height: 1.5rem;
+}
+
+.requirements-hierarchy-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--tcms-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.requirements-hierarchy-toggle:hover {
+  color: var(--tcms-text);
+  background: var(--tcms-row-hover);
+  border-color: var(--tcms-border);
+}
+
+.requirements-hierarchy-toggle:focus-visible {
+  outline: 2px solid var(--tcms-link);
+  outline-offset: 1px;
+}
+
+.requirements-hierarchy-leaf {
+  display: inline-block;
+  width: 1.25rem;
+}
+
+.requirements-create-parent {
+  min-width: 5.5rem;
+  max-width: 100%;
+  font-size: 0.8rem;
+}
+
+.requirements-table-actions-head {
+  width: 2.5rem;
+  text-align: right;
+  vertical-align: middle;
+}
+
+.requirements-column-settings {
+  position: relative;
+  display: inline-flex;
+  justify-content: flex-end;
+}
+
+.requirements-column-settings-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  margin: 0;
+  color: var(--tcms-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.requirements-column-settings-trigger:hover {
+  color: var(--tcms-text);
+  background: var(--tcms-row-hover);
+  border-color: var(--tcms-border);
+}
+
+.requirements-column-settings-trigger:focus-visible {
+  outline: 2px solid var(--tcms-link);
+  outline-offset: 2px;
+}
+
+.requirements-column-settings--open .requirements-column-settings-trigger {
+  color: var(--tcms-text);
+  background: var(--tcms-elevated);
+  border-color: var(--tcms-border);
+}
+
+.requirements-column-settings-panel {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 60;
+  min-width: 11.5rem;
+  padding: 0.65rem 0.75rem 0.75rem;
+  background: var(--tcms-surface);
+  border: 1px solid var(--tcms-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+.requirements-column-settings-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tcms-text-muted);
+}
+
+.requirements-column-settings-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.requirements-column-settings-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.requirements-column-settings-option--locked {
+  color: var(--tcms-text-muted);
+  cursor: default;
+}
+
+.requirements-column-settings-done {
+  display: block;
+  width: 100%;
+  margin-top: 0.55rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--tcms-text);
+  background: var(--tcms-elevated);
+  border: 1px solid var(--tcms-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.requirements-column-settings-done:hover {
+  background: var(--tcms-row-hover);
+}
+
 /* Main nav: shell crumb when no project id in URL (Resume → home redirect; matches Projects chip). */
 .projects-nav-place-link {
   display: inline-flex;
