@@ -1,13 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { DEMO, openDemoImports, openDemoRequirements } from "./fixtures/demo-qa";
+import { openEmptyImports, openEmptyRequirements } from "./fixtures/demo-qa";
 
 test.describe.configure({ mode: "serial" });
 
-test.describe("FE-G imports (DEMO-QA)", () => {
+test.describe("FE-G imports (DEMO-QA-EMPTY)", () => {
   test("requirements import: paste JSON array, assert created count", async ({ page }) => {
     const suffix = `${Date.now()}-a`;
 
-    await openDemoImports(page);
+    await openEmptyImports(page);
 
     const payload = JSON.stringify([{ externalKey: `IMP-${suffix}`, title: `Imported req ${suffix}` }]);
     await page.getByTestId("import-req-json").fill(payload);
@@ -25,7 +25,7 @@ test.describe("FE-G imports (DEMO-QA)", () => {
   test("requirements import: mixed valid and invalid rows show error index", async ({ page }) => {
     const suffix = `${Date.now()}-b`;
 
-    await openDemoImports(page);
+    await openEmptyImports(page);
 
     const payload = JSON.stringify([
       { externalKey: `OK-${suffix}`, title: "Valid row" },
@@ -43,7 +43,7 @@ test.describe("FE-G imports (DEMO-QA)", () => {
   });
 
   test("invalid JSON shows parse error", async ({ page }) => {
-    await openDemoImports(page);
+    await openEmptyImports(page);
 
     await page.getByTestId("import-req-json").fill("[ not json");
     await page.getByTestId("import-req-submit").click();
@@ -52,9 +52,12 @@ test.describe("FE-G imports (DEMO-QA)", () => {
 
   test("design links import after requirement exists", async ({ page }) => {
     const suffix = `${Date.now()}-d`;
-    const reqKey = DEMO.requirements.R3;
+    const reqKey = `REQ-${suffix}`;
 
-    await openDemoRequirements(page);
+    await openEmptyRequirements(page);
+    await page.getByTestId("requirement-create-key").fill(reqKey);
+    await page.getByTestId("requirement-create-title").fill(`Requirement ${suffix}`);
+    await page.getByTestId("requirement-create-submit").click();
     await expect(page.locator(`tr[data-requirement-key="${reqKey}"]`)).toBeVisible();
 
     await page.getByTestId("project-nav-imports").click();

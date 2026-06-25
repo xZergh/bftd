@@ -1,10 +1,10 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import {
   DEMO,
-  createDemoRunAndOpenDetail,
+  createRunAndOpenDetail,
   expectDemoRunSeeded,
   openDemoRuns,
-  seedDemoRunWithManual
+  seedEmptyRunWithManual
 } from "./fixtures/demo-qa";
 
 test.describe.configure({ mode: "serial" });
@@ -33,7 +33,7 @@ test.describe("FE-E runs (DEMO-QA)", () => {
 
   test("submit passed: aggregate 1 total, 1 passed, 100% pass rate", async ({ page }) => {
     const suffix = `${Date.now()}-a`;
-    const { manualId, manualTitle } = await seedDemoRunWithManual(page, suffix);
+    const { manualId, manualTitle } = await seedEmptyRunWithManual(page, suffix);
 
     await expect(page.getByTestId("run-aggregate-total")).toHaveText("0", { timeout: 8000 });
 
@@ -57,7 +57,7 @@ test.describe("FE-E runs (DEMO-QA)", () => {
     page
   }) => {
     const suffix = `${Date.now()}-b`;
-    const { manualId, manualTitle } = await seedDemoRunWithManual(page, suffix);
+    const { manualId, manualTitle } = await seedEmptyRunWithManual(page, suffix);
 
     await expect(page.getByTestId("run-aggregate-total")).toHaveText("0", { timeout: 8000 });
 
@@ -93,7 +93,7 @@ test.describe("FE-E runs (DEMO-QA)", () => {
 
   test("submit without test case shows validation error and payload preview", async ({ page }) => {
     const suffix = `${Date.now()}-c`;
-    await seedDemoRunWithManual(page, suffix);
+    await seedEmptyRunWithManual(page, suffix);
 
     await page.getByTestId("result-submit-open").click();
     await expect(page.getByTestId("result-submit-dialog")).toBeVisible();
@@ -107,18 +107,17 @@ test.describe("FE-E runs (DEMO-QA)", () => {
 
   test("runs list shows multiple runs after creating a second run", async ({ page }) => {
     const suffix = `${Date.now()}-d`;
-    const { runName } = await seedDemoRunWithManual(page, suffix);
+    const { runName } = await seedEmptyRunWithManual(page, suffix);
 
     await page.getByTestId("project-nav-runs").click();
     await expect(page.getByTestId("runs-page")).toBeVisible();
 
     const secondRunName = `Run two ${suffix}`;
-    await createDemoRunAndOpenDetail(page, secondRunName);
+    await createRunAndOpenDetail(page, secondRunName);
 
     await page.getByTestId("project-nav-runs").click();
     await expect(page.getByTestId("runs-page")).toBeVisible();
     await expect(page.getByTestId("run-row").filter({ hasText: runName })).toBeVisible();
     await expect(page.getByTestId("run-row").filter({ hasText: secondRunName })).toBeVisible();
-    await expectDemoRunSeeded(page);
   });
 });

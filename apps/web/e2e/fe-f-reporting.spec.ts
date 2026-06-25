@@ -17,8 +17,10 @@ test.describe("FE-F reporting (DEMO-QA)", () => {
     await expect(tcRow.getByTestId("kpi-formula-label")).toHaveText("Testcase Coverage");
     await expect(tcRow.getByTestId("kpi-value-pct")).toHaveText("100%");
 
-    await expect(page.getByTestId("kpi-current-total-requirements")).toHaveText("3");
-    await expect(page.getByTestId("kpi-current-total-manual")).toHaveText("3");
+    await expect(page.getByTestId("kpi-current-total-requirements")).toHaveText(
+      String(DEMO.seedCounts.requirements)
+    );
+    await expect(page.getByTestId("kpi-current-total-manual")).toHaveText(String(DEMO.seedCounts.manualTestCases));
     await expect(page.getByTestId("kpi-current-total-runs")).toHaveText("1");
   });
 
@@ -26,7 +28,7 @@ test.describe("FE-F reporting (DEMO-QA)", () => {
     await openDemoReporting(page);
 
     await expect(page.getByTestId("traceability-tree")).toBeVisible({ timeout: 15000 });
-    await expect(page.getByTestId("traceability-tree")).toContainText("User can sign in with email and password");
+    await expect(page.getByTestId("traceability-tree")).toContainText(DEMO.requirementTitles.R1);
     await expect(page.getByTestId("traceability-tree")).toContainText(DEMO.manualTitles.login);
 
     await expect(page.getByTestId("trace-graph-node-count")).toHaveText(/\d+/, { timeout: 15000 });
@@ -37,9 +39,13 @@ test.describe("FE-F reporting (DEMO-QA)", () => {
     const edgeCount = Number(await page.getByTestId("trace-graph-edge-count").textContent());
     expect(edgeCount).toBeGreaterThanOrEqual(3);
 
-    await expect(page.getByTestId("run-trace-edge-count")).toHaveText("3", { timeout: 15000 });
-    await expect(page.getByTestId("run-trace-edge-row")).toHaveCount(3);
-    await expect(page.getByTestId("run-trace-req-title").filter({ hasText: /sign in/i })).toHaveCount(1);
-    await expect(page.getByTestId("run-trace-manual-title").filter({ hasText: /login/i })).toHaveCount(1);
+    await expect(page.getByTestId("run-trace-edge-count")).toHaveText(String(DEMO.seedCounts.runTraceabilityEdges), {
+      timeout: 15000
+    });
+    await expect(page.getByTestId("run-trace-edge-row")).toHaveCount(DEMO.seedCounts.runTraceabilityEdges);
+    await expect(page.getByTestId("run-trace-req-title").filter({ hasText: /create a project/i })).toHaveCount(1);
+    await expect(page.getByTestId("run-trace-manual-title").filter({ hasText: DEMO.manualTitles.login })).toHaveCount(
+      1
+    );
   });
 });

@@ -3,8 +3,14 @@ import {
   DEMO,
   expectDemoRequirementsSeeded,
   expectDemoTestCasesSeeded,
+  expectEmptyOverviewKpis,
+  expectEmptyRequirementsTable,
+  expectEmptyTestCasesTable,
   openDemoRequirements,
-  openDemoTestCases
+  openDemoTestCases,
+  openEmptyProjectOverview,
+  openEmptyRequirements,
+  openEmptyTestCases
 } from "./fixtures/demo-qa";
 
 test.describe.configure({ mode: "serial" });
@@ -13,13 +19,13 @@ test.describe("FE-D test cases (DEMO-QA)", () => {
   test("seeded requirements appear in DEMO-QA table", async ({ page }) => {
     await openDemoRequirements(page);
     await expectDemoRequirementsSeeded(page);
-    await expect(page.locator('tr[data-requirement-key]')).toHaveCount(3);
+    await expect(page.locator('tr[data-requirement-key]')).toHaveCount(DEMO.seedCounts.requirements);
   });
 
   test("seeded test cases appear in DEMO-QA table", async ({ page }) => {
     await openDemoTestCases(page);
     await expectDemoTestCasesSeeded(page);
-    await expect(page.locator('[data-testid="testcase-row"]')).toHaveCount(4);
+    await expect(page.locator('[data-testid="testcase-row"]')).toHaveCount(DEMO.seedCounts.testCasesTotal);
   });
 
   test("no React cross-render update warnings on testcase list/detail navigation", async ({ page }) => {
@@ -49,17 +55,33 @@ test.describe("FE-D test cases (DEMO-QA)", () => {
 
     expect(renderPhaseWarnings, renderPhaseWarnings.join("\n")).toEqual([]);
   });
+});
+
+test.describe("FE-D test cases (DEMO-QA-EMPTY)", () => {
+  test("empty project has no requirements or test cases", async ({ page }) => {
+    await openEmptyProjectOverview(page);
+    await expectEmptyOverviewKpis(page);
+    await openEmptyRequirements(page);
+    await expectEmptyRequirementsTable(page);
+    await openEmptyTestCases(page);
+    await expectEmptyTestCasesTable(page);
+  });
 
   test("manual linked to requirement; automated linked to manual; tombstone and restore", async ({ page }) => {
     const suffix = `${Date.now()}`;
-    const reqKey = DEMO.requirements.R2;
-    const reqTitle = DEMO.requirementTitles.R2;
+    const reqKey = `REQ-${suffix}`;
+    const reqTitle = `Requirement ${suffix}`;
     const manualTitle = `Manual TC ${suffix}`;
     const autoTitle = `Auto TC ${suffix}`;
     const stepName = `Step one ${suffix}`;
 
-    await openDemoTestCases(page);
+    await openEmptyRequirements(page);
+    await page.getByTestId("requirement-create-key").fill(reqKey);
+    await page.getByTestId("requirement-create-title").fill(reqTitle);
+    await page.getByTestId("requirement-create-submit").click();
+    await expect(page.locator(`tr[data-requirement-key="${reqKey}"]`)).toBeVisible();
 
+    await openEmptyTestCases(page);
     await page.getByTestId("testcase-create-type").selectOption("manual");
     await page.getByTestId("testcase-create-title").fill(manualTitle);
     await page.getByTestId(`testcase-create-manual-req-${reqKey}`).check();

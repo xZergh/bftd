@@ -1,19 +1,26 @@
 import { expect, test } from "@playwright/test";
-import { DEMO, createDemoManualTestCase, openDemoTestCases } from "./fixtures/demo-qa";
+import { createManualTestCase, openEmptyRequirements, openEmptyTestCases } from "./fixtures/demo-qa";
 
 test.describe.configure({ mode: "serial" });
 
-test.describe("FE-I version history (DEMO-QA)", () => {
+test.describe("FE-I version history (DEMO-QA-EMPTY)", () => {
   test("history renders for a testcase; new version after title save", async ({ page }) => {
     const suffix = `${Date.now()}`;
+    const reqKey = `REQ-${suffix}`;
     const manualTitle = `Manual TC ${suffix}`;
     const stepName = `Step one ${suffix}`;
     const manualTitleV2 = `${manualTitle} v2`;
 
-    await openDemoTestCases(page);
-    await createDemoManualTestCase(page, {
+    await openEmptyRequirements(page);
+    await page.getByTestId("requirement-create-key").fill(reqKey);
+    await page.getByTestId("requirement-create-title").fill(`Requirement ${suffix}`);
+    await page.getByTestId("requirement-create-submit").click();
+    await expect(page.locator(`tr[data-requirement-key="${reqKey}"]`)).toBeVisible();
+
+    await openEmptyTestCases(page);
+    await createManualTestCase(page, {
       title: manualTitle,
-      reqKey: DEMO.requirements.R2,
+      reqKey,
       stepName
     });
 

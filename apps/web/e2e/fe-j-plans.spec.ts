@@ -1,5 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { DEMO, expectDemoPlanSeeded, openDemoPlans, openDemoRuns, openDemoTestCases } from "./fixtures/demo-qa";
+import {
+  createManualTestCase,
+  expectDemoPlanSeeded,
+  openDemoPlans,
+  openEmptyPlans,
+  openEmptyRequirements,
+  openEmptyRuns,
+  openEmptyTestCases
+} from "./fixtures/demo-qa";
 
 test.describe.configure({ mode: "serial" });
 
@@ -9,20 +17,27 @@ test.describe("FE-J plans (DEMO-QA)", () => {
     await expectDemoPlanSeeded(page);
     await expect(page.locator('[data-testid="plan-row"]')).toHaveCount(1);
   });
+});
 
+test.describe("FE-J plans (DEMO-QA-EMPTY)", () => {
   test("create plan, link testcase, and create run with selected plan", async ({ page }) => {
     const suffix = `${Date.now()}`;
+    const reqKey = `REQ-${suffix}`;
     const planName = `Plan ${suffix}`;
     const runName = `Run ${suffix}`;
+    const manualTitle = `Manual ${suffix}`;
+    const stepName = `Step ${suffix}`;
 
-    await openDemoTestCases(page);
-    const manualRow = page.locator('[data-testid="testcase-row"]').filter({ hasText: DEMO.manualTitles.login });
-    await expect(manualRow).toBeVisible();
-    const manualId = await manualRow.getAttribute("data-testcase-id");
-    expect(manualId).toBeTruthy();
+    await openEmptyRequirements(page);
+    await page.getByTestId("requirement-create-key").fill(reqKey);
+    await page.getByTestId("requirement-create-title").fill(`Requirement ${suffix}`);
+    await page.getByTestId("requirement-create-submit").click();
+    await expect(page.locator(`tr[data-requirement-key="${reqKey}"]`)).toBeVisible();
 
-    await page.getByTestId("project-nav-plans").click();
-    await expect(page.getByTestId("plans-page")).toBeVisible();
+    await openEmptyTestCases(page);
+    const { manualId } = await createManualTestCase(page, { title: manualTitle, reqKey, stepName });
+
+    await openEmptyPlans(page);
     await page.getByTestId("plan-create-name").fill(planName);
     await page.getByTestId("plan-create-submit").click();
     const planRow = page.locator('[data-testid="plan-row"]').filter({ hasText: planName });
@@ -33,7 +48,7 @@ test.describe("FE-J plans (DEMO-QA)", () => {
     await planCaseCheckbox.click();
     await expect(planCaseCheckbox).toBeChecked({ timeout: 10000 });
 
-    await openDemoRuns(page);
+    await openEmptyRuns(page);
     await page.getByTestId("run-create-name").fill(runName);
     await page.getByTestId("run-create-test-plan-id").selectOption({ label: planName });
     await page.getByTestId("run-create-submit").click();

@@ -1,18 +1,17 @@
 import { expect, test } from "@playwright/test";
 import {
-  DEMO,
-  createDemoManualTestCase,
-  createDemoRunAndOpenDetail,
-  openDemoProjectOverview,
-  openDemoReporting,
-  openDemoRequirements,
-  openDemoRuns,
-  openDemoTestCases
+  createManualTestCase,
+  createRunAndOpenDetail,
+  openEmptyProjectOverview,
+  openEmptyReporting,
+  openEmptyRequirements,
+  openEmptyRuns,
+  openEmptyTestCases
 } from "./fixtures/demo-qa";
 
 test.describe.configure({ mode: "serial" });
 
-test.describe("FE-L manual happy path (DEMO-QA)", () => {
+test.describe("FE-L manual happy path (DEMO-QA-EMPTY)", () => {
   test("workflow adds requirement, testcase, run, and updates reporting", async ({ page }) => {
     const suffix = `${Date.now()}`;
     const reqKey = `REQ-${suffix}`;
@@ -21,31 +20,31 @@ test.describe("FE-L manual happy path (DEMO-QA)", () => {
     const stepName = `Step ${suffix}`;
     const runName = `Run ${suffix}`;
 
-    await openDemoProjectOverview(page);
+    await openEmptyProjectOverview(page);
     await expect(page.getByTestId("project-dashboard-kpi")).toBeVisible();
     await expect(page.getByTestId("shell-transport-error")).toHaveCount(0);
     await expect(page.getByTestId("shell-app-error")).toHaveCount(0);
 
-    await openDemoReporting(page);
+    await openEmptyReporting(page);
     const reqBefore = Number(await page.getByTestId("kpi-current-total-requirements").textContent());
     const manualBefore = Number(await page.getByTestId("kpi-current-total-manual").textContent());
     const runsBefore = Number(await page.getByTestId("kpi-current-total-runs").textContent());
 
-    await openDemoRequirements(page);
+    await openEmptyRequirements(page);
     await page.getByTestId("requirement-create-key").fill(reqKey);
     await page.getByTestId("requirement-create-title").fill(reqTitle);
     await page.getByTestId("requirement-create-submit").click();
     await expect(page.locator(`tr[data-requirement-key="${reqKey}"]`)).toBeVisible();
 
-    await openDemoTestCases(page);
-    const { manualId } = await createDemoManualTestCase(page, {
+    await openEmptyTestCases(page);
+    const { manualId } = await createManualTestCase(page, {
       title: manualTitle,
       reqKey,
       stepName
     });
 
-    await openDemoRuns(page);
-    await createDemoRunAndOpenDetail(page, runName);
+    await openEmptyRuns(page);
+    await createRunAndOpenDetail(page, runName);
 
     await page.getByTestId("result-submit-open").click();
     await expect(page.getByTestId("result-submit-dialog")).toBeVisible();
@@ -57,12 +56,12 @@ test.describe("FE-L manual happy path (DEMO-QA)", () => {
     await expect(page.getByTestId("run-aggregate-total")).toHaveText("1", { timeout: 8000 });
     await expect(page.getByTestId("run-aggregate-passed")).toHaveText("1");
 
-    await openDemoReporting(page);
+    await openEmptyReporting(page);
     await expect(page.getByTestId("kpi-current-total-requirements")).toHaveText(String(reqBefore + 1));
     await expect(page.getByTestId("kpi-current-total-manual")).toHaveText(String(manualBefore + 1));
     await expect(page.getByTestId("kpi-current-total-runs")).toHaveText(String(runsBefore + 1));
-    await expect(page.getByTestId("traceability-tree")).toContainText(DEMO.requirementTitles.R1);
     await expect(page.getByTestId("traceability-tree")).toContainText(reqTitle);
+    await expect(page.getByTestId("traceability-tree")).toContainText(manualTitle);
     await expect(page.getByTestId("shell-transport-error")).toHaveCount(0);
     await expect(page.getByTestId("shell-app-error")).toHaveCount(0);
   });

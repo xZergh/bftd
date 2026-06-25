@@ -1,14 +1,21 @@
 import { expect, test } from "@playwright/test";
-import { DEMO, openDemoDesignLinks } from "./fixtures/demo-qa";
+import { openEmptyDesignLinks, openEmptyRequirements } from "./fixtures/demo-qa";
 
-test.describe("FE-H design links (DEMO-QA)", () => {
+test.describe("FE-H design links (DEMO-QA-EMPTY)", () => {
   test("upsert lists and unlink Penpot link", async ({ page }) => {
     const suffix = `${Date.now()}`;
-    const reqKey = DEMO.requirements.R3;
-    const reqLabel = `${reqKey}: ${DEMO.requirementTitles.R3}`;
+    const reqKey = `REQ-${suffix}`;
+    const reqTitle = `Requirement ${suffix}`;
+    const reqLabel = `${reqKey}: ${reqTitle}`;
     const shareUrl = `https://design.example/penpot/fe-h-${suffix}`;
 
-    await openDemoDesignLinks(page);
+    await openEmptyRequirements(page);
+    await page.getByTestId("requirement-create-key").fill(reqKey);
+    await page.getByTestId("requirement-create-title").fill(reqTitle);
+    await page.getByTestId("requirement-create-submit").click();
+    await expect(page.locator(`tr[data-requirement-key="${reqKey}"]`)).toBeVisible();
+
+    await openEmptyDesignLinks(page);
 
     await page.getByTestId("design-link-requirement").selectOption({ label: reqLabel });
     await page.getByTestId("design-link-share-url").fill(shareUrl);
@@ -31,6 +38,5 @@ test.describe("FE-H design links (DEMO-QA)", () => {
 
     await row.getByTestId("design-link-unlink").click();
     await expect(rowByUrl).toHaveCount(0, { timeout: 10000 });
-    await expect(page.getByTestId("design-links-empty")).toBeVisible();
   });
 });
