@@ -8,12 +8,19 @@ import { formatGraphQlTransportError } from "../../graphql/formatGraphQlError";
 import type { ProjectEnumSettings, RequirementListItem } from "../../graphql/types";
 import { useDebouncedAutosaveEffect } from "../../hooks/useDebouncedAutosaveEffect";
 import { useShellErrors } from "../../shell/ShellErrorsContext";
+import { RequirementHierarchyCell } from "./RequirementHierarchyCell";
+import type { RequirementColumnVisibility } from "./requirementsColumnConfig";
+import type { FlatRequirementRow } from "./requirementsHierarchy";
 
 type Props = {
   row: RequirementListItem;
   projectId: string;
   selected: boolean;
   enumSettings: ProjectEnumSettings;
+  columnVisibility: RequirementColumnVisibility;
+  hierarchy: Pick<FlatRequirementRow, "depth" | "hasChildren" | "isCollapsed">;
+  parentExternalKey: string | null;
+  onToggleCollapse?: () => void;
   onSelect: () => void;
   onSaved: () => void;
 };
@@ -52,7 +59,18 @@ function draftsEqual(a: RowDraft, b: RowDraft) {
   );
 }
 
-export function RequirementTableRow({ row, projectId, selected, enumSettings, onSelect, onSaved }: Props) {
+export function RequirementTableRow({
+  row,
+  projectId,
+  selected,
+  enumSettings,
+  columnVisibility,
+  hierarchy,
+  parentExternalKey,
+  onToggleCollapse,
+  onSelect,
+  onSaved
+}: Props) {
   const { setTransportMessage, setPayloadAppError } = useShellErrors();
   const [baseline, setBaseline] = useState(() => draftFromRow(row));
   const [draft, setDraft] = useState(() => draftFromRow(row));
@@ -125,6 +143,8 @@ export function RequirementTableRow({ row, projectId, selected, enumSettings, on
     []
   );
 
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
+
   return (
     <tr
       className={selected ? "projects-table-row--selected" : undefined}
@@ -132,99 +152,130 @@ export function RequirementTableRow({ row, projectId, selected, enumSettings, on
       data-testid="requirement-row"
       onClick={onSelect}
     >
-      <td onClick={(e) => e.stopPropagation()}>
-        <code>{row.externalKey}</code>
-      </td>
-      <td onClick={(e) => e.stopPropagation()}>
-        <input
-          type="text"
-          className="projects-table-inline-input"
-          value={draft.title}
-          onChange={(e) => patch({ title: e.target.value })}
-          data-testid={`requirement-row-title-${row.id}`}
-          aria-label="Title"
+      <td data-column="hierarchy" onClick={(e) => e.stopPropagation()}>
+        <RequirementHierarchyCell
+          depth={hierarchy.depth}
+          hasChildren={hierarchy.hasChildren}
+          isCollapsed={hierarchy.isCollapsed}
+          onToggle={onToggleCollapse}
         />
       </td>
-      <td onClick={(e) => e.stopPropagation()}>
-        <select
-          className="projects-table-inline-input"
-          value={draft.status}
-          onChange={(e) => patch({ status: e.target.value })}
-          data-testid={`requirement-row-status-${row.id}`}
-          aria-label="Status"
-        >
-          {enumSettings.requirementStatuses.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </td>
-      <td onClick={(e) => e.stopPropagation()}>
-        <select
-          className="projects-table-inline-input"
-          value={draft.priority}
-          onChange={(e) => patch({ priority: e.target.value })}
-          data-testid={`requirement-row-priority-${row.id}`}
-          aria-label="Priority"
-        >
-          {enumSettings.requirementPriorities.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
-      </td>
-      <td onClick={(e) => e.stopPropagation()}>
-        <select
-          className="projects-table-inline-input"
-          value={draft.requirementType}
-          onChange={(e) => patch({ requirementType: e.target.value })}
-          data-testid={`requirement-row-type-${row.id}`}
-          aria-label="Type"
-        >
-          {enumSettings.requirementTypes.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-      </td>
-      <td onClick={(e) => e.stopPropagation()}>
-        <input
-          type="text"
-          className="projects-table-inline-input"
-          value={draft.releaseLabel}
-          onChange={(e) => patch({ releaseLabel: e.target.value })}
-          placeholder={demoPlaceholders.requirement.releaseLabel}
-          data-testid={`requirement-row-release-${row.id}`}
-          aria-label="Release"
-        />
-      </td>
-      <td onClick={(e) => e.stopPropagation()}>
-        <input
-          type="text"
-          className="projects-table-inline-input"
-          value={draft.sprintLabel}
-          onChange={(e) => patch({ sprintLabel: e.target.value })}
-          placeholder={demoPlaceholders.requirement.sprintLabel}
-          data-testid={`requirement-row-sprint-${row.id}`}
-          aria-label="Sprint"
-        />
-      </td>
-      <td onClick={(e) => e.stopPropagation()}>
-        <input
-          type="text"
-          className="projects-table-inline-input"
-          value={draft.tagsText}
-          onChange={(e) => patch({ tagsText: e.target.value })}
-          placeholder={demoPlaceholders.requirement.tags}
-          data-testid={`requirement-row-tags-${row.id}`}
-          aria-label="Tags"
-        />
-      </td>
-      <td>{row.linkedManualTestCaseCount}</td>
-      <td onClick={(e) => e.stopPropagation()}>
+      {columnVisibility.parent ? (
+        <td data-column="parent">
+          {parentExternalKey ? <code>{parentExternalKey}</code> : <span className="projects-empty">—</span>}
+        </td>
+      ) : null}
+      {columnVisibility.externalKey ? (
+        <td onClick={stop} data-column="externalKey">
+          <code>{row.externalKey}</code>
+        </td>
+      ) : null}
+      {columnVisibility.title ? (
+        <td onClick={stop} data-column="title">
+          <input
+            type="text"
+            className="projects-table-inline-input"
+            value={draft.title}
+            onChange={(e) => patch({ title: e.target.value })}
+            data-testid={`requirement-row-title-${row.id}`}
+            aria-label="Title"
+          />
+        </td>
+      ) : null}
+      {columnVisibility.status ? (
+        <td onClick={stop} data-column="status">
+          <select
+            className="projects-table-inline-input"
+            value={draft.status}
+            onChange={(e) => patch({ status: e.target.value })}
+            data-testid={`requirement-row-status-${row.id}`}
+            aria-label="Status"
+          >
+            {enumSettings.requirementStatuses.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </td>
+      ) : null}
+      {columnVisibility.priority ? (
+        <td onClick={stop} data-column="priority">
+          <select
+            className="projects-table-inline-input"
+            value={draft.priority}
+            onChange={(e) => patch({ priority: e.target.value })}
+            data-testid={`requirement-row-priority-${row.id}`}
+            aria-label="Priority"
+          >
+            {enumSettings.requirementPriorities.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        </td>
+      ) : null}
+      {columnVisibility.requirementType ? (
+        <td onClick={stop} data-column="requirementType">
+          <select
+            className="projects-table-inline-input"
+            value={draft.requirementType}
+            onChange={(e) => patch({ requirementType: e.target.value })}
+            data-testid={`requirement-row-type-${row.id}`}
+            aria-label="Type"
+          >
+            {enumSettings.requirementTypes.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </td>
+      ) : null}
+      {columnVisibility.releaseLabel ? (
+        <td onClick={stop} data-column="releaseLabel">
+          <input
+            type="text"
+            className="projects-table-inline-input"
+            value={draft.releaseLabel}
+            onChange={(e) => patch({ releaseLabel: e.target.value })}
+            placeholder={demoPlaceholders.requirement.releaseLabel}
+            data-testid={`requirement-row-release-${row.id}`}
+            aria-label="Release"
+          />
+        </td>
+      ) : null}
+      {columnVisibility.sprintLabel ? (
+        <td onClick={stop} data-column="sprintLabel">
+          <input
+            type="text"
+            className="projects-table-inline-input"
+            value={draft.sprintLabel}
+            onChange={(e) => patch({ sprintLabel: e.target.value })}
+            placeholder={demoPlaceholders.requirement.sprintLabel}
+            data-testid={`requirement-row-sprint-${row.id}`}
+            aria-label="Sprint"
+          />
+        </td>
+      ) : null}
+      {columnVisibility.tags ? (
+        <td onClick={stop} data-column="tags">
+          <input
+            type="text"
+            className="projects-table-inline-input"
+            value={draft.tagsText}
+            onChange={(e) => patch({ tagsText: e.target.value })}
+            placeholder={demoPlaceholders.requirement.tags}
+            data-testid={`requirement-row-tags-${row.id}`}
+            aria-label="Tags"
+          />
+        </td>
+      ) : null}
+      {columnVisibility.linkedManualTestCaseCount ? (
+        <td data-column="linkedManualTestCaseCount">{row.linkedManualTestCaseCount}</td>
+      ) : null}
+      <td onClick={stop} data-column="actions">
         <RowSaveIndicator state={saveState} data-testid={`requirement-row-save-${row.id}`} />
         <RouterLink to={`/projects/${projectId}/requirements/${row.id}`} data-testid="requirement-open">
           Open

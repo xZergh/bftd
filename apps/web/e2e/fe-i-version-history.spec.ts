@@ -1,51 +1,30 @@
 import { expect, test } from "@playwright/test";
+import { createManualTestCase, openEmptyRequirements, openEmptyTestCases } from "./fixtures/demo-qa";
 
 test.describe.configure({ mode: "serial" });
 
-test.describe("FE-I version history", () => {
+test.describe("FE-I version history (DEMO-QA-EMPTY)", () => {
   test("history renders for a testcase; new version after title save", async ({ page }) => {
     const suffix = `${Date.now()}`;
-    const projectName = `FE-I ${suffix}`;
-    const projectKey = `fe-i-${suffix}`;
     const reqKey = `REQ-${suffix}`;
-    const reqTitle = `Requirement ${suffix}`;
     const manualTitle = `Manual TC ${suffix}`;
     const stepName = `Step one ${suffix}`;
     const manualTitleV2 = `${manualTitle} v2`;
 
-    await page.goto("/projects");
-    await page.getByTestId("nav-projects-menu").click();
-    await page.getByTestId("nav-projects-new").click();
-    await page.getByTestId("project-create-name").fill(projectName);
-    await page.getByTestId("project-create-key").fill(projectKey);
-    await page.getByTestId("project-create-submit").click();
-
-    const prow = page.locator(`tr[data-project-key="${projectKey}"]`);
-    await expect(prow).toBeVisible();
-    await prow.getByTestId("project-name-link").click();
-    await expect(page.getByTestId("project-detail-page")).toBeVisible();
-
-    await page.getByTestId("project-nav-requirements").click();
-    await expect(page.getByTestId("requirements-page")).toBeVisible();
+    await openEmptyRequirements(page);
     await page.getByTestId("requirement-create-key").fill(reqKey);
-    await page.getByTestId("requirement-create-title").fill(reqTitle);
+    await page.getByTestId("requirement-create-title").fill(`Requirement ${suffix}`);
     await page.getByTestId("requirement-create-submit").click();
-    const rrow = page.locator(`tr[data-requirement-key="${reqKey}"]`);
-    await expect(rrow).toBeVisible();
+    await expect(page.locator(`tr[data-requirement-key="${reqKey}"]`)).toBeVisible();
 
-    await page.getByTestId("project-nav-overview").click();
-    await expect(page.getByTestId("project-detail-page")).toBeVisible();
-    await page.getByTestId("project-nav-test-cases").click();
-    await expect(page.getByTestId("testcases-page")).toBeVisible();
+    await openEmptyTestCases(page);
+    await createManualTestCase(page, {
+      title: manualTitle,
+      reqKey,
+      stepName
+    });
 
-    await page.getByTestId("testcase-create-type").selectOption("manual");
-    await page.getByTestId("testcase-create-title").fill(manualTitle);
-    await page.getByTestId(`testcase-create-manual-req-${reqKey}`).check();
-    await page.getByTestId("testcase-create-manual-step-name-0").fill(stepName);
-    await page.getByTestId("testcase-create-submit").click();
-
-    const manualRow = page.locator(`tr[data-testid="testcase-row"]`).filter({ hasText: manualTitle });
-    await expect(manualRow).toBeVisible();
+    const manualRow = page.locator('[data-testid="testcase-row"]').filter({ hasText: manualTitle });
     await manualRow.getByTestId("testcase-open").click();
     await expect(page.getByTestId("testcase-detail-page")).toBeVisible();
 

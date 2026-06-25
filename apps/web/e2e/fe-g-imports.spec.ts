@@ -1,23 +1,13 @@
 import { expect, test } from "@playwright/test";
+import { openEmptyImports, openEmptyRequirements } from "./fixtures/demo-qa";
 
 test.describe.configure({ mode: "serial" });
 
-test.describe("FE-G imports", () => {
+test.describe("FE-G imports (DEMO-QA-EMPTY)", () => {
   test("requirements import: paste JSON array, assert created count", async ({ page }) => {
     const suffix = `${Date.now()}-a`;
-    const projectKey = `fe-g-${suffix}`;
 
-    await page.goto("/projects");
-    await page.getByTestId("nav-projects-menu").click();
-    await page.getByTestId("nav-projects-new").click();
-    await page.getByTestId("project-create-name").fill(`FE-G ${suffix}`);
-    await page.getByTestId("project-create-key").fill(projectKey);
-    await page.getByTestId("project-create-submit").click();
-    await page.locator(`tr[data-project-key="${projectKey}"]`).getByTestId("project-name-link").click();
-    await expect(page.getByTestId("project-detail-page")).toBeVisible();
-
-    await page.getByTestId("project-nav-imports").click();
-    await expect(page.getByTestId("imports-page")).toBeVisible();
+    await openEmptyImports(page);
 
     const payload = JSON.stringify([{ externalKey: `IMP-${suffix}`, title: `Imported req ${suffix}` }]);
     await page.getByTestId("import-req-json").fill(payload);
@@ -27,20 +17,15 @@ test.describe("FE-G imports", () => {
     await expect(page.getByTestId("import-req-result-updated")).toHaveText("0");
     await expect(page.getByTestId("import-req-result-skipped")).toHaveText("0");
     await expect(page.locator('[data-testid="import-errors-block"]')).toHaveCount(0);
+
+    await page.getByTestId("project-nav-requirements").click();
+    await expect(page.locator(`tr[data-requirement-key="IMP-${suffix}"]`)).toBeVisible();
   });
 
   test("requirements import: mixed valid and invalid rows show error index", async ({ page }) => {
     const suffix = `${Date.now()}-b`;
-    const projectKey = `fe-g-${suffix}`;
 
-    await page.goto("/projects");
-    await page.getByTestId("nav-projects-menu").click();
-    await page.getByTestId("nav-projects-new").click();
-    await page.getByTestId("project-create-name").fill(`FE-G mix ${suffix}`);
-    await page.getByTestId("project-create-key").fill(projectKey);
-    await page.getByTestId("project-create-submit").click();
-    await page.locator(`tr[data-project-key="${projectKey}"]`).getByTestId("project-name-link").click();
-    await page.getByTestId("project-nav-imports").click();
+    await openEmptyImports(page);
 
     const payload = JSON.stringify([
       { externalKey: `OK-${suffix}`, title: "Valid row" },
@@ -58,17 +43,7 @@ test.describe("FE-G imports", () => {
   });
 
   test("invalid JSON shows parse error", async ({ page }) => {
-    const suffix = `${Date.now()}-c`;
-    const projectKey = `fe-g-${suffix}`;
-
-    await page.goto("/projects");
-    await page.getByTestId("nav-projects-menu").click();
-    await page.getByTestId("nav-projects-new").click();
-    await page.getByTestId("project-create-name").fill(`FE-G badjson ${suffix}`);
-    await page.getByTestId("project-create-key").fill(projectKey);
-    await page.getByTestId("project-create-submit").click();
-    await page.locator(`tr[data-project-key="${projectKey}"]`).getByTestId("project-name-link").click();
-    await page.getByTestId("project-nav-imports").click();
+    await openEmptyImports(page);
 
     await page.getByTestId("import-req-json").fill("[ not json");
     await page.getByTestId("import-req-submit").click();
@@ -77,24 +52,14 @@ test.describe("FE-G imports", () => {
 
   test("design links import after requirement exists", async ({ page }) => {
     const suffix = `${Date.now()}-d`;
-    const projectKey = `fe-g-${suffix}`;
-    const reqKey = `REQ-D-${suffix}`;
+    const reqKey = `REQ-${suffix}`;
 
-    await page.goto("/projects");
-    await page.getByTestId("nav-projects-menu").click();
-    await page.getByTestId("nav-projects-new").click();
-    await page.getByTestId("project-create-name").fill(`FE-G design ${suffix}`);
-    await page.getByTestId("project-create-key").fill(projectKey);
-    await page.getByTestId("project-create-submit").click();
-    await page.locator(`tr[data-project-key="${projectKey}"]`).getByTestId("project-name-link").click();
-
-    await page.getByTestId("project-nav-requirements").click();
+    await openEmptyRequirements(page);
     await page.getByTestId("requirement-create-key").fill(reqKey);
-    await page.getByTestId("requirement-create-title").fill(`Design target ${suffix}`);
+    await page.getByTestId("requirement-create-title").fill(`Requirement ${suffix}`);
     await page.getByTestId("requirement-create-submit").click();
     await expect(page.locator(`tr[data-requirement-key="${reqKey}"]`)).toBeVisible();
 
-    await page.getByTestId("project-nav-overview").click();
     await page.getByTestId("project-nav-imports").click();
     await page.getByTestId("import-tab-design").click();
 

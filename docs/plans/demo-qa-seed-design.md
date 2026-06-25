@@ -62,12 +62,19 @@ E2E web runs on **5174** by default so dev servers on 4000/5173 can stay up. Set
 | Spec | Uses DEMO-QA for |
 |------|------------------|
 | `fe-c-requirements` | Edit `DEMO-R3`; delete-blocked on `DEMO-R1` |
+| `fe-d-testcases` | Seeded requirements/test cases lists; cross-render; create/tombstone on DEMO-QA |
+| `fe-e-runs` | Seeded run row; result submission and aggregates on ephemeral runs |
 | `fe-f-reporting` | KPI totals and traceability |
+| `fe-g-imports` | Requirement/design imports on DEMO-QA |
+| `fe-h-design-links` | Upsert/unlink Penpot link on `DEMO-R3` |
+| `fe-i-version-history` | Version history on ephemeral manual TC |
+| `fe-j-plans` | Seeded plan row; create plan/run on DEMO-QA |
+| `fe-l-manual-happy-path` | End-to-end create flow with delta KPI assertions |
 | `fe-m-project-subnav` | Nav chrome on reporting / test cases |
 | `fe-b-projects` | **Own** ephemeral project (create/archive) |
 | `fe-n-admin` | **Own** ephemeral archived project → admin purge |
 
-Specs that still create isolated projects (runs, imports, design links, etc.) can migrate incrementally.
+Specs that still create isolated projects can migrate incrementally (none required for core DEMO-QA coverage).
 
 ---
 

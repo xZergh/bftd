@@ -1,32 +1,23 @@
 import { expect, test } from "@playwright/test";
+import { openEmptyDesignLinks, openEmptyRequirements } from "./fixtures/demo-qa";
 
-test.describe("FE-H design links", () => {
+test.describe("FE-H design links (DEMO-QA-EMPTY)", () => {
   test("upsert lists and unlink Penpot link", async ({ page }) => {
     const suffix = `${Date.now()}`;
-    const projectKey = `fe-h-${suffix}`;
-    const reqKey = `REQ-H-${suffix}`;
+    const reqKey = `REQ-${suffix}`;
+    const reqTitle = `Requirement ${suffix}`;
+    const reqLabel = `${reqKey}: ${reqTitle}`;
     const shareUrl = `https://design.example/penpot/fe-h-${suffix}`;
 
-    await page.goto("/projects");
-    await page.getByTestId("nav-projects-menu").click();
-    await page.getByTestId("nav-projects-new").click();
-    await page.getByTestId("project-create-name").fill(`FE-H ${suffix}`);
-    await page.getByTestId("project-create-key").fill(projectKey);
-    await page.getByTestId("project-create-submit").click();
-    await page.locator(`tr[data-project-key="${projectKey}"]`).getByTestId("project-name-link").click();
-    await expect(page.getByTestId("project-detail-page")).toBeVisible();
-
-    await page.getByTestId("project-nav-requirements").click();
+    await openEmptyRequirements(page);
     await page.getByTestId("requirement-create-key").fill(reqKey);
-    await page.getByTestId("requirement-create-title").fill(`Req for design ${suffix}`);
+    await page.getByTestId("requirement-create-title").fill(reqTitle);
     await page.getByTestId("requirement-create-submit").click();
     await expect(page.locator(`tr[data-requirement-key="${reqKey}"]`)).toBeVisible();
 
-    await page.getByTestId("project-nav-overview").click();
-    await page.getByTestId("project-nav-design-links").click();
-    await expect(page.getByTestId("design-links-page")).toBeVisible();
+    await openEmptyDesignLinks(page);
 
-    await page.getByTestId("design-link-requirement").selectOption({ label: `${reqKey}: Req for design ${suffix}` });
+    await page.getByTestId("design-link-requirement").selectOption({ label: reqLabel });
     await page.getByTestId("design-link-share-url").fill(shareUrl);
     await page.getByTestId("design-link-title").fill(`Board ${suffix}`);
     await page.getByTestId("design-link-project-id").fill(`penpot-proj-${suffix}`);
@@ -47,6 +38,5 @@ test.describe("FE-H design links", () => {
 
     await row.getByTestId("design-link-unlink").click();
     await expect(rowByUrl).toHaveCount(0, { timeout: 10000 });
-    await expect(page.getByTestId("design-links-empty")).toBeVisible();
   });
 });

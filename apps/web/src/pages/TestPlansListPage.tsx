@@ -62,17 +62,27 @@ export function TestPlansListPage() {
   const [failBump, setFailBump] = useState(0);
 
   const paused = projectId === undefined || projectId === "";
+  const [deferQueries, setDeferQueries] = useState(true);
+  useEffect(() => {
+    if (paused) {
+      return;
+    }
+    setDeferQueries(true);
+    queueMicrotask(() => {
+      setDeferQueries(false);
+    });
+  }, [paused, projectId]);
+
+  const queryPaused = paused || deferQueries;
   const [plansResult, reexecutePlans] = useQuery({
     query: TestPlansListQuery,
     variables: { projectId: projectId ?? "" },
-    pause: paused,
-    requestPolicy: "network-only"
+    pause: queryPaused
   });
   const [casesResult] = useQuery({
     query: TestCasesListQuery,
     variables: { projectId: projectId ?? "", includeDeleted: false },
-    pause: paused,
-    requestPolicy: "network-only"
+    pause: queryPaused
   });
 
   const [, createPlan] = useMutation(CreateTestPlanMutation);
@@ -85,7 +95,9 @@ export function TestPlansListPage() {
     if (!plansResult.error) {
       return;
     }
-    setTransportMessage(formatGraphQlTransportError(plansResult.error));
+    queueMicrotask(() => {
+      setTransportMessage(formatGraphQlTransportError(plansResult.error!));
+    });
   }, [plansResult.error, setTransportMessage]);
 
   const plans: TestPlanListItem[] = plansResult.data?.testPlans ?? [];

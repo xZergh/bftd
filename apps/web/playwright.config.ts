@@ -9,6 +9,19 @@ const e2eWebPort = process.env.TCMS_E2E_WEB_PORT ?? "5174";
 const e2eApiUrl = `http://127.0.0.1:${e2eApiPort}`;
 const e2eWebUrl = `http://127.0.0.1:${e2eWebPort}`;
 
+const demoQaSpecs = [
+  "**/fe-c-requirements.spec.ts",
+  "**/fe-f-reporting.spec.ts",
+  "**/fe-d-testcases.spec.ts",
+  "**/fe-e-runs.spec.ts",
+  "**/fe-g-imports.spec.ts",
+  "**/fe-h-design-links.spec.ts",
+  "**/fe-i-version-history.spec.ts",
+  "**/fe-j-plans.spec.ts",
+  "**/fe-l-manual-happy-path.spec.ts",
+  "**/fe-m-project-subnav.spec.ts"
+];
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -22,13 +35,13 @@ export default defineConfig({
     {
       name: "chromium-demo-qa",
       use: { ...devices["Desktop Chrome"] },
-      testMatch: ["**/fe-c-requirements.spec.ts", "**/fe-f-reporting.spec.ts", "**/fe-m-project-subnav.spec.ts"],
+      testMatch: demoQaSpecs,
       fullyParallel: false
     },
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
-      testIgnore: ["**/fe-k-mobile-shell.spec.ts", "**/fe-c-requirements.spec.ts", "**/fe-f-reporting.spec.ts", "**/fe-m-project-subnav.spec.ts"]
+      testIgnore: ["**/fe-k-mobile-shell.spec.ts", ...demoQaSpecs]
     },
     {
       name: "mobile-chrome",

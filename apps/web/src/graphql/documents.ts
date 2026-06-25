@@ -216,6 +216,7 @@ export const UpdateRequirementMutation = parse(`
         status
         priority
         tags
+        parentRequirementId
         linkedManualTestCaseCount
       }
       error {

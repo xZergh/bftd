@@ -1,0 +1,1116 @@
+{
+  "version": 1,
+  "exportedAt": "2026-06-10T17:35:54.565Z",
+  "project": {
+    "key": "demo-qa",
+    "name": "Demo QA sample workspace",
+    "description": "Seeded demo workspace for UI review, manual QA, and Playwright E2E."
+  },
+  "requirements": [
+    {
+      "externalKey": "DEMO-EP-01",
+      "title": "Epic: TCMS workspace",
+      "description": "Top-level scope for tcms workspace capabilities.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "status": "approved",
+      "priority": "high",
+      "requirementType": "nonfunctional",
+      "tags": [
+        "demo",
+        "epic"
+      ]
+    },
+    {
+      "externalKey": "DEMO-EP-02",
+      "title": "Epic: Requirements & traceability",
+      "description": "Top-level scope for requirements & traceability capabilities.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "status": "approved",
+      "priority": "high",
+      "requirementType": "nonfunctional",
+      "tags": [
+        "demo",
+        "epic"
+      ]
+    },
+    {
+      "externalKey": "DEMO-EP-03",
+      "title": "Epic: Test cases & plans",
+      "description": "Top-level scope for test cases & plans capabilities.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "status": "approved",
+      "priority": "high",
+      "requirementType": "nonfunctional",
+      "tags": [
+        "demo",
+        "epic"
+      ]
+    },
+    {
+      "externalKey": "DEMO-EP-04",
+      "title": "Epic: Runs, KPI & imports",
+      "description": "Top-level scope for runs, kpi & imports capabilities.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "status": "approved",
+      "priority": "high",
+      "requirementType": "nonfunctional",
+      "tags": [
+        "demo",
+        "epic"
+      ]
+    },
+    {
+      "externalKey": "DEMO-FT-01-01",
+      "title": "Feature: Projects & navigation",
+      "description": "Feature group for projects & navigation.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "status": "approved",
+      "priority": "medium",
+      "requirementType": "nonfunctional",
+      "tags": [
+        "demo",
+        "feature"
+      ],
+      "parentExternalKey": "DEMO-EP-01"
+    },
+    {
+      "externalKey": "DEMO-FT-01-02",
+      "title": "Feature: Project overview",
+      "description": "Feature group for project overview.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "status": "approved",
+      "priority": "medium",
+      "requirementType": "nonfunctional",
+      "tags": [
+        "demo",
+        "feature"
+      ],
+      "parentExternalKey": "DEMO-EP-01"
+    },
+    {
+      "externalKey": "DEMO-FT-02-01",
+      "title": "Feature: Requirements list & CRUD",
+      "description": "Feature group for requirements list & crud.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "status": "approved",
+      "priority": "medium",
+      "requirementType": "nonfunctional",
+      "tags": [
+        "demo",
+        "feature"
+      ],
+      "parentExternalKey": "DEMO-EP-02"
+    },
+    {
+      "externalKey": "DEMO-FT-02-02",
+      "title": "Feature: Requirement metadata & hierarchy",
+      "description": "Feature group for requirement metadata & hierarchy.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "status": "approved",
+      "priority": "medium",
+      "requirementType": "nonfunctional",
+      "tags": [
+        "demo",
+        "feature"
+      ],
+      "parentExternalKey": "DEMO-EP-02"
+    },
+    {
+      "externalKey": "DEMO-FT-03-01",
+      "title": "Feature: Manual test cases",
+      "description": "Feature group for manual test cases.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "status": "approved",
+      "priority": "medium",
+      "requirementType": "nonfunctional",
+      "tags": [
+        "demo",
+        "feature"
+      ],
+      "parentExternalKey": "DEMO-EP-03"
+    },
+    {
+      "externalKey": "DEMO-FT-03-02",
+      "title": "Feature: Automated test cases",
+      "description": "Feature group for automated test cases.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "status": "approved",
+      "priority": "medium",
+      "requirementType": "nonfunctional",
+      "tags": [
+        "demo",
+        "feature"
+      ],
+      "parentExternalKey": "DEMO-EP-03"
+    },
+    {
+      "externalKey": "DEMO-FT-03-03",
+      "title": "Feature: Test plans",
+      "description": "Feature group for test plans.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-3",
+      "status": "approved",
+      "priority": "medium",
+      "requirementType": "nonfunctional",
+      "tags": [
+        "demo",
+        "feature"
+      ],
+      "parentExternalKey": "DEMO-EP-03"
+    },
+    {
+      "externalKey": "DEMO-FT-04-01",
+      "title": "Feature: Test runs & results",
+      "description": "Feature group for test runs & results.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "status": "approved",
+      "priority": "medium",
+      "requirementType": "nonfunctional",
+      "tags": [
+        "demo",
+        "feature"
+      ],
+      "parentExternalKey": "DEMO-EP-04"
+    },
+    {
+      "externalKey": "DEMO-FT-04-02",
+      "title": "Feature: KPI & traceability reporting",
+      "description": "Feature group for kpi & traceability reporting.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-3",
+      "status": "approved",
+      "priority": "medium",
+      "requirementType": "nonfunctional",
+      "tags": [
+        "demo",
+        "feature"
+      ],
+      "parentExternalKey": "DEMO-EP-04"
+    },
+    {
+      "externalKey": "DEMO-FT-04-03",
+      "title": "Feature: Bulk imports & design links",
+      "description": "Feature group for bulk imports & design links.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-3",
+      "status": "approved",
+      "priority": "medium",
+      "requirementType": "nonfunctional",
+      "tags": [
+        "demo",
+        "feature"
+      ],
+      "parentExternalKey": "DEMO-EP-04"
+    },
+    {
+      "externalKey": "DEMO-R1",
+      "title": "User can create a project with a unique key",
+      "description": "Project key is the stable slug for imports, routing, and E2E selectors.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "status": "approved",
+      "priority": "high",
+      "requirementType": "functional",
+      "tags": [
+        "demo",
+        "projects"
+      ],
+      "parentExternalKey": "DEMO-FT-01-01"
+    },
+    {
+      "externalKey": "DEMO-R10",
+      "title": "Manual testcase must link to one or more requirements",
+      "description": "Traceability starts at requirement to manual testcase edges.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "status": "approved",
+      "priority": "high",
+      "requirementType": "functional",
+      "tags": [
+        "demo",
+        "testcases",
+        "traceability"
+      ],
+      "parentExternalKey": "DEMO-FT-03-01"
+    },
+    {
+      "externalKey": "DEMO-R11",
+      "title": "Automated testcase links to manual testcase for traceability",
+      "description": "Automation coverage rolls up through manual bridges to requirements.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "status": "in_progress",
+      "priority": "medium",
+      "requirementType": "functional",
+      "tags": [
+        "demo",
+        "testcases",
+        "automated"
+      ],
+      "parentExternalKey": "DEMO-FT-03-02"
+    },
+    {
+      "externalKey": "DEMO-R12",
+      "title": "Tombstoned testcase is hidden from default lists",
+      "description": "Soft-deleted automated cases remain in version history when referenced.",
+      "releaseLabel": "1.1",
+      "sprintLabel": "Sprint-2",
+      "status": "draft",
+      "priority": "medium",
+      "requirementType": "functional",
+      "tags": [
+        "demo",
+        "testcases",
+        "tombstone"
+      ],
+      "parentExternalKey": "DEMO-FT-03-02"
+    },
+    {
+      "externalKey": "DEMO-R13",
+      "title": "Test plan groups test cases for regression scope",
+      "description": "Plans curate cases for staging sign-off without duplicating cases.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-3",
+      "status": "approved",
+      "priority": "medium",
+      "requirementType": "functional",
+      "tags": [
+        "demo",
+        "plans"
+      ],
+      "parentExternalKey": "DEMO-FT-03-03"
+    },
+    {
+      "externalKey": "DEMO-R14",
+      "title": "Run creation can seed cases from test plan membership",
+      "description": "Run assignments inherit plan-linked manual and automated cases.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-3",
+      "status": "approved",
+      "priority": "high",
+      "requirementType": "functional",
+      "tags": [
+        "demo",
+        "plans",
+        "runs"
+      ],
+      "parentExternalKey": "DEMO-FT-03-03"
+    },
+    {
+      "externalKey": "DEMO-R15",
+      "title": "Tester can submit pass, fail, skip, and blocked results",
+      "description": "Run detail supports per-case execution with duration capture.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "status": "approved",
+      "priority": "high",
+      "requirementType": "functional",
+      "tags": [
+        "demo",
+        "runs"
+      ],
+      "parentExternalKey": "DEMO-FT-04-01"
+    },
+    {
+      "externalKey": "DEMO-R16",
+      "title": "Run aggregate shows totals, pass rate, and duration",
+      "description": "Execution summary is available without exporting results.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "status": "approved",
+      "priority": "medium",
+      "requirementType": "functional",
+      "tags": [
+        "demo",
+        "runs",
+        "reporting"
+      ],
+      "parentExternalKey": "DEMO-FT-04-01"
+    },
+    {
+      "externalKey": "DEMO-R17",
+      "title": "KPI dashboard shows formula-driven coverage metrics",
+      "description": "Requirement and testcase coverage percentages use live link counts.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-3",
+      "status": "approved",
+      "priority": "high",
+      "requirementType": "nonfunctional",
+      "tags": [
+        "demo",
+        "kpi"
+      ],
+      "parentExternalKey": "DEMO-FT-04-02"
+    },
+    {
+      "externalKey": "DEMO-R18",
+      "title": "Run traceability snapshot records requirement-manual edges",
+      "description": "Point-in-time run reporting is immutable after snapshot capture.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-3",
+      "status": "approved",
+      "priority": "high",
+      "requirementType": "nonfunctional",
+      "tags": [
+        "demo",
+        "traceability"
+      ],
+      "parentExternalKey": "DEMO-FT-04-02"
+    },
+    {
+      "externalKey": "DEMO-R19",
+      "title": "Bulk requirements import runs in a single transaction",
+      "description": "Import rollback preserves project state when any row fails validation.",
+      "releaseLabel": "1.1",
+      "sprintLabel": "Sprint-3",
+      "status": "draft",
+      "priority": "medium",
+      "requirementType": "functional",
+      "tags": [
+        "demo",
+        "imports"
+      ],
+      "parentExternalKey": "DEMO-FT-04-03"
+    },
+    {
+      "externalKey": "DEMO-R2",
+      "title": "Archived projects are hidden from the default list",
+      "description": "Archived projects remain recoverable via Show archived toggle.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "status": "draft",
+      "priority": "medium",
+      "requirementType": "functional",
+      "tags": [
+        "demo",
+        "projects"
+      ],
+      "parentExternalKey": "DEMO-FT-01-01"
+    },
+    {
+      "externalKey": "DEMO-R20",
+      "title": "Penpot design link can be attached to a requirement",
+      "description": "Design URLs associate UI frames with requirement rows for review.",
+      "releaseLabel": "1.1",
+      "sprintLabel": "Sprint-3",
+      "status": "in_progress",
+      "priority": "low",
+      "requirementType": "functional",
+      "tags": [
+        "demo",
+        "design-links"
+      ],
+      "parentExternalKey": "DEMO-FT-04-03"
+    },
+    {
+      "externalKey": "DEMO-R3",
+      "title": "Overview KPI strip shows requirement, manual, and run counts",
+      "description": "Dashboard hub summarizes entity totals for the active project.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "status": "in_progress",
+      "priority": "high",
+      "requirementType": "functional",
+      "tags": [
+        "demo",
+        "overview"
+      ],
+      "parentExternalKey": "DEMO-FT-01-02"
+    },
+    {
+      "externalKey": "DEMO-R4",
+      "title": "Overview surfaces the latest test run summary",
+      "description": "Recent execution activity is visible without opening the runs list.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "status": "approved",
+      "priority": "low",
+      "requirementType": "functional",
+      "tags": [
+        "demo",
+        "overview"
+      ],
+      "parentExternalKey": "DEMO-FT-01-02"
+    },
+    {
+      "externalKey": "DEMO-R5",
+      "title": "Inline create row accepts external key, title, status, and priority",
+      "description": "Dense requirements table supports inline create without modals.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "status": "approved",
+      "priority": "medium",
+      "requirementType": "functional",
+      "tags": [
+        "demo",
+        "requirements"
+      ],
+      "parentExternalKey": "DEMO-FT-02-01"
+    },
+    {
+      "externalKey": "DEMO-R6",
+      "title": "Delete is blocked when a manual testcase is linked",
+      "description": "API returns fixHint directing the user to unlink manual tests first.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "status": "approved",
+      "priority": "high",
+      "requirementType": "functional",
+      "tags": [
+        "demo",
+        "requirements",
+        "validation"
+      ],
+      "parentExternalKey": "DEMO-FT-02-01"
+    },
+    {
+      "externalKey": "DEMO-R7",
+      "title": "Release and sprint labels scope list filters",
+      "description": "Delivery labels align requirements with release planning views.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "status": "draft",
+      "priority": "low",
+      "requirementType": "nonfunctional",
+      "tags": [
+        "demo",
+        "requirements",
+        "labels"
+      ],
+      "parentExternalKey": "DEMO-FT-02-02"
+    },
+    {
+      "externalKey": "DEMO-R8",
+      "title": "Parent requirement links form a folder hierarchy",
+      "description": "Epic, feature, and leaf requirements share one project-scoped tree.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "status": "draft",
+      "priority": "medium",
+      "requirementType": "nonfunctional",
+      "tags": [
+        "demo",
+        "requirements",
+        "hierarchy"
+      ],
+      "parentExternalKey": "DEMO-FT-02-02"
+    },
+    {
+      "externalKey": "DEMO-R9",
+      "title": "Manual testcase requires at least one ordered step",
+      "description": "Step name and expected result columns support dense inline editing.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "status": "approved",
+      "priority": "high",
+      "requirementType": "functional",
+      "tags": [
+        "demo",
+        "testcases",
+        "manual"
+      ],
+      "parentExternalKey": "DEMO-FT-03-01"
+    }
+  ],
+  "manualTestCases": [
+    {
+      "title": "Manual: Archived projects are hidden from the default list",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "requirementExternalKeys": [
+        "DEMO-R2"
+      ],
+      "steps": [
+        {
+          "name": "Verify archived projects are hidden from the default list",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: Automated testcase links to manual testcase for traceability",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "requirementExternalKeys": [
+        "DEMO-R11"
+      ],
+      "steps": [
+        {
+          "name": "Verify automated testcase links to manual testcase for traceability",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: Bulk requirements import runs in a single transaction",
+      "releaseLabel": "1.1",
+      "sprintLabel": "Sprint-3",
+      "requirementExternalKeys": [
+        "DEMO-R19"
+      ],
+      "steps": [
+        {
+          "name": "Verify bulk requirements import runs in a single transaction",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: Delete is blocked when a manual testcase is linked",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "requirementExternalKeys": [
+        "DEMO-R6"
+      ],
+      "steps": [
+        {
+          "name": "Verify delete is blocked when a manual testcase is linked",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: Inline create row accepts external key, title, status, and priority",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "requirementExternalKeys": [
+        "DEMO-R5"
+      ],
+      "steps": [
+        {
+          "name": "Verify inline create row accepts external key, title, status, and priority",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: KPI dashboard shows formula-driven coverage metrics",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-3",
+      "requirementExternalKeys": [
+        "DEMO-R17"
+      ],
+      "steps": [
+        {
+          "name": "Verify kpi dashboard shows formula-driven coverage metrics",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: Manual testcase must link to one or more requirements",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "requirementExternalKeys": [
+        "DEMO-R10"
+      ],
+      "steps": [
+        {
+          "name": "Verify manual testcase must link to one or more requirements",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: Manual testcase requires at least one ordered step",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "requirementExternalKeys": [
+        "DEMO-R9"
+      ],
+      "steps": [
+        {
+          "name": "Verify manual testcase requires at least one ordered step",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: Overview KPI strip shows requirement, manual, and run counts",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "requirementExternalKeys": [
+        "DEMO-R3"
+      ],
+      "steps": [
+        {
+          "name": "Verify overview kpi strip shows requirement, manual, and run counts",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: Overview surfaces the latest test run summary",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "requirementExternalKeys": [
+        "DEMO-R4"
+      ],
+      "steps": [
+        {
+          "name": "Verify overview surfaces the latest test run summary",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: Parent requirement links form a folder hierarchy",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "requirementExternalKeys": [
+        "DEMO-R8"
+      ],
+      "steps": [
+        {
+          "name": "Verify parent requirement links form a folder hierarchy",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: Penpot design link can be attached to a requirement",
+      "releaseLabel": "1.1",
+      "sprintLabel": "Sprint-3",
+      "requirementExternalKeys": [
+        "DEMO-R20"
+      ],
+      "steps": [
+        {
+          "name": "Verify penpot design link can be attached to a requirement",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: Release and sprint labels scope list filters",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "requirementExternalKeys": [
+        "DEMO-R7"
+      ],
+      "steps": [
+        {
+          "name": "Verify release and sprint labels scope list filters",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: Run aggregate shows totals, pass rate, and duration",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "requirementExternalKeys": [
+        "DEMO-R16"
+      ],
+      "steps": [
+        {
+          "name": "Verify run aggregate shows totals, pass rate, and duration",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: Run creation can seed cases from test plan membership",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-3",
+      "requirementExternalKeys": [
+        "DEMO-R14"
+      ],
+      "steps": [
+        {
+          "name": "Verify run creation can seed cases from test plan membership",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: Run traceability snapshot records requirement-manual edges",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-3",
+      "requirementExternalKeys": [
+        "DEMO-R18"
+      ],
+      "steps": [
+        {
+          "name": "Verify run traceability snapshot records requirement-manual edges",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: Test plan groups test cases for regression scope",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-3",
+      "requirementExternalKeys": [
+        "DEMO-R13"
+      ],
+      "steps": [
+        {
+          "name": "Verify test plan groups test cases for regression scope",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: Tester can submit pass, fail, skip, and blocked results",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "requirementExternalKeys": [
+        "DEMO-R15"
+      ],
+      "steps": [
+        {
+          "name": "Verify tester can submit pass, fail, skip, and blocked results",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: Tombstoned testcase is hidden from default lists",
+      "releaseLabel": "1.1",
+      "sprintLabel": "Sprint-2",
+      "requirementExternalKeys": [
+        "DEMO-R12"
+      ],
+      "steps": [
+        {
+          "name": "Verify tombstoned testcase is hidden from default lists",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: User can create a project with a unique key",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "requirementExternalKeys": [
+        "DEMO-R1"
+      ],
+      "steps": [
+        {
+          "name": "Verify user can create a project with a unique key",
+          "expectedResult": "Expected behavior observed"
+        }
+      ]
+    },
+    {
+      "title": "Manual: smoke - Automated test cases",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "requirementExternalKeys": [
+        "DEMO-FT-03-02"
+      ],
+      "steps": [
+        {
+          "name": "Exercise Automated test cases",
+          "expectedResult": "Feature paths behave as specified"
+        }
+      ]
+    },
+    {
+      "title": "Manual: smoke - Bulk imports & design links",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-3",
+      "requirementExternalKeys": [
+        "DEMO-FT-04-03"
+      ],
+      "steps": [
+        {
+          "name": "Exercise Bulk imports & design links",
+          "expectedResult": "Feature paths behave as specified"
+        }
+      ]
+    },
+    {
+      "title": "Manual: smoke - KPI & traceability reporting",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-3",
+      "requirementExternalKeys": [
+        "DEMO-FT-04-02"
+      ],
+      "steps": [
+        {
+          "name": "Exercise KPI & traceability reporting",
+          "expectedResult": "Feature paths behave as specified"
+        }
+      ]
+    },
+    {
+      "title": "Manual: smoke - Manual test cases",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "requirementExternalKeys": [
+        "DEMO-FT-03-01"
+      ],
+      "steps": [
+        {
+          "name": "Exercise Manual test cases",
+          "expectedResult": "Feature paths behave as specified"
+        }
+      ]
+    },
+    {
+      "title": "Manual: smoke - Project overview",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "requirementExternalKeys": [
+        "DEMO-FT-01-02"
+      ],
+      "steps": [
+        {
+          "name": "Exercise Project overview",
+          "expectedResult": "Feature paths behave as specified"
+        }
+      ]
+    },
+    {
+      "title": "Manual: smoke - Projects & navigation",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "requirementExternalKeys": [
+        "DEMO-FT-01-01"
+      ],
+      "steps": [
+        {
+          "name": "Exercise Projects & navigation",
+          "expectedResult": "Feature paths behave as specified"
+        }
+      ]
+    },
+    {
+      "title": "Manual: smoke - Requirement metadata & hierarchy",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "requirementExternalKeys": [
+        "DEMO-FT-02-02"
+      ],
+      "steps": [
+        {
+          "name": "Exercise Requirement metadata & hierarchy",
+          "expectedResult": "Feature paths behave as specified"
+        }
+      ]
+    },
+    {
+      "title": "Manual: smoke - Requirements & traceability",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "requirementExternalKeys": [
+        "DEMO-EP-02"
+      ],
+      "steps": [
+        {
+          "name": "Walk Requirements & traceability surfaces",
+          "expectedResult": "Core flows reachable"
+        }
+      ]
+    },
+    {
+      "title": "Manual: smoke - Requirements list & CRUD",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "requirementExternalKeys": [
+        "DEMO-FT-02-01"
+      ],
+      "steps": [
+        {
+          "name": "Exercise Requirements list & CRUD",
+          "expectedResult": "Feature paths behave as specified"
+        }
+      ]
+    },
+    {
+      "title": "Manual: smoke - Runs, KPI & imports",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "requirementExternalKeys": [
+        "DEMO-EP-04"
+      ],
+      "steps": [
+        {
+          "name": "Walk Runs, KPI & imports surfaces",
+          "expectedResult": "Core flows reachable"
+        }
+      ]
+    },
+    {
+      "title": "Manual: smoke - TCMS workspace",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "requirementExternalKeys": [
+        "DEMO-EP-01"
+      ],
+      "steps": [
+        {
+          "name": "Walk TCMS workspace surfaces",
+          "expectedResult": "Core flows reachable"
+        }
+      ]
+    },
+    {
+      "title": "Manual: smoke - Test cases & plans",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "requirementExternalKeys": [
+        "DEMO-EP-03"
+      ],
+      "steps": [
+        {
+          "name": "Walk Test cases & plans surfaces",
+          "expectedResult": "Core flows reachable"
+        }
+      ]
+    },
+    {
+      "title": "Manual: smoke - Test plans",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-3",
+      "requirementExternalKeys": [
+        "DEMO-FT-03-03"
+      ],
+      "steps": [
+        {
+          "name": "Exercise Test plans",
+          "expectedResult": "Feature paths behave as specified"
+        }
+      ]
+    },
+    {
+      "title": "Manual: smoke - Test runs & results",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "requirementExternalKeys": [
+        "DEMO-FT-04-01"
+      ],
+      "steps": [
+        {
+          "name": "Exercise Test runs & results",
+          "expectedResult": "Feature paths behave as specified"
+        }
+      ]
+    }
+  ],
+  "automatedTestCases": [
+    {
+      "title": "API: KPI dashboard returns coverage formulas",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-3",
+      "manualTitles": [
+        "Manual: KPI dashboard shows formula-driven coverage metrics"
+      ]
+    },
+    {
+      "title": "API: import requirements rolls back on validation error",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-3",
+      "manualTitles": [
+        "Manual: Bulk requirements import runs in a single transaction"
+      ]
+    },
+    {
+      "title": "API: manual testcase create enforces step minimum",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "manualTitles": [
+        "Manual: Manual testcase requires at least one ordered step"
+      ]
+    },
+    {
+      "title": "API: project create returns stable key",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "manualTitles": [
+        "Manual: User can create a project with a unique key"
+      ]
+    },
+    {
+      "title": "API: requirements list returns linked manual counts",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "manualTitles": [
+        "Manual: Inline create row accepts external key, title, status, and priority"
+      ]
+    },
+    {
+      "title": "API: run aggregate computes pass rate",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-2",
+      "manualTitles": [
+        "Manual: Run aggregate shows totals, pass rate, and duration"
+      ]
+    }
+  ],
+  "plans": [
+    {
+      "name": "Demo regression plan",
+      "description": "Curated regression slice for staging sign-off.",
+      "releaseLabel": "1.0",
+      "sprintLabel": "Sprint-1",
+      "testCaseTitles": [
+        "Manual: User can create a project with a unique key",
+        "Manual: Overview KPI strip shows requirement, manual, and run counts",
+        "Manual: Manual testcase requires at least one ordered step",
+        "Manual: Tester can submit pass, fail, skip, and blocked results",
+        "API: project create returns stable key",
+        "API: requirements list returns linked manual counts",
+        "API: manual testcase create enforces step minimum",
+        "API: run aggregate computes pass rate",
+        "API: KPI dashboard returns coverage formulas",
+        "API: import requirements rolls back on validation error"
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "name": "Demo regression - staging",
+      "releaseLabel": null,
+      "sprintLabel": null,
+      "environment": "staging",
+      "buildVersion": "demo-1.0.0",
+      "trigger": "seed-script",
+      "results": [
+        {
+          "testCaseTitle": "Manual: User can create a project with a unique key",
+          "status": "passed",
+          "durationMs": 1100
+        },
+        {
+          "testCaseTitle": "Manual: Overview KPI strip shows requirement, manual, and run counts",
+          "status": "failed",
+          "durationMs": 900
+        },
+        {
+          "testCaseTitle": "Manual: Manual testcase requires at least one ordered step",
+          "status": "skipped",
+          "durationMs": 0
+        },
+        {
+          "testCaseTitle": "Manual: Tester can submit pass, fail, skip, and blocked results",
+          "status": "passed",
+          "durationMs": 1400
+        },
+        {
+          "testCaseTitle": "API: project create returns stable key",
+          "status": "passed",
+          "durationMs": 320
+        },
+        {
+          "testCaseTitle": "API: run aggregate computes pass rate",
+          "status": "passed",
+          "durationMs": 280
+        }
+      ]
+    }
+  ]
+}

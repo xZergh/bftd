@@ -7,28 +7,44 @@ import { ValidationErrorPayloadPreview } from "../ValidationErrorPayloadPreview"
 import {
   DeleteRequirementMutation,
   RequirementByIdQuery,
+  RequirementsListQuery,
   UpdateRequirementMutation
 } from "../../graphql/documents";
 import { formatGraphQlTransportError } from "../../graphql/formatGraphQlError";
 import { REQUIRED_MSG, trimmedNonEmpty } from "../../forms/mandatoryFields";
 import { useDebouncedAutosaveEffect } from "../../hooks/useDebouncedAutosaveEffect";
 import { useShellErrors } from "../../shell/ShellErrorsContext";
+import { buildParentSelectOptions, type ParentSelectOption } from "./requirementsHierarchy";
 
-type RequirementBaseline = { title: string; description: string };
+type RequirementBaseline = {
+  title: string;
+  description: string;
+  parentRequirementId: string | null;
+};
 
 type Props = {
   projectId: string;
   requirementId: string;
   variant: "inspector" | "full";
+  /** When set (e.g. inspector on list page), avoids a duplicate RequirementsListQuery subscription. */
+  parentOptions?: ParentSelectOption[];
   onDeleted?: () => void;
   onClose?: () => void;
 };
 
-export function RequirementDetailPanel({ projectId, requirementId, variant, onDeleted, onClose }: Props) {
+export function RequirementDetailPanel({
+  projectId,
+  requirementId,
+  variant,
+  parentOptions: parentOptionsProp,
+  onDeleted,
+  onClose
+}: Props) {
   const { clearShellMessages, setTransportMessage, setPayloadAppError } = useShellErrors();
 
   const [titleDraft, setTitleDraft] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [parentDraft, setParentDraft] = useState("");
   const [baseline, setBaseline] = useState<RequirementBaseline | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
   const [showValidationPayload, setShowValidationPayload] = useState(false);
@@ -41,10 +57,35 @@ export function RequirementDetailPanel({ projectId, requirementId, variant, onDe
     requestPolicy: "network-only"
   });
 
+  const ownsListQuery = parentOptionsProp === undefined;
+  const [listQueryReady, setListQueryReady] = useState(false);
+
+  useEffect(() => {
+    if (!ownsListQuery) {
+      return;
+    }
+    queueMicrotask(() => {
+      setListQueryReady(true);
+    });
+  }, [ownsListQuery]);
+
+  const [listResult] = useQuery({
+    query: RequirementsListQuery,
+    variables: { projectId },
+    requestPolicy: "cache-first",
+    pause: !ownsListQuery || !listQueryReady
+  });
+
   const [, updateRequirement] = useMutation(UpdateRequirementMutation);
   const [, deleteRequirement] = useMutation(DeleteRequirementMutation);
 
   const req = detailResult.data?.requirement;
+  const parentOptions = useMemo(() => {
+    if (parentOptionsProp !== undefined) {
+      return parentOptionsProp;
+    }
+    return buildParentSelectOptions(listResult.data?.requirements ?? [], requirementId);
+  }, [parentOptionsProp, listResult.data?.requirements, requirementId]);
 
   useEffect(() => {
     if (req === undefined || req === null || req.id !== requirementId) {
@@ -52,8 +93,13 @@ export function RequirementDetailPanel({ projectId, requirementId, variant, onDe
     }
     setTitleDraft(req.title);
     setDescriptionDraft(req.description ?? "");
-    setBaseline({ title: req.title, description: req.description ?? "" });
-  }, [requirementId, req?.id, req?.title, req?.description]);
+    setParentDraft(req.parentRequirementId ?? "");
+    setBaseline({
+      title: req.title,
+      description: req.description ?? "",
+      parentRequirementId: req.parentRequirementId ?? null
+    });
+  }, [requirementId, req?.id, req?.title, req?.description, req?.parentRequirementId]);
 
   useEffect(() => {
     if (!detailResult.error) {
@@ -65,7 +111,8 @@ export function RequirementDetailPanel({ projectId, requirementId, variant, onDe
   const dirty =
     baseline !== null &&
     (titleDraft.trim() !== baseline.title.trim() ||
-      descriptionDraft.trim() !== baseline.description.trim());
+      descriptionDraft.trim() !== baseline.description.trim() ||
+      (parentDraft || null) !== baseline.parentRequirementId);
   const canAutosave = trimmedNonEmpty(titleDraft.trim());
 
   const updateRequirementClientPayload = useMemo(() => {
@@ -77,11 +124,12 @@ export function RequirementDetailPanel({ projectId, requirementId, variant, onDe
         input: {
           id: requirementId,
           title: t.length > 0 ? t : null,
-          description: d === "" ? null : d
+          description: d === "" ? null : d,
+          parentRequirementId: parentDraft || null
         }
       }
     };
-  }, [descriptionDraft, requirementId, titleDraft]);
+  }, [descriptionDraft, parentDraft, requirementId, titleDraft]);
 
   const performSave = useCallback(
     async (validateClient: boolean): Promise<boolean> => {
@@ -104,7 +152,8 @@ export function RequirementDetailPanel({ projectId, requirementId, variant, onDe
         input: {
           id: requirementId,
           title: t || undefined,
-          description: descriptionDraft.trim() === "" ? null : descriptionDraft.trim()
+          description: descriptionDraft.trim() === "" ? null : descriptionDraft.trim(),
+          parentRequirementId: parentDraft || null
         }
       });
       setSavePhase("idle");
@@ -121,7 +170,12 @@ export function RequirementDetailPanel({ projectId, requirementId, variant, onDe
       }
       const r = res.data?.updateRequirement?.requirement;
       if (r !== undefined && r !== null) {
-        setBaseline({ title: r.title, description: r.description ?? "" });
+        setBaseline({
+          title: r.title,
+          description: r.description ?? "",
+          parentRequirementId: r.parentRequirementId ?? null
+        });
+        setParentDraft(r.parentRequirementId ?? "");
       }
       reexecuteDetail({ requestPolicy: "network-only" });
       return true;
@@ -129,6 +183,7 @@ export function RequirementDetailPanel({ projectId, requirementId, variant, onDe
     [
       clearShellMessages,
       descriptionDraft,
+      parentDraft,
       reexecuteDetail,
       requirementId,
       setPayloadAppError,
@@ -138,7 +193,7 @@ export function RequirementDetailPanel({ projectId, requirementId, variant, onDe
     ]
   );
 
-  const autosaveResetKey = `${titleDraft}\0${descriptionDraft}\0${failBump}`;
+  const autosaveResetKey = `${titleDraft}\0${descriptionDraft}\0${parentDraft}\0${failBump}`;
   const cancelAutosave = useDebouncedAutosaveEffect(dirty && canAutosave, autosaveResetKey, () => {
     void performSave(false);
   });
@@ -148,8 +203,7 @@ export function RequirementDetailPanel({ projectId, requirementId, variant, onDe
     void performSave(true);
   }, [cancelAutosave, performSave]);
 
-  const saveState =
-    savePhase === "saving" ? "saving" : dirty ? "unsaved" : "saved";
+  const saveState = savePhase === "saving" ? "saving" : dirty ? "unsaved" : "saved";
 
   const onDelete = useCallback(async () => {
     clearShellMessages();
@@ -237,6 +291,25 @@ export function RequirementDetailPanel({ projectId, requirementId, variant, onDe
           )}
         </label>
         <label>
+          Parent requirement
+          <select
+            value={parentDraft}
+            onChange={(e) => {
+              setParentDraft(e.target.value);
+              setShowValidationPayload(false);
+            }}
+            data-testid="requirement-edit-parent"
+          >
+            <option value="">No parent (root)</option>
+            {parentOptions.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {"\u00a0".repeat(opt.depth * 2)}
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
           Description
           <textarea
             value={descriptionDraft}
@@ -253,7 +326,7 @@ export function RequirementDetailPanel({ projectId, requirementId, variant, onDe
       <ValidationErrorPayloadPreview open={showValidationPayload} payload={updateRequirementClientPayload} />
 
       <div className="form-edit-actions">
-        <RowSaveIndicator state={saveState} />
+        <RowSaveIndicator state={saveState} data-testid="form-save-status" />
         <button type="button" onClick={onSaveClick} data-testid="requirement-save">
           Save
         </button>
