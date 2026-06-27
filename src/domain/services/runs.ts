@@ -225,7 +225,8 @@ export async function getTestRun(db: Db, input: { runId: string; projectId?: str
       }
       return {
         ...report,
-        ctrfReportUrl: report.ctrfAttachment ? runReportPublicUrl(input.runId) : null
+        ctrfReportUrl: report.ctrfAttachment ? runReportPublicUrl(input.runId) : null,
+        ctrfHtmlReportUrl: null
       };
     })(),
     results: [

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
@@ -13,6 +13,9 @@ import {
   TestCasesListQuery,
   TestRunDetailQuery
 } from "../graphql/documents";
+import { CtrfReportPanel } from "../components/runs/CtrfReportPanel";
+import { CollapsibleSection } from "../components/runs/CollapsibleSection";
+import { formatRunStatusLabel } from "../components/runs/runStatusFormat";
 import { formatGraphQlTransportError } from "../graphql/formatGraphQlError";
 import { REQUIRED_MSG } from "../forms/mandatoryFields";
 import type { TestCaseListItem } from "../graphql/types";
@@ -23,11 +26,6 @@ const RESULT_STATUSES = ["not_run", "passed", "failed", "skipped", "blocked"] as
 
 function normalizeRunStatusValue(status: string) {
   if (status === "not run" || status === "notRun") return "not_run";
-  return status;
-}
-
-function formatRunStatusLabel(status: string) {
-  if (normalizeRunStatusValue(status) === "not_run") return "not run";
   return status;
 }
 
@@ -42,6 +40,7 @@ export function RunDetailPage() {
   const [rowStatusDraft, setRowStatusDraft] = useState<Record<string, string>>({});
   const [selectedManualIds, setSelectedManualIds] = useState<Set<string>>(new Set());
   const [automationPolling, setAutomationPolling] = useState(false);
+  const automationReportBaselineRef = useRef<string | null>(null);
   const [tcError, setTcError] = useState<string | null>(null);
   const [showValidationPayload, setShowValidationPayload] = useState(false);
 
@@ -54,10 +53,13 @@ export function RunDetailPage() {
     pause: paused
   });
 
+  const runNotFound =
+    !detailResult.fetching && detailResult.data !== undefined && detailResult.data?.testRun === null;
+
   const [aggregateResult, reexecuteAggregate] = useQuery({
     query: RunAggregateQuery,
     variables: { runId: runId ?? "" },
-    pause: paused,
+    pause: paused || runNotFound,
     requestPolicy: "network-only"
   });
 
@@ -81,11 +83,11 @@ export function RunDetailPage() {
   }, [detailResult.error, setTransportMessage]);
 
   useEffect(() => {
-    if (!aggregateResult.error) {
+    if (!aggregateResult.error || runNotFound) {
       return;
     }
     setTransportMessage(formatGraphQlTransportError(aggregateResult.error));
-  }, [aggregateResult.error, setTransportMessage]);
+  }, [aggregateResult.error, runNotFound, setTransportMessage]);
 
   const caseTitleById = useMemo(() => {
     const testCases: TestCaseListItem[] = casesResult.data?.testCases ?? [];
@@ -231,10 +233,21 @@ export function RunDetailPage() {
   }, [reexecuteAggregate, reexecuteDetail]);
 
   useEffect(() => {
-    if (detail?.run?.automationReport) {
-      setAutomationPolling(false);
+    if (!automationPolling) {
+      return;
     }
-  }, [detail?.run?.automationReport]);
+    const report = detail?.run?.automationReport;
+    if (!report) {
+      return;
+    }
+    const baseline = automationReportBaselineRef.current;
+    if (baseline !== null && report.generatedAt === baseline) {
+      return;
+    }
+    automationReportBaselineRef.current = null;
+    setAutomationPolling(false);
+    setTransportMessage(null);
+  }, [automationPolling, detail?.run?.automationReport, setTransportMessage]);
 
   useEffect(() => {
     if (!automationPolling) {
@@ -244,13 +257,15 @@ export function RunDetailPage() {
       refreshRunData();
     }, 3000);
     const timeout = window.setTimeout(() => {
+      automationReportBaselineRef.current = null;
       setAutomationPolling(false);
+      setTransportMessage(null);
     }, 60000);
     return () => {
       window.clearInterval(interval);
       window.clearTimeout(timeout);
     };
-  }, [automationPolling, refreshRunData]);
+  }, [automationPolling, refreshRunData, setTransportMessage]);
 
   const onRunLinkedAutomation = useCallback(async () => {
     if (paused || runId === undefined || projectId === undefined) {
@@ -278,6 +293,7 @@ export function RunDetailPage() {
       return;
     }
     if (res.data?.executeRunAutomation?.started) {
+      automationReportBaselineRef.current = detail?.run?.automationReport?.generatedAt ?? null;
       setAutomationPolling(true);
       setTransportMessage(
         `Started ${res.data.executeRunAutomation.automatedCount} linked automated test(s) in the background.`
@@ -286,6 +302,7 @@ export function RunDetailPage() {
     refreshRunData();
   }, [
     clearShellMessages,
+    detail?.run?.automationReport?.generatedAt,
     executeAutomation,
     paused,
     projectId,
@@ -344,7 +361,6 @@ export function RunDetailPage() {
     typeof automationReport?.ctrfReportUrl === "string" && automationReport.ctrfReportUrl.length > 0
       ? automationReport.ctrfReportUrl
       : null;
-
   return (
     <section className="projects-page" data-testid="run-detail-page">
       <ProjectWorkspaceHeader title="Test run" projectId={projectId} active="runs" />
@@ -364,8 +380,17 @@ export function RunDetailPage() {
         </div>
       </dl>
 
-      <div className="projects-create run-aggregate-panel" data-testid="run-aggregate-panel">
-        <h3 className="projects-subheading">Aggregate</h3>
+      <CollapsibleSection
+        title="Aggregate"
+        defaultOpen
+        testId="run-aggregate-panel"
+        className="projects-create run-aggregate-panel"
+        subtitle={
+          agg !== undefined
+            ? `${agg.passed} passed · ${agg.failed} failed · ${agg.passRatePct}% pass rate`
+            : undefined
+        }
+      >
         {aggregateResult.fetching && agg === undefined ? (
           <PageLoading dataTestId="run-aggregate-loading" />
         ) : agg !== undefined ? (
@@ -404,10 +429,21 @@ export function RunDetailPage() {
             </div>
           </dl>
         ) : null}
-      </div>
+      </CollapsibleSection>
 
-      <div className="projects-create run-report-panel" data-testid="run-report-panel">
-        <h3 className="projects-subheading">Test report</h3>
+      <CollapsibleSection
+        title="Test report"
+        defaultOpen
+        testId="run-report-panel"
+        className="projects-create run-report-panel"
+        subtitle={
+          automationReport
+            ? `${automationReport.summary.passed} passed · ${automationReport.summary.failed} failed`
+            : automationPolling
+              ? "Running…"
+              : "No report yet"
+        }
+      >
         <div className="run-automation-bar" data-testid="run-automation-bar">
           <button
             type="button"
@@ -422,90 +458,49 @@ export function RunDetailPage() {
             {automationPolling ? " · running…" : ""}
           </span>
         </div>
-        <p className="automation-section-hint">
-          Preconditions: main dev on <strong>5180</strong> (tcms.sqlite) plus automation sandbox on{" "}
-          <strong>5182</strong> (plan-automation.sqlite) — see{" "}
-          <code>docs/plans/plan-automation-local.md</code>. Reports use the{" "}
-          <a href="https://ctrf.io" target="_blank" rel="noreferrer">
-            CTRF
-          </a>{" "}
-          format so any framework with a CTRF reporter can plug in. The table lists only specs executed in this run.
-          Use <strong>Select all manual</strong> to run every linked automated test.
-        </p>
+        <CollapsibleSection title="Preconditions & setup" defaultOpen={false} testId="run-report-preconditions">
+          <p className="automation-section-hint">
+            Preconditions: main dev on <strong>5180</strong> (tcms.sqlite) plus automation sandbox on{" "}
+            <strong>5182</strong> (plan-automation.sqlite) — see{" "}
+            <code>docs/plans/plan-automation-local.md</code>. Reports use the{" "}
+            <a href="https://ctrf.io" target="_blank" rel="noreferrer">
+              CTRF
+            </a>{" "}
+            format so any framework with a CTRF reporter can plug in. The report viewer loads CTRF JSON and renders a
+            searchable summary with failure details. Use <strong>Select all manual</strong> to run every linked automated
+            test.
+          </p>
+        </CollapsibleSection>
         <div className="run-report-embed-shell" data-testid="run-report-embed-shell">
           {automationPolling && !automationReport ? (
             <p className="projects-empty" data-testid="run-report-running">
               Running automation…
             </p>
           ) : automationReport ? (
-            <>
-              <dl className="run-report-summary-grid">
-                <div>
-                  <dt>Framework</dt>
-                  <dd>{automationReport.framework}</dd>
-                </div>
-                <div>
-                  <dt>Generated</dt>
-                  <dd>
-                    <time dateTime={automationReport.generatedAt}>
-                      {new Date(automationReport.generatedAt).toLocaleString()}
-                    </time>
-                  </dd>
-                </div>
-                <div>
-                  <dt>Passed</dt>
-                  <dd data-testid="run-report-passed">{automationReport.summary.passed}</dd>
-                </div>
-                <div>
-                  <dt>Failed</dt>
-                  <dd data-testid="run-report-failed">{automationReport.summary.failed}</dd>
-                </div>
-                <div>
-                  <dt>Duration (ms)</dt>
-                  <dd>{automationReport.summary.durationMs}</dd>
-                </div>
-              </dl>
-              <table className="projects-table run-report-spec-table" data-testid="run-report-spec-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Spec</th>
-                    <th scope="col">Test</th>
-                    <th scope="col">Suite</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Duration (ms)</th>
-                    <th scope="col">Failure</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {automationReport.summary.specs.map((spec) => (
-                    <tr key={spec.testCaseId}>
-                      <td>{spec.externalId}</td>
-                      <td>{spec.testName ?? "—"}</td>
-                      <td>{spec.suite ?? "—"}</td>
-                      <td>{formatRunStatusLabel(spec.status)}</td>
-                      <td>{spec.durationMs}</td>
-                      <td className="run-report-failure-cell">{spec.failureMessage ?? "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {ctrfReportUrl ? (
-                <div className="run-report-ctrf-actions" data-testid="run-report-ctrf-actions">
-                  <a href={ctrfReportUrl} target="_blank" rel="noreferrer" data-testid="run-report-download-ctrf">
-                    Download CTRF report
-                  </a>
-                </div>
-              ) : null}
-            </>
+            <CtrfReportPanel
+              framework={automationReport.framework}
+              generatedAt={automationReport.generatedAt}
+              passed={automationReport.summary.passed}
+              failed={automationReport.summary.failed}
+              durationMs={automationReport.summary.durationMs}
+              specs={automationReport.summary.specs}
+              ctrfReportUrl={ctrfReportUrl}
+            />
           ) : (
             <p className="projects-empty">No report attached yet.</p>
           )}
         </div>
-      </div>
+      </CollapsibleSection>
 
-      <div className="projects-create">
-        <div className="run-results-header">
-          <h3 className="projects-subheading">Results</h3>
+      <CollapsibleSection
+        title="Results"
+        defaultOpen
+        testId="run-results-panel"
+        className="projects-create"
+        subtitle={
+          detail?.results?.length ? `${detail.results.length} result${detail.results.length === 1 ? "" : "s"}` : undefined
+        }
+        actions={
           <div className="run-results-header-actions">
             {manualResultIds.length > 0 ? (
               <button
@@ -517,19 +512,20 @@ export function RunDetailPage() {
               </button>
             ) : null}
             <button
-            type="button"
-            data-testid="result-submit-open"
-            onClick={() => {
-              if (testCaseId === "" && selectableCases.length > 0) {
-                setTestCaseId(selectableCases[0]!.id);
-              }
-              setSubmitModalOpen(true);
-            }}
-          >
-            Submit result
-          </button>
+              type="button"
+              data-testid="result-submit-open"
+              onClick={() => {
+                if (testCaseId === "" && selectableCases.length > 0) {
+                  setTestCaseId(selectableCases[0]!.id);
+                }
+                setSubmitModalOpen(true);
+              }}
+            >
+              Submit result
+            </button>
           </div>
-        </div>
+        }
+      >
         {(detail?.results ?? []).length === 0 ? (
           <p className="projects-empty" data-testid="run-results-empty">
             No results yet.
@@ -594,7 +590,7 @@ export function RunDetailPage() {
             </tbody>
           </table>
         )}
-      </div>
+      </CollapsibleSection>
       {submitModalOpen ? (
         <div
           className="projects-modal-backdrop"

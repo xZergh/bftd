@@ -21,6 +21,7 @@ export type AutomationRunReport = {
   generatedAt: string;
   attachment: { kind: string; ref: string };
   ctrfAttachment?: { kind: string; ref: string };
+  ctrfHtmlAttachment?: { kind: string; ref: string };
   summary: {
     total: number;
     passed: number;

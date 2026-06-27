@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { TCMS_SANDBOX } from "./fixtures/tcms-sandbox";
 
 /**
  * TCMS-TC-R1-02 — reject duplicate project key.
@@ -18,7 +19,7 @@ test.describe("FE projects duplicate key (TCMS-R1-02)", () => {
   });
 
   test("reject create when project key already exists", { tag: "@smoke" }, async ({ page }) => {
-    const existingKey = "demo-qa";
+    const existingKey = TCMS_SANDBOX.projectKey;
 
     await page.goto("/projects");
     await expect(page.getByTestId("projects-page")).toBeVisible();

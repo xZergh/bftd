@@ -107,6 +107,7 @@ export const typeDefs = /* GraphQL */ `
     generatedAt: DateTime!
     attachment: ResultAttachment!
     ctrfReportUrl: String
+    ctrfHtmlReportUrl: String
     summary: AutomationReportSummary!
   }
 

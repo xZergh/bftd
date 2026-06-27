@@ -37,6 +37,15 @@ Playwright runs against `http://127.0.0.1:5182` (sandbox). Results and reports a
 | `DB_PATH` | profile sqlite file | API database |
 | `VITE_API_PROXY_TARGET` | matching API URL | Web → API proxy |
 | `TCMS_AUTOMATION_WEB_URL` | `http://127.0.0.1:5182` | Playwright `baseURL` for linked automation |
-| `TCMS_RUN_CTRF_REPORT` | (set by runner) | Playwright CTRF JSON output path when executing linked automation |
+| `TCMS_RUN_CTRF_OUTPUT_DIR` | (set by runner) | CTRF output directory (absolute path) |
+| `TCMS_RUN_CTRF_OUTPUT_FILE` | (set by runner) | CTRF output filename (e.g. `{runId}.ctrf.json`) |
 
-Reports are stored in [CTRF](https://ctrf.io) format (`data/run-reports/<runId>/ctrf.json`) so any framework with a CTRF reporter (Playwright, Jest, pytest, etc.) can plug in via a future adapter.
+Reports are stored in [CTRF](https://ctrf.io) format (`data/run-reports/<runId>/ctrf.json`). The run detail page loads that JSON into a built-in searchable CTRF viewer (summary, filters, failure details).
+
+### Playwright browsers
+
+Linked automation spawns Playwright locally. Install browsers once:
+
+```bash
+npm run e2e:install -w tcms-web
+```

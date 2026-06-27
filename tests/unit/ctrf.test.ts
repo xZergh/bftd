@@ -52,6 +52,50 @@ describe("CTRF report parsing", () => {
     });
   });
 
+  it("matches absolute Playwright file paths to e2e spec external ids", () => {
+    const report: CtrfReport = {
+      reportFormat: "CTRF",
+      results: {
+        tests: [
+          {
+            name: "create project",
+            status: "passed",
+            duration: 1200,
+            filePath: "C:\\dev\\tcms\\apps\\web\\e2e\\fe-projects-create.spec.ts"
+          }
+        ]
+      }
+    };
+
+    const outcomes = outcomesFromCtrf(report, [
+      { testCaseId: "tc-1", externalId: "e2e/fe-projects-create.spec.ts" }
+    ]);
+
+    expect(outcomes[0]?.status).toBe("passed");
+  });
+
+  it("strips ANSI codes from failure messages", () => {
+    const report: CtrfReport = {
+      reportFormat: "CTRF",
+      results: {
+        tests: [
+          {
+            name: "asserts value",
+            status: "failed",
+            duration: 12,
+            filePath: "e2e/fe-x.spec.ts",
+            message:
+              "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mnull\u001b[39m"
+          }
+        ]
+      }
+    };
+
+    const outcomes = outcomesFromCtrf(report, [{ testCaseId: "tc-1", externalId: "fe-x.spec.ts" }]);
+
+    expect(outcomes[0]?.failureMessage).toBe("Error: expect(received).not.toBeNull()\n\nReceived: null");
+  });
+
   it("marks missing spec results as failed with runner error", () => {
     const outcomes = outcomesFromCtrf(
       null,

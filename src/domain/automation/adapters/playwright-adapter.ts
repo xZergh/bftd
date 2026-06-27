@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { archiveCtrfReport } from "../../../http/run-report-routes";
 import { automationWebUrl } from "../constants";
 import {
@@ -23,7 +23,8 @@ export const playwrightAdapter: TestFrameworkAdapter = {
     const automationConfig = join(webDir, "playwright.tcms-automation.config.ts");
 
     mkdirSync(request.reportDir, { recursive: true });
-    const ctrfReportPath = join(request.reportDir, `${request.runId}.ctrf.json`);
+    const ctrfReportPath = resolve(request.reportDir, `${request.runId}.ctrf.json`);
+    mkdirSync(dirname(ctrfReportPath), { recursive: true });
 
     const { exitCode, stderr } = await new Promise<{
       stderr: string;
@@ -38,7 +39,9 @@ export const playwrightAdapter: TestFrameworkAdapter = {
           env: {
             ...process.env,
             TCMS_WEB_URL: process.env.TCMS_WEB_URL ?? automationWebUrl(),
-            TCMS_RUN_CTRF_REPORT: ctrfReportPath
+            TCMS_RUN_CTRF_REPORT: ctrfReportPath,
+            TCMS_RUN_CTRF_OUTPUT_DIR: dirname(ctrfReportPath),
+            TCMS_RUN_CTRF_OUTPUT_FILE: basename(ctrfReportPath)
           },
           stdio: ["ignore", "pipe", "pipe"],
           windowsHide: true

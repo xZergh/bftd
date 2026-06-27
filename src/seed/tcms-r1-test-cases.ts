@@ -10,6 +10,17 @@ export const TCMS_R1_MANUAL_TEST_TITLES = {
   archiveHiddenByDefault: "Manual: archived project hidden from default list"
 } as const;
 
+/** Slugified TCMS project key (`slugifyProjectKey(TCMS_PROJECT_KEY)`). */
+export const TCMS_R1_REFERENCE_PROJECT_KEY = "tcms";
+
+function r1AutomationNotes(specFile: string, externalId: string) {
+  return (
+    `Linked automation: ${externalId} (apps/web/e2e/${specFile}). ` +
+    `Sandbox: npm run seed:plan-automation-db, dev:automation-web on :5182. ` +
+    `Reference project key for negative/API specs: ${TCMS_R1_REFERENCE_PROJECT_KEY}.`
+  );
+}
+
 type ManualSeed = {
   title: string;
   externalKey: string;
@@ -27,13 +38,12 @@ const R1_MANUAL_SEEDS: ManualSeed[] = [
   {
     title: TCMS_R1_MANUAL_TEST_TITLES.createUniqueKey,
     externalKey: "TCMS-TC-R1-01",
-    automationStatus: "not_automated",
+    automationStatus: "automated",
     description:
       "Verify that a new project can be created with a unique key and appears in the Projects list with that key.",
-    preconditions: "TCMS database; user can open Projects and create projects.",
+    preconditions: "Automation sandbox (plan-automation.sqlite) or TCMS DB; user can open Projects and create projects.",
     notes: "Covers TCMS-R1 acceptance: stable project keys. Use disposable keys such as tcms-r1-create-*.",
-    automationNotes:
-      "Automated: e2e/fe-projects-create.spec.ts (npm run e2e -w tcms-web -- fe-projects-create.spec.ts). Seed DB: npm run seed:tcms:r1-automation.",
+    automationNotes: r1AutomationNotes("fe-projects-create.spec.ts", "e2e/fe-projects-create.spec.ts"),
     releaseLabel: "MVP",
     sprintLabel: "MVP-1",
     steps: [
@@ -54,17 +64,16 @@ const R1_MANUAL_SEEDS: ManualSeed[] = [
   {
     title: TCMS_R1_MANUAL_TEST_TITLES.rejectDuplicateKey,
     externalKey: "TCMS-TC-R1-02",
-    automationStatus: "not_automated",
+    automationStatus: "automated",
     description: "Verify that creating a project with an existing key is rejected with a clear error.",
-    preconditions: "TCMS database; at least one project with a known key (for example tcms).",
+    preconditions: `Automation sandbox seeded with TCMS project (key ${TCMS_R1_REFERENCE_PROJECT_KEY}) visible on the Projects list.`,
     notes: "Negative path for TCMS-R1 key uniqueness.",
-    automationNotes:
-      "Automated: e2e/fe-projects-duplicate-key.spec.ts (npm run e2e -w tcms-web -- fe-projects-duplicate-key.spec.ts). Seed DB: npm run seed:tcms:r1-automation.",
+    automationNotes: r1AutomationNotes("fe-projects-duplicate-key.spec.ts", "e2e/fe-projects-duplicate-key.spec.ts"),
     releaseLabel: "MVP",
     sprintLabel: "MVP-1",
     steps: [
       {
-        name: "Note an existing project key (for example tcms)",
+        name: `Note the existing TCMS project key (${TCMS_R1_REFERENCE_PROJECT_KEY}) on the Projects list`,
         expectedResult: "Key is visible on the Projects list"
       },
       {
@@ -80,12 +89,11 @@ const R1_MANUAL_SEEDS: ManualSeed[] = [
   {
     title: TCMS_R1_MANUAL_TEST_TITLES.keyInShellPicker,
     externalKey: "TCMS-TC-R1-03",
-    automationStatus: "not_automated",
+    automationStatus: "automated",
     description: "Verify the shell project picker shows project name and key for switching workspaces.",
-    preconditions: "TCMS database; at least two projects.",
+    preconditions: "Automation sandbox with at least two projects (spec creates disposable picker projects).",
     notes: "UI traceability for TCMS-R1: keys visible outside the Projects list.",
-    automationNotes:
-      "Automated: e2e/fe-project-picker-key.spec.ts (npm run e2e -w tcms-web -- fe-project-picker-key.spec.ts). Seed DB: npm run seed:tcms:r1-automation.",
+    automationNotes: r1AutomationNotes("fe-project-picker-key.spec.ts", "e2e/fe-project-picker-key.spec.ts"),
     releaseLabel: "MVP",
     sprintLabel: "MVP-1",
     steps: [
@@ -106,17 +114,16 @@ const R1_MANUAL_SEEDS: ManualSeed[] = [
   {
     title: TCMS_R1_MANUAL_TEST_TITLES.graphqlResolveByKey,
     externalKey: "TCMS-TC-R1-04",
-    automationStatus: "not_automated",
+    automationStatus: "automated",
     description: "Verify GraphQL project lookup by key returns the same project as the UI workspace.",
-    preconditions: "TCMS database; TCMS project seeded with key tcms.",
+    preconditions: `Automation sandbox seeded with TCMS project (key ${TCMS_R1_REFERENCE_PROJECT_KEY}).`,
     notes: "API-level check for TCMS-R1 stable keys.",
-    automationNotes:
-      "Automated: e2e/fe-projects-graphql-key.spec.ts (npm run e2e -w tcms-web -- fe-projects-graphql-key.spec.ts). Seed DB: npm run seed:tcms:r1-automation.",
+    automationNotes: r1AutomationNotes("fe-projects-graphql-key.spec.ts", "e2e/fe-projects-graphql-key.spec.ts"),
     releaseLabel: "MVP",
     sprintLabel: "MVP-1",
     steps: [
       {
-        name: "Query project by key via GraphQL (project input key field)",
+        name: `Query project by key via GraphQL using key ${TCMS_R1_REFERENCE_PROJECT_KEY}`,
         expectedResult: "Response returns the project id, key, and name"
       },
       {
@@ -128,14 +135,13 @@ const R1_MANUAL_SEEDS: ManualSeed[] = [
   {
     title: TCMS_R1_MANUAL_TEST_TITLES.archiveHiddenByDefault,
     externalKey: "TCMS-TC-R1-05",
-    automationStatus: "automation_required",
+    automationStatus: "automated",
     description:
       "Verify archived projects are hidden from the default Projects list and reappear when Show archived is enabled.",
     preconditions:
-      "TCMS database; ability to create and archive a disposable project (use keys such as tcms-archive-test-*).",
+      "Automation sandbox; ability to create and archive a disposable project (keys such as tcms-archive-test-*).",
     notes: "TCMS-R1 lifecycle: archive must not delete data but must hide from default navigation.",
-    automationNotes:
-      "Automated: e2e/fe-projects-archive.spec.ts (npm run e2e -w tcms-web -- fe-projects-archive.spec.ts). Seed DB: npm run seed:tcms:r1-automation.",
+    automationNotes: r1AutomationNotes("fe-projects-archive.spec.ts", "e2e/fe-projects-archive.spec.ts"),
     releaseLabel: "MVP",
     sprintLabel: "MVP-1",
     steps: [

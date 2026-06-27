@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { graphqlQuery } from "./helpers/graphql";
+import { TCMS_SANDBOX } from "./fixtures/tcms-sandbox";
 
 /**
  * TCMS-TC-R1-04 — GraphQL resolves project by key.
@@ -23,7 +24,7 @@ test.describe("FE projects GraphQL key (TCMS-R1-04)", () => {
   });
 
   test("GraphQL project by key matches UI workspace", { tag: "@smoke" }, async ({ page, request }) => {
-    const projectKey = "demo-qa";
+    const projectKey = TCMS_SANDBOX.projectKey;
 
     const data = await graphqlQuery<ProjectByKeyData>(
       request,

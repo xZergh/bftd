@@ -689,6 +689,7 @@ export const TestRunDetailQuery = parse(`
           framework
           generatedAt
           ctrfReportUrl
+          ctrfHtmlReportUrl
           attachment {
             kind
             ref

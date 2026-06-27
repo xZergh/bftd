@@ -9,7 +9,8 @@ import { defineConfig, devices } from "@playwright/test";
  * 3. Playwright hits the sandbox web URL only — it must not use tcms.sqlite.
  */
 const webUrl = process.env.TCMS_WEB_URL ?? process.env.TCMS_AUTOMATION_WEB_URL ?? "http://127.0.0.1:5182";
-const ctrfReportFile = process.env.TCMS_RUN_CTRF_REPORT;
+const ctrfOutputDir = process.env.TCMS_RUN_CTRF_OUTPUT_DIR;
+const ctrfOutputFile = process.env.TCMS_RUN_CTRF_OUTPUT_FILE;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -27,10 +28,18 @@ export default defineConfig({
       testIgnore: ["**/fe-k-mobile-shell.spec.ts"]
     }
   ],
-  reporter: ctrfReportFile
-    ? [
-        ["playwright-ctrf-json-reporter", { outputFile: ctrfReportFile }],
-        ["list"]
-      ]
-    : [["list"]]
+  reporter:
+    ctrfOutputDir && ctrfOutputFile
+      ? [
+          [
+            "playwright-ctrf-json-reporter",
+            {
+              outputDir: ctrfOutputDir,
+              outputFile: ctrfOutputFile,
+              screenshot: true
+            }
+          ],
+          ["list"]
+        ]
+      : [["list"]]
 });

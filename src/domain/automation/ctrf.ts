@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { sanitizeAutomationMessage } from "./message-sanitize";
 import type { AutomationSpecOutcome } from "./types";
 
 export type CtrfTestStatus = "passed" | "failed" | "skipped" | "pending" | "other";
@@ -77,6 +78,10 @@ function mapCtrfStatus(status: string): "passed" | "failed" | "skipped" {
   return "failed";
 }
 
+function failureText(test: CtrfTest) {
+  return sanitizeAutomationMessage(test.message ?? test.trace);
+}
+
 function mergeFileAggregate(existing: FileAggregate | undefined, test: CtrfTest): FileAggregate {
   const mapped = mapCtrfStatus(test.status);
   const durationMs = (existing?.durationMs ?? 0) + Math.round(test.duration ?? 0);
@@ -85,7 +90,7 @@ function mergeFileAggregate(existing: FileAggregate | undefined, test: CtrfTest)
       passed: mapped === "passed",
       skipped: mapped === "skipped",
       durationMs,
-      failureMessage: mapped === "failed" ? test.message ?? test.trace : undefined,
+      failureMessage: mapped === "failed" ? failureText(test) : undefined,
       testName: test.name,
       suite: test.suite
     };
@@ -97,7 +102,7 @@ function mergeFileAggregate(existing: FileAggregate | undefined, test: CtrfTest)
     passed,
     skipped,
     durationMs,
-    failureMessage: failed ? test.message ?? test.trace ?? existing.failureMessage : existing.failureMessage,
+    failureMessage: failed ? failureText(test) ?? existing.failureMessage : existing.failureMessage,
     testName: failed ? test.name : existing.testName ?? test.name,
     suite: existing.suite ?? test.suite
   };
@@ -147,7 +152,9 @@ export function outcomesFromCtrf(
       externalId: normalized,
       status,
       durationMs: aggregate?.durationMs ?? 0,
-      failureMessage: passed ? undefined : aggregate?.failureMessage ?? globalError,
+      failureMessage: passed
+        ? undefined
+        : sanitizeAutomationMessage(aggregate?.failureMessage ?? globalError),
       testName: aggregate?.testName,
       suite: aggregate?.suite
     };

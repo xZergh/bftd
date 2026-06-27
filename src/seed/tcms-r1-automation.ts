@@ -4,7 +4,7 @@ import { slugifyProjectKey } from "../domain/services/projects";
 
 import { TCMS_PROJECT_KEY } from "./tcms-project-constants";
 
-import { TCMS_R1_MANUAL_TEST_TITLES } from "./tcms-r1-test-cases";
+import { TCMS_R1_MANUAL_TEST_TITLES, TCMS_R1_REFERENCE_PROJECT_KEY } from "./tcms-r1-test-cases";
 
 
 
@@ -138,7 +138,7 @@ const R1_AUTOMATION_SEEDS: R1AutomationSeed[] = [
 
     steps: [
 
-      { order: 1, name: "Note existing project key on Projects list", sourceStepId: "s-1" },
+      { order: 1, name: `Note existing TCMS project key (${TCMS_R1_REFERENCE_PROJECT_KEY}) on Projects list`, sourceStepId: "s-1" },
 
       { order: 2, name: "Attempt create with duplicate key", sourceStepId: "s-2" },
 
@@ -246,7 +246,7 @@ const R1_AUTOMATION_SEEDS: R1AutomationSeed[] = [
 
     steps: [
 
-      { order: 1, name: "Query project by key via GraphQL", sourceStepId: "s-1" },
+      { order: 1, name: `Query project by key ${TCMS_R1_REFERENCE_PROJECT_KEY} via GraphQL`, sourceStepId: "s-1" },
 
       {
 
@@ -464,7 +464,7 @@ async function seedOneR1Automation(
 
     epicId: manual.epicId ?? null,
 
-    automationNotes: `Playwright: apps/web/e2e/${seed.specFile} (@smoke). Covers ${manual.externalKey ?? manual.title}.`
+    automationNotes: `Playwright: apps/web/e2e/${seed.specFile} (@smoke) via playwright.tcms-automation.config.ts (sandbox :5182). Covers ${manual.externalKey ?? manual.title}.`
 
   });
 
@@ -476,7 +476,7 @@ async function seedOneR1Automation(
 
     automationStatus: "automated",
 
-    automationNotes: `Automated by ${seed.externalId}. Run: npm run e2e -w tcms-web -- ${seed.specFile}`
+    automationNotes: `Automated by ${seed.externalId}. Linked run uses plan-automation sandbox (key ${TCMS_R1_REFERENCE_PROJECT_KEY} where applicable). Spec: ${seed.specFile}`
 
   });
 

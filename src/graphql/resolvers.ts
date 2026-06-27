@@ -68,7 +68,11 @@ type Context = { service: TcmsService };
 function rethrowDomainErrorAsGraphQLError(error: unknown): never {
   if (error instanceof AppError) {
     throw new GraphQLError(error.message, {
-      extensions: { code: error.code }
+      extensions: {
+        code: error.code,
+        fixHint: error.fixHint,
+        context: error.context ?? null
+      }
     });
   }
   throw error;
@@ -318,12 +322,20 @@ export const resolvers = {
       return ctx.service.getTestPlan(input);
     },
     runAggregate: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
-      const input = runAggregateInput.parse(args.input);
-      return ctx.service.getRunAggregate(input);
+      try {
+        const input = runAggregateInput.parse(args.input);
+        return await ctx.service.getRunAggregate(input);
+      } catch (e) {
+        rethrowDomainErrorAsGraphQLError(e);
+      }
     },
     runTraceabilityReport: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
-      const input = runTraceabilityInput.parse(args.input);
-      return ctx.service.getRunTraceabilityReport(input);
+      try {
+        const input = runTraceabilityInput.parse(args.input);
+        return await ctx.service.getRunTraceabilityReport(input);
+      } catch (e) {
+        rethrowDomainErrorAsGraphQLError(e);
+      }
     },
     runAutomationPreview: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       try {

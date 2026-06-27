@@ -23,7 +23,7 @@ export function runReportPublicUrl(runId: string) {
   return `/api/run-reports/${runId}/ctrf.json`;
 }
 
-/** Serve archived CTRF JSON from data/run-reports/<runId>/ctrf.json */
+/** Serve archived CTRF JSON under /api/run-reports/<runId>/ctrf.json */
 export function tryHandleRunReportRoute(req: IncomingMessage, res: ServerResponse): boolean {
   if (req.method !== "GET" && req.method !== "HEAD") {
     return false;
@@ -50,13 +50,19 @@ export function tryHandleRunReportRoute(req: IncomingMessage, res: ServerRespons
   }
 
   if (req.method === "HEAD") {
-    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+    res.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store"
+    });
     res.end();
     return true;
   }
 
   const body = readFileSync(filePath);
-  res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+  res.writeHead(200, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store"
+  });
   res.end(body);
   return true;
 }
