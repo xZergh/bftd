@@ -4,10 +4,14 @@ import { H2, Paragraph, Text, XStack, YStack } from "tamagui";
 import { ProjectPicker } from "../components/ProjectPicker";
 import { ProjectSubNav } from "../components/ProjectSubNav";
 import { ProjectsNavDropdown } from "../components/ProjectsNavDropdown";
+import { ShellAccountMenu } from "../components/ShellAccountMenu";
+import { ShellDatabaseMenu } from "../components/ShellDatabaseMenu";
 import { writeLastProjectPath } from "../navigation/lastProjectPath";
 import { RouterLink } from "../tamagui/RouterLink";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import { RouteErrorBoundary } from "./RouteErrorBoundary";
+import "./AppShell.css";
+import "../pages/ProjectsPage.css";
 import type { WorkspaceOutletContextValue, WorkspaceShellChrome } from "./workspaceOutletContext";
 
 function projectIdFromPath(pathname: string): string | undefined {
@@ -193,8 +197,12 @@ export function AppShell() {
             </RouterLink>
             <ProjectsNavDropdown projectsListPageActive={projectsListPageActive} />
           </XStack>
-          <XStack flex={1} minWidth={0} justifyContent="flex-end" flexShrink={1}>
+          <XStack flex={1} minWidth={0} justifyContent="flex-end" alignItems="center" gap="$2" flexShrink={1}>
             <ProjectPicker />
+            <XStack gap="$1" alignItems="center" flexShrink={0} className="shell-settings-cluster">
+              <ShellDatabaseMenu />
+              <ShellAccountMenu />
+            </XStack>
           </XStack>
         </XStack>
         <main id="main-content" tabIndex={-1} style={{ outline: "none", width: "100%", paddingBottom: "1.5rem" }}>

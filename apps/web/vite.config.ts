@@ -32,7 +32,8 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       "/graphql": { target: apiTarget, changeOrigin: true },
-      "/health": { target: apiTarget, changeOrigin: true }
+      "/health": { target: apiTarget, changeOrigin: true },
+      "/api": { target: apiTarget, changeOrigin: true }
     }
   }
 });

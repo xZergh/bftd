@@ -1,22 +1,32 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 export type SortDirection = "asc" | "desc";
+export type SortValueType = "string" | "number";
+
+export type ColumnSortOptions = {
+  type?: SortValueType;
+  nullValue?: string | number;
+};
 
 export function useColumnSort<T>(
   rows: T[],
-  accessors: Record<string, (row: T) => string | number | null | undefined>
+  accessors: Record<string, (row: T) => string | number | null | undefined>,
+  optionsByKey?: Record<string, ColumnSortOptions>
 ) {
-  const [sortKey, setSortKey] = useState<string | null>(null);
-  const [sortDir, setSortDir] = useState<SortDirection>("asc");
+  const [sortState, setSortState] = useState<{ key: string | null; dir: SortDirection }>({
+    key: null,
+    dir: "asc"
+  });
+
+  const sortKey = sortState.key;
+  const sortDir = sortState.dir;
 
   const toggleSort = useCallback((key: string) => {
-    setSortKey((prev) => {
-      if (prev === key) {
-        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-        return key;
+    setSortState((prev) => {
+      if (prev.key === key) {
+        return { key, dir: prev.dir === "asc" ? "desc" : "asc" };
       }
-      setSortDir("asc");
-      return key;
+      return { key, dir: "asc" };
     });
   }, []);
 
@@ -25,17 +35,24 @@ export function useColumnSort<T>(
       return rows;
     }
     const acc = accessors[sortKey]!;
+    const opts = optionsByKey?.[sortKey];
     const copy = [...rows];
     copy.sort((a, b) => {
-      const av = acc(a);
-      const bv = acc(b);
-      const as = av === null || av === undefined ? "" : String(av);
-      const bs = bv === null || bv === undefined ? "" : String(bv);
-      const cmp = as.localeCompare(bs, undefined, { numeric: true, sensitivity: "base" });
+      const rawA = acc(a);
+      const rawB = acc(b);
+      const valueType = opts?.type ?? "string";
+
+      const cmp =
+        valueType === "number"
+          ? (Number(rawA ?? (opts?.nullValue ?? 0)) || 0) - (Number(rawB ?? (opts?.nullValue ?? 0)) || 0)
+          : String(rawA ?? (opts?.nullValue ?? "")).localeCompare(String(rawB ?? (opts?.nullValue ?? "")), undefined, {
+              numeric: true,
+              sensitivity: "base"
+            });
       return sortDir === "asc" ? cmp : -cmp;
     });
     return copy;
-  }, [accessors, rows, sortDir, sortKey]);
+  }, [accessors, optionsByKey, rows, sortDir, sortKey]);
 
   return { sorted, sortKey, sortDir, toggleSort };
 }

@@ -7,7 +7,9 @@ import {
   kpiDashboardInput,
   linkAutomatedManualInput,
   linkRequirementManualInput,
+  linkTestPlanPlanInput,
   linkTestPlanTestCaseInput,
+  launchPlanAutomationInput,
   listProjectsInput,
   manualInput,
   projectByInput,
@@ -37,6 +39,7 @@ import {
   tombstoneTestCaseInput,
   trrImportInput,
   unlinkAutomatedManualInput,
+  unlinkTestPlanPlanInput,
   unlinkTestPlanTestCaseInput,
   unlinkRequirementDesignLinkInput,
   unlinkRequirementManualInput,
@@ -48,7 +51,12 @@ import {
   createTestPlanInput,
   deleteTestPlanInput,
   deleteRequirementInput,
-  deleteTestCaseInput
+  deleteEpicInput,
+  deleteTestCaseInput,
+  epicByInput,
+  epicInput,
+  epicsListInput,
+  updateEpicInput
 } from "./inputs";
 import { GraphQLError } from "graphql";
 import { ZodError } from "zod";
@@ -102,6 +110,31 @@ function mapProject(p: {
   return { ...p, description: p.description ?? null };
 }
 
+function mapEpic(
+  e: {
+    id: string;
+    projectId: string;
+    externalKey: string;
+    title: string;
+    description: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  },
+  counts?: { requirementCount: number; testCaseCount: number }
+) {
+  return {
+    id: e.id,
+    projectId: e.projectId,
+    externalKey: e.externalKey,
+    title: e.title,
+    description: e.description,
+    requirementCount: counts?.requirementCount ?? 0,
+    testCaseCount: counts?.testCaseCount ?? 0,
+    createdAt: e.createdAt,
+    updatedAt: e.updatedAt
+  };
+}
+
 function mapRequirement(r: {
   id: string;
   projectId: string;
@@ -115,6 +148,8 @@ function mapRequirement(r: {
   priority: string | null;
   tags: string[];
   parentRequirementId: string | null;
+  epicId?: string | null;
+  epic?: Parameters<typeof mapEpic>[0] | null;
   linkedManualTestCaseCount?: number;
   createdAt: Date;
   updatedAt: Date;
@@ -132,6 +167,8 @@ function mapRequirement(r: {
     priority: r.priority,
     tags: r.tags ?? [],
     parentRequirementId: r.parentRequirementId,
+    epicId: r.epicId ?? null,
+    epic: r.epic ? mapEpic(r.epic) : null,
     linkedManualTestCaseCount: r.linkedManualTestCaseCount ?? 0,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt
@@ -143,9 +180,17 @@ function mapTestCaseListRow(r: {
   projectId: string;
   type: string;
   title: string;
+  externalKey: string | null;
   externalId: string | null;
+  description: string | null;
+  preconditions: string | null;
+  notes: string | null;
+  automationNotes: string | null;
+  automationStatus: string | null;
   releaseLabel: string | null;
   sprintLabel: string | null;
+  epicId?: string | null;
+  epic?: Parameters<typeof mapEpic>[0] | null;
   isDeleted: boolean;
   deletedAt: Date | null;
   linkedRequirementCount?: number;
@@ -159,9 +204,17 @@ function mapTestCaseListRow(r: {
     projectId: r.projectId,
     type: r.type,
     title: r.title,
+    externalKey: r.externalKey,
     externalId: r.externalId,
+    description: r.description,
+    preconditions: r.preconditions,
+    notes: r.notes,
+    automationNotes: r.automationNotes,
+    automationStatus: r.automationStatus,
     releaseLabel: r.releaseLabel,
     sprintLabel: r.sprintLabel,
+    epicId: r.epicId ?? null,
+    epic: r.epic ? mapEpic(r.epic) : null,
     isDeleted: r.isDeleted,
     deletedAt: r.deletedAt,
     linkedRequirementCount: r.linkedRequirementCount ?? 0,
@@ -205,12 +258,30 @@ export const resolvers = {
       const r = await ctx.service.getRequirement(input);
       return r ? mapRequirement(r as Parameters<typeof mapRequirement>[0]) : null;
     },
+    epics: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      const input = epicsListInput.parse(args.input);
+      const [rows, counts] = await Promise.all([
+        ctx.service.listEpics(input),
+        ctx.service.getEpicUsageCounts(input.projectId)
+      ]);
+      return rows.map((row) => mapEpic(row, counts.get(row.id)));
+    },
+    epic: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      const input = epicByInput.parse(args.input);
+      const row = await ctx.service.getEpic(input);
+      if (!row) {
+        return null;
+      }
+      const counts = await ctx.service.getEpicUsageCounts(row.projectId);
+      return mapEpic(row, counts.get(row.id));
+    },
     testCases: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       const input = testCasesListInput.parse(args.input);
       const rows = await ctx.service.listTestCases({
         projectId: input.projectId,
         type: input.type as "manual" | "automated" | undefined,
-        includeDeleted: input.includeDeleted
+        includeDeleted: input.includeDeleted,
+        requirementId: input.requirementId
       });
       return rows.map(mapTestCaseListRow);
     },
@@ -323,6 +394,42 @@ export const resolvers = {
         return { requirement: null, error: formatError(error) };
       }
     },
+    createEpic: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      try {
+        const input = epicInput.parse(args.input);
+        const epic = await ctx.service.createEpic(input);
+        return { epic: mapEpic(epic), error: null };
+      } catch (error) {
+        return { epic: null, error: formatError(error) };
+      }
+    },
+    updateEpic: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      try {
+        const input = updateEpicInput.parse(args.input);
+        const epic = await ctx.service.updateEpic(input);
+        return { epic: epic ? mapEpic(epic) : null, error: null };
+      } catch (error) {
+        return { epic: null, error: formatError(error) };
+      }
+    },
+    deleteEpic: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      try {
+        const input = deleteEpicInput.parse(args.input);
+        await ctx.service.deleteEpic(input);
+        return { success: true };
+      } catch (error) {
+        if (error instanceof AppError) {
+          throw new GraphQLError(error.message, {
+            extensions: {
+              code: error.code,
+              fixHint: error.fixHint,
+              context: error.context != null ? JSON.stringify(error.context) : null
+            }
+          });
+        }
+        throw error;
+      }
+    },
     updateRequirement: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       try {
         const input = updateRequirementInput.parse(args.input);
@@ -427,7 +534,11 @@ export const resolvers = {
     createTestRun: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       try {
         const input = runInput.parse(args.input);
-        const run = await ctx.service.createTestRun(input);
+        const { executeAutomation, ...runFields } = input;
+        const run = await ctx.service.createTestRun(runFields);
+        if (executeAutomation && runFields.testPlanId) {
+          await ctx.service.spawnAutomationForRun({ runId: run.id, projectId: runFields.projectId });
+        }
         return { run, error: null };
       } catch (error) {
         return { run: null, error: formatError(error) };
@@ -464,6 +575,29 @@ export const resolvers = {
       const input = unlinkTestPlanTestCaseInput.parse(args.input);
       await ctx.service.unlinkTestPlanTestCase(input);
       return { success: true };
+    },
+    linkTestPlanPlan: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      const input = linkTestPlanPlanInput.parse(args.input);
+      return ctx.service.linkTestPlanPlan(input);
+    },
+    unlinkTestPlanPlan: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      const input = unlinkTestPlanPlanInput.parse(args.input);
+      await ctx.service.unlinkTestPlanPlan(input);
+      return { success: true };
+    },
+    launchPlanAutomation: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      try {
+        const input = launchPlanAutomationInput.parse(args.input);
+        const launched = await ctx.service.launchPlanAutomation(input);
+        return {
+          run: launched.run,
+          automatedCount: launched.automatedCount,
+          specPaths: launched.specPaths,
+          error: null
+        };
+      } catch (error) {
+        return { run: null, automatedCount: 0, specPaths: [], error: formatError(error) };
+      }
     },
     submitTestResult: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       try {
@@ -550,6 +684,24 @@ export const resolvers = {
       if (Array.isArray(parent.testCases)) return parent.testCases;
       const full = await ctx.service.getTestPlan({ id: parent.id });
       return full?.testCases ?? [];
+    },
+    childPlans: async (parent: { id: string; childPlans?: unknown[] }, _args: unknown, ctx: Context) => {
+      if (Array.isArray(parent.childPlans)) return parent.childPlans;
+      const full = await ctx.service.getTestPlan({ id: parent.id });
+      return full?.childPlans ?? [];
+    },
+    memberStats: async (parent: { id: string; memberStats?: unknown }, _args: unknown, ctx: Context) => {
+      if (parent.memberStats && typeof parent.memberStats === "object") return parent.memberStats;
+      const full = await ctx.service.getTestPlan({ id: parent.id });
+      return (
+        full?.memberStats ?? {
+          directTestCaseCount: 0,
+          childPlanCount: 0,
+          flattenedTestCaseCount: 0,
+          flattenedManualCount: 0,
+          flattenedAutomatedCount: 0
+        }
+      );
     }
   },
   AppError: {

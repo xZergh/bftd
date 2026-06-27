@@ -45,6 +45,7 @@ export const requirementSortAccessors: Record<
   releaseLabel: (r) => r.releaseLabel,
   sprintLabel: (r) => r.sprintLabel,
   tags: (r) => r.tags.join(", "),
+  epic: (r) => r.epic?.externalKey ?? "",
   linkedManualTestCaseCount: (r) => r.linkedManualTestCaseCount
 };
 

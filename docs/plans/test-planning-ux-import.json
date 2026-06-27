@@ -1,0 +1,114 @@
+{
+  "requirements": [
+    {
+      "externalKey": "TCMS-PLAN-R1",
+      "title": "Create test plan from Test Cases selection",
+      "description": "QA selects manual test cases on the Test Cases tab and creates a plan from the selection; plan metadata is edited in the inspector.",
+      "requirementType": "functional",
+      "priority": "high",
+      "status": "ready",
+      "releaseLabel": "MVP",
+      "sprintLabel": "MVP-2",
+      "tags": ["plans", "test-cases"]
+    },
+    {
+      "externalKey": "TCMS-PLAN-R2",
+      "title": "Auto-include linked automation in plans",
+      "description": "Adding a manual case to a plan adds linked automated tests; unlinking manual removes paired automation from the plan.",
+      "requirementType": "functional",
+      "priority": "high",
+      "status": "ready",
+      "releaseLabel": "MVP",
+      "sprintLabel": "MVP-2",
+      "tags": ["plans", "automation"]
+    },
+    {
+      "externalKey": "TCMS-PLAN-R3",
+      "title": "Plans list with filters",
+      "description": "Scrollable plan table with name search and release/sprint filters.",
+      "requirementType": "functional",
+      "priority": "medium",
+      "status": "ready",
+      "releaseLabel": "MVP",
+      "sprintLabel": "MVP-2",
+      "tags": ["plans"]
+    },
+    {
+      "externalKey": "TCMS-PLAN-R4",
+      "title": "Plan case catalog for membership editing",
+      "description": "Dense filterable catalog with in-plan toggles, bulk add/remove, and full-project case list.",
+      "requirementType": "functional",
+      "priority": "high",
+      "status": "ready",
+      "releaseLabel": "MVP",
+      "sprintLabel": "MVP-2",
+      "tags": ["plans"]
+    },
+    {
+      "externalKey": "TCMS-PLAN-R5",
+      "title": "Plan metadata panel",
+      "description": "Right panel for plan fields only; cases managed on the left.",
+      "requirementType": "functional",
+      "priority": "medium",
+      "status": "ready",
+      "releaseLabel": "MVP",
+      "sprintLabel": "MVP-2",
+      "tags": ["plans"]
+    },
+    {
+      "externalKey": "TCMS-PLAN-R6",
+      "title": "Quick view test case from plan catalog",
+      "description": "Dismissible read-only popup for case summary from Plans catalog.",
+      "requirementType": "functional",
+      "priority": "medium",
+      "status": "ready",
+      "releaseLabel": "MVP",
+      "sprintLabel": "MVP-2",
+      "tags": ["plans"]
+    },
+    {
+      "externalKey": "TCMS-PLAN-R7",
+      "title": "Automation visibility without spec detail",
+      "description": "Coverage icon on manual rows; automation specs remain under Automation tab.",
+      "requirementType": "non_functional",
+      "priority": "medium",
+      "status": "ready",
+      "releaseLabel": "MVP",
+      "sprintLabel": "MVP-2",
+      "tags": ["plans", "ux"]
+    },
+    {
+      "externalKey": "TCMS-PLAN-R8",
+      "title": "Execute automation from Runs",
+      "description": "Optional execute-automated on run create; default off. Not on Plans tab.",
+      "requirementType": "functional",
+      "priority": "high",
+      "status": "ready",
+      "releaseLabel": "MVP",
+      "sprintLabel": "MVP-2",
+      "tags": ["runs", "automation"]
+    },
+    {
+      "externalKey": "TCMS-PLAN-R9",
+      "title": "Embedded run report section",
+      "description": "Run detail report panel for embedded HTML (Allure-style attachment).",
+      "requirementType": "functional",
+      "priority": "medium",
+      "status": "ready",
+      "releaseLabel": "MVP",
+      "sprintLabel": "MVP-2",
+      "tags": ["runs", "reporting"]
+    },
+    {
+      "externalKey": "TCMS-PLAN-R10",
+      "title": "Bulk selection across filters",
+      "description": "Selection persists across filters; select-all-matching uses current filter set.",
+      "requirementType": "functional",
+      "priority": "high",
+      "status": "ready",
+      "releaseLabel": "MVP",
+      "sprintLabel": "MVP-2",
+      "tags": ["plans", "bulk"]
+    }
+  ]
+}

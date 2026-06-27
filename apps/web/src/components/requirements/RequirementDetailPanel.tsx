@@ -6,6 +6,7 @@ import { RowSaveIndicator } from "../workspace/RowSaveIndicator";
 import { ValidationErrorPayloadPreview } from "../ValidationErrorPayloadPreview";
 import {
   DeleteRequirementMutation,
+  EpicsListQuery,
   RequirementByIdQuery,
   UpdateRequirementMutation
 } from "../../graphql/documents";
@@ -22,9 +23,10 @@ type Props = {
   variant: "inspector" | "full";
   onDeleted?: () => void;
   onClose?: () => void;
+  onUpdated?: () => void;
 };
 
-export function RequirementDetailPanel({ projectId, requirementId, variant, onDeleted, onClose }: Props) {
+export function RequirementDetailPanel({ projectId, requirementId, variant, onDeleted, onClose, onUpdated }: Props) {
   const { clearShellMessages, setTransportMessage, setPayloadAppError } = useShellErrors();
 
   const [titleDraft, setTitleDraft] = useState("");
@@ -41,10 +43,41 @@ export function RequirementDetailPanel({ projectId, requirementId, variant, onDe
     requestPolicy: "network-only"
   });
 
+  const [epicsResult] = useQuery({
+    query: EpicsListQuery,
+    variables: { projectId },
+    requestPolicy: "cache-and-network"
+  });
+
   const [, updateRequirement] = useMutation(UpdateRequirementMutation);
   const [, deleteRequirement] = useMutation(DeleteRequirementMutation);
 
   const req = detailResult.data?.requirement;
+  const epics = epicsResult.data?.epics ?? [];
+
+  const onEpicChange = useCallback(
+    async (nextEpicId: string) => {
+      clearShellMessages();
+      const res = await updateRequirement({
+        input: {
+          id: requirementId,
+          epicId: nextEpicId === "" ? null : nextEpicId
+        }
+      });
+      if (res.error) {
+        setTransportMessage(formatGraphQlTransportError(res.error));
+        return;
+      }
+      const appErr = res.data?.updateRequirement?.error;
+      if (appErr) {
+        setPayloadAppError(appErr);
+        return;
+      }
+      reexecuteDetail({ requestPolicy: "network-only" });
+      onUpdated?.();
+    },
+    [clearShellMessages, onUpdated, reexecuteDetail, requirementId, setPayloadAppError, setTransportMessage, updateRequirement]
+  );
 
   useEffect(() => {
     if (req === undefined || req === null || req.id !== requirementId) {
@@ -139,14 +172,9 @@ export function RequirementDetailPanel({ projectId, requirementId, variant, onDe
   );
 
   const autosaveResetKey = `${titleDraft}\0${descriptionDraft}\0${failBump}`;
-  const cancelAutosave = useDebouncedAutosaveEffect(dirty && canAutosave, autosaveResetKey, () => {
+  useDebouncedAutosaveEffect(dirty && canAutosave, autosaveResetKey, () => {
     void performSave(false);
   });
-
-  const onSaveClick = useCallback(() => {
-    cancelAutosave();
-    void performSave(true);
-  }, [cancelAutosave, performSave]);
 
   const saveState =
     savePhase === "saving" ? "saving" : dirty ? "unsaved" : "saved";
@@ -178,6 +206,19 @@ export function RequirementDetailPanel({ projectId, requirementId, variant, onDe
       className={`requirement-detail-panel requirement-detail-panel--${variant}`}
       data-testid="requirement-detail-panel"
     >
+      {variant === "full" ? (
+        <nav className="detail-breadcrumbs" aria-label="Requirement breadcrumb">
+          <RouterLink to={`/projects/${projectId}`}>Overview</RouterLink>
+          <span className="detail-breadcrumbs-sep" aria-hidden="true">
+            /
+          </span>
+          <RouterLink to={`/projects/${projectId}/requirements`}>Requirements</RouterLink>
+          <span className="detail-breadcrumbs-sep" aria-hidden="true">
+            /
+          </span>
+          <span data-testid="requirement-breadcrumb-key">{req.externalKey}</span>
+        </nav>
+      ) : null}
       <div className="detail-panel-header">
         {variant === "full" ? (
           <RouterLink to={`/projects/${projectId}/requirements`} data-testid="requirement-back-list">
@@ -200,26 +241,54 @@ export function RequirementDetailPanel({ projectId, requirementId, variant, onDe
         )}
       </div>
 
-      <dl className="project-detail-meta project-detail-meta--compact">
-        <div>
-          <dt>Key</dt>
+      <dl className="detail-meta-strip" aria-label="Requirement summary">
+        <div className="detail-meta-item">
+          <dt className="detail-meta-label">Key</dt>
           <dd>
             <code data-testid="requirement-detail-key">{req.externalKey}</code>
           </dd>
         </div>
         {req.status ? (
-          <div>
-            <dt>Status</dt>
+          <div className="detail-meta-item">
+            <dt className="detail-meta-label">Status</dt>
             <dd>{req.status}</dd>
+          </div>
+        ) : null}
+        {req.priority ? (
+          <div className="detail-meta-item">
+            <dt className="detail-meta-label">Priority</dt>
+            <dd>{req.priority}</dd>
+          </div>
+        ) : null}
+        {req.requirementType ? (
+          <div className="detail-meta-item">
+            <dt className="detail-meta-label">Type</dt>
+            <dd>{req.requirementType}</dd>
           </div>
         ) : null}
       </dl>
 
-      <div className="projects-create-fields">
+      <div className="detail-edit-fields">
+        <label>
+          Epic
+          <select
+            value={req.epicId ?? ""}
+            onChange={(e) => void onEpicChange(e.target.value)}
+            data-testid="requirement-edit-epic"
+          >
+            <option value="">— None —</option>
+            {epics.map((epic) => (
+              <option key={epic.id} value={epic.id}>
+                {epic.externalKey} — {epic.title}
+              </option>
+            ))}
+          </select>
+        </label>
         <label>
           Title <span className="required-star" aria-hidden="true">*</span>
           <input
             type="text"
+            className="detail-title-input"
             value={titleDraft}
             onChange={(e) => {
               setTitleDraft(e.target.value);
@@ -245,7 +314,7 @@ export function RequirementDetailPanel({ projectId, requirementId, variant, onDe
               setShowValidationPayload(false);
             }}
             data-testid="requirement-edit-description"
-            rows={variant === "full" ? 6 : 4}
+            rows={4}
           />
         </label>
       </div>
@@ -254,9 +323,6 @@ export function RequirementDetailPanel({ projectId, requirementId, variant, onDe
 
       <div className="form-edit-actions">
         <RowSaveIndicator state={saveState} />
-        <button type="button" onClick={onSaveClick} data-testid="requirement-save">
-          Save
-        </button>
       </div>
 
       <div className="project-detail-actions">

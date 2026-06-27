@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
 import { ProjectWorkspaceHeader } from "../components/ProjectWorkspaceHeader";
 import {
+  EpicsListQuery,
   LinkAutomatedManualMutation,
   LinkRequirementManualMutation,
   RequirementsListQuery,
@@ -34,6 +35,7 @@ type TestCaseDetailEmbedProps = {
   embedProjectId?: string;
   embedTestCaseId?: string;
   onInspectorClose?: () => void;
+  onUpdated?: () => void;
 };
 
 type ManualEditBaseline = { title: string; stepsJson: string };
@@ -77,7 +79,8 @@ export function TestCaseDetailPage({
   variant = "full",
   embedProjectId,
   embedTestCaseId,
-  onInspectorClose
+  onInspectorClose,
+  onUpdated
 }: TestCaseDetailEmbedProps = {}) {
   const { projectId: routeProjectId, testCaseId: routeTestCaseId } = useParams();
   const projectId = embedProjectId ?? routeProjectId;
@@ -103,6 +106,13 @@ export function TestCaseDetailPage({
     query: TestCaseByIdQuery,
     variables: { id: testCaseId ?? "", projectId: projectId ?? undefined, includeDeleted: true },
     pause: paused
+  });
+
+  const [epicsResult] = useQuery({
+    query: EpicsListQuery,
+    variables: { projectId: projectId ?? "" },
+    pause: paused,
+    requestPolicy: "cache-and-network"
   });
 
   /** Avoid overlapping urql subscriptions with the test-case list page during route transitions. */
@@ -146,6 +156,43 @@ export function TestCaseDetailPage({
   const [, restore] = useMutation(RestoreTestCaseMutation);
 
   const tc = detailResult.data?.testCase;
+  const epics = epicsResult.data?.epics ?? [];
+
+  const onEpicChange = useCallback(
+    async (nextEpicId: string) => {
+      if (paused || testCaseId === undefined || tc === undefined || tc === null || tc.isDeleted) {
+        return;
+      }
+      clearShellMessages();
+      const input = { id: testCaseId, epicId: nextEpicId === "" ? null : nextEpicId };
+      const res =
+        tc.type === "manual" ? await updateManual({ input }) : await updateAutomated({ input });
+      if (res.error) {
+        setTransportMessage(formatGraphQlTransportError(res.error));
+        return;
+      }
+      const payload = tc.type === "manual" ? res.data?.updateManualTestCase : res.data?.updateAutomatedTestCase;
+      const appErr = payload?.error;
+      if (appErr) {
+        setPayloadAppError(appErr);
+        return;
+      }
+      reexecuteDetail({ requestPolicy: "network-only" });
+      onUpdated?.();
+    },
+    [
+      clearShellMessages,
+      onUpdated,
+      paused,
+      reexecuteDetail,
+      setPayloadAppError,
+      setTransportMessage,
+      tc,
+      testCaseId,
+      updateAutomated,
+      updateManual
+    ]
+  );
 
   useEffect(() => {
     if (testCaseId === undefined || testCaseId === "") {
@@ -429,16 +476,6 @@ export function TestCaseDetailPage({
     }
   );
 
-  const onSaveManualClick = useCallback(() => {
-    cancelManualAutosave();
-    void performSaveManual(true);
-  }, [cancelManualAutosave, performSaveManual]);
-
-  const onSaveAutomatedClick = useCallback(() => {
-    cancelAutomatedAutosave();
-    void performSaveAutomated(true);
-  }, [cancelAutomatedAutosave, performSaveAutomated]);
-
   const saveState: "saved" | "unsaved" | "saving" =
     savePhase === "saving"
       ? "saving"
@@ -632,7 +669,25 @@ export function TestCaseDetailPage({
       data-testid="testcase-detail-page"
     >
       {variant === "full" ? (
-        <ProjectWorkspaceHeader title="Test case" projectId={projectId as string} active="test-cases" />
+        <>
+          <ProjectWorkspaceHeader title="Test case" projectId={projectId as string} active="test-cases" />
+          <nav className="detail-breadcrumbs" aria-label="Test case breadcrumb">
+            <RouterLink to={`/projects/${projectId}`}>Overview</RouterLink>
+            <span className="detail-breadcrumbs-sep" aria-hidden="true">
+              /
+            </span>
+            <RouterLink to={`/projects/${projectId}/test-cases`}>Test cases</RouterLink>
+            <span className="detail-breadcrumbs-sep" aria-hidden="true">
+              /
+            </span>
+            <span data-testid="testcase-breadcrumb-id">{tc.externalId ?? tc.id}</span>
+          </nav>
+          <div className="detail-panel-header">
+            <RouterLink to={`/projects/${projectId}/test-cases`} data-testid="testcase-back-list">
+              Back to test cases
+            </RouterLink>
+          </div>
+        </>
       ) : (
         <div className="detail-panel-header">
           <div className="detail-panel-header-actions">
@@ -656,15 +711,23 @@ export function TestCaseDetailPage({
         </div>
       )}
 
-      <dl className="project-detail-meta">
-        <div>
-          <dt>Type</dt>
+      <dl className="detail-meta-strip" aria-label="Test case summary">
+        <div className="detail-meta-item">
+          <dt className="detail-meta-label">Type</dt>
           <dd data-testid="testcase-detail-type">{tc.type}</dd>
         </div>
-        <div>
-          <dt>Status</dt>
-          <dd data-testid="testcase-detail-status">{tc.isDeleted ? "Deleted (tombstoned)" : "Active"}</dd>
+        <div className="detail-meta-item">
+          <dt className="detail-meta-label">Status</dt>
+          <dd data-testid="testcase-detail-status">{tc.isDeleted ? "Deleted" : "Active"}</dd>
         </div>
+        {tc.externalId ? (
+          <div className="detail-meta-item">
+            <dt className="detail-meta-label">External</dt>
+            <dd>
+              <code>{tc.externalId}</code>
+            </dd>
+          </div>
+        ) : null}
       </dl>
 
       {tc.isDeleted && (
@@ -673,29 +736,44 @@ export function TestCaseDetailPage({
         </p>
       )}
 
-      <div className="projects-create project-detail-edit">
-        <h3 className="projects-subheading">Title</h3>
-        <div className="projects-create-fields">
+      <div className="detail-edit-fields project-detail-edit">
+        {editable ? (
           <label>
-            Title <span className="required-star" aria-hidden="true">*</span>
-            <input
-              type="text"
-              value={titleDraft}
-              disabled={!editable}
-              onChange={(e) => {
-                setTitleDraft(e.target.value);
-                setTitleError(null);
-              }}
-              data-testid="testcase-edit-title"
-            />
-            {titleError !== null && (
-              <p className="field-error" role="alert" data-testid="testcase-edit-title-error">
-                {titleError}
-              </p>
-            )}
+            Epic
+            <select
+              value={tc.epicId ?? ""}
+              onChange={(e) => void onEpicChange(e.target.value)}
+              data-testid="testcase-edit-epic"
+            >
+              <option value="">— None —</option>
+              {epics.map((epic) => (
+                <option key={epic.id} value={epic.id}>
+                  {epic.externalKey} — {epic.title}
+                </option>
+              ))}
+            </select>
           </label>
-        </div>
-        {tc.type === "manual" && editable && (
+        ) : null}
+        <label>
+          Title <span className="required-star" aria-hidden="true">*</span>
+          <input
+            type="text"
+            className="detail-title-input"
+            value={titleDraft}
+            disabled={!editable}
+            onChange={(e) => {
+              setTitleDraft(e.target.value);
+              setTitleError(null);
+            }}
+            data-testid="testcase-edit-title"
+          />
+          {titleError !== null && (
+            <p className="field-error" role="alert" data-testid="testcase-edit-title-error">
+              {titleError}
+            </p>
+          )}
+        </label>
+        {tc.type === "manual" && editable ? (
           <div className="form-edit-actions">
             <span
               className={`form-save-status form-save-status--${saveState}`}
@@ -704,12 +782,9 @@ export function TestCaseDetailPage({
             >
               {saveStatusLabel}
             </span>
-            <button type="button" onClick={onSaveManualClick} data-testid="testcase-save-manual">
-              Save
-            </button>
           </div>
-        )}
-        {tc.type === "automated" && editable && (
+        ) : null}
+        {tc.type === "automated" && editable ? (
           <div className="form-edit-actions">
             <span
               className={`form-save-status form-save-status--${saveState}`}
@@ -718,41 +793,38 @@ export function TestCaseDetailPage({
             >
               {saveStatusLabel}
             </span>
-            <button type="button" onClick={onSaveAutomatedClick} data-testid="testcase-save-auto-title">
-              Save title
-            </button>
           </div>
-        )}
+        ) : null}
       </div>
 
       {tc.type === "manual" && editable && (
-        <div className="projects-create project-detail-edit" data-testid="testcase-manual-steps">
+        <div className="detail-edit-fields project-detail-edit" data-testid="testcase-manual-steps">
           <h3 className="projects-subheading">Steps</h3>
           {stepDrafts.map((s, i) => (
-            <div key={i} className="testcase-step-row">
+            <div key={i} className="testcase-step-row testcase-step-row--stacked">
               <label>
                 Step {i + 1} name
-                <input
-                  type="text"
+                <textarea
                   value={s.name}
                   onChange={(e) => {
                     const next = [...stepDrafts];
                     next[i] = { ...next[i]!, name: e.target.value };
                     setStepDrafts(next);
                   }}
+                  rows={4}
                   data-testid={`testcase-edit-step-name-${i}`}
                 />
               </label>
               <label>
                 Expected
-                <input
-                  type="text"
+                <textarea
                   value={s.expectedResult}
                   onChange={(e) => {
                     const next = [...stepDrafts];
                     next[i] = { ...next[i]!, expectedResult: e.target.value };
                     setStepDrafts(next);
                   }}
+                  rows={4}
                   data-testid={`testcase-edit-step-expected-${i}`}
                 />
               </label>
@@ -786,7 +858,9 @@ export function TestCaseDetailPage({
             <ul className="testcase-link-list">
               {linkedRequirements.map((r) => (
                 <li key={r.id} data-linked-req-id={r.id}>
-                  <span data-testid="testcase-linked-req-title">{r.title}</span>
+                  <span className="clamp-4" data-testid="testcase-linked-req-title">
+                    {r.title}
+                  </span>
                   {editable && (
                     <button
                       type="button"
@@ -839,7 +913,9 @@ export function TestCaseDetailPage({
             <ul className="testcase-link-list">
               {linkedManuals.map((m) => (
                 <li key={m.id} data-linked-manual-id={m.id}>
-                  <span data-testid="testcase-linked-manual-title">{m.title}</span>
+                  <span className="clamp-4" data-testid="testcase-linked-manual-title">
+                    {m.title}
+                  </span>
                   {editable && linkedManuals.length > 1 && (
                     <button
                       type="button"

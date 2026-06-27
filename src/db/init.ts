@@ -78,13 +78,27 @@ function applyAdditiveMigrations(db: Database.Database) {
     ensureColumn(db, "requirements", "priority", "TEXT");
     ensureColumn(db, "requirements", "tags_json", "TEXT");
     ensureColumn(db, "requirements", "parent_requirement_id", "TEXT");
+    ensureColumn(db, "requirements", "epic_id", "TEXT");
   }
 
   if (names.has("test_cases")) {
     ensureColumn(db, "test_cases", "release_label", "TEXT");
     ensureColumn(db, "test_cases", "sprint_label", "TEXT");
+    ensureColumn(db, "test_cases", "epic_id", "TEXT");
     ensureColumn(db, "test_cases", "is_deleted", "INTEGER NOT NULL DEFAULT 0");
     ensureColumn(db, "test_cases", "deleted_at", "INTEGER");
+    ensureColumn(db, "test_cases", "external_key", "TEXT");
+    ensureColumn(db, "test_cases", "description", "TEXT");
+    ensureColumn(db, "test_cases", "preconditions", "TEXT");
+    ensureColumn(db, "test_cases", "notes", "TEXT");
+    ensureColumn(db, "test_cases", "automation_notes", "TEXT");
+    ensureColumn(db, "test_cases", "automation_status", "TEXT");
+    if (!indexExists(db, "test_case_project_external_key_uniq")) {
+      db.exec(`
+        CREATE UNIQUE INDEX IF NOT EXISTS test_case_project_external_key_uniq
+        ON test_cases(project_id, external_key)
+      `);
+    }
   }
 
   if (names.has("test_case_steps")) {
@@ -107,6 +121,19 @@ function applyAdditiveMigrations(db: Database.Database) {
   }
   if (!indexExists(db, "test_plan_case_uniq")) {
     db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS test_plan_case_uniq ON test_plan_test_case_links(test_plan_id, test_case_id)`);
+  }
+  if (!names.has("test_plan_plan_links")) {
+    db.exec(`
+      CREATE TABLE test_plan_plan_links (
+        id TEXT PRIMARY KEY,
+        parent_test_plan_id TEXT NOT NULL,
+        child_test_plan_id TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE UNIQUE INDEX test_plan_plan_uniq ON test_plan_plan_links(parent_test_plan_id, child_test_plan_id);
+    `);
+  } else if (!indexExists(db, "test_plan_plan_uniq")) {
+    db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS test_plan_plan_uniq ON test_plan_plan_links(parent_test_plan_id, child_test_plan_id)`);
   }
   if (!indexExists(db, "run_case_assignment_uniq")) {
     db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS run_case_assignment_uniq ON run_test_case_assignments(run_id, test_case_id)`);
@@ -138,6 +165,18 @@ export function initSqlite(dbPath: string) {
       updated_at INTEGER NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS epics (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      external_key TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS epic_project_external_key_uniq
+    ON epics(project_id, external_key);
+
     CREATE TABLE IF NOT EXISTS requirements (
       id TEXT PRIMARY KEY,
       project_id TEXT NOT NULL,
@@ -151,6 +190,7 @@ export function initSqlite(dbPath: string) {
       priority TEXT,
       tags_json TEXT,
       parent_requirement_id TEXT,
+      epic_id TEXT,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
@@ -177,10 +217,17 @@ export function initSqlite(dbPath: string) {
       id TEXT PRIMARY KEY,
       project_id TEXT NOT NULL,
       external_id TEXT,
+      external_key TEXT,
+      description TEXT,
+      preconditions TEXT,
+      notes TEXT,
+      automation_notes TEXT,
+      automation_status TEXT,
       type TEXT NOT NULL,
       title TEXT NOT NULL,
       release_label TEXT,
       sprint_label TEXT,
+      epic_id TEXT,
       is_deleted INTEGER NOT NULL DEFAULT 0,
       deleted_at INTEGER,
       created_at INTEGER NOT NULL,
@@ -289,6 +336,15 @@ export function initSqlite(dbPath: string) {
     );
     CREATE UNIQUE INDEX IF NOT EXISTS test_plan_case_uniq
     ON test_plan_test_case_links(test_plan_id, test_case_id);
+
+    CREATE TABLE IF NOT EXISTS test_plan_plan_links (
+      id TEXT PRIMARY KEY,
+      parent_test_plan_id TEXT NOT NULL,
+      child_test_plan_id TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS test_plan_plan_uniq
+    ON test_plan_plan_links(parent_test_plan_id, child_test_plan_id);
 
     CREATE TABLE IF NOT EXISTS run_test_case_assignments (
       id TEXT PRIMARY KEY,

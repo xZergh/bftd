@@ -1,4 +1,6 @@
 import { RouterLink } from "../tamagui/RouterLink";
+import { useSearchParams } from "react-router-dom";
+import { buildEpicQuery, readStoredEpicFilter } from "../navigation/epicFilter";
 import type { ProjectWorkspaceSection } from "./projectWorkspaceNav";
 
 type Props = {
@@ -12,6 +14,8 @@ function navCurrent(active: ProjectWorkspaceSection, section: ProjectWorkspaceSe
 
 export function ProjectSubNav({ projectId, active }: Props) {
   const base = `/projects/${projectId}`;
+  const [searchParams] = useSearchParams();
+  const epicQuery = buildEpicQuery(searchParams.get("epic") ?? readStoredEpicFilter(projectId));
 
   const chipLinkStyle = { color: "var(--tcms-text)" as const };
 
@@ -26,7 +30,7 @@ export function ProjectSubNav({ projectId, active }: Props) {
         Overview
       </RouterLink>
       <RouterLink
-        to={`${base}/requirements`}
+        to={`${base}/requirements${epicQuery}`}
         data-testid="project-nav-requirements"
         aria-current={navCurrent(active, "requirements")}
         style={chipLinkStyle}
@@ -34,7 +38,7 @@ export function ProjectSubNav({ projectId, active }: Props) {
         Requirements
       </RouterLink>
       <RouterLink
-        to={`${base}/test-cases`}
+        to={`${base}/test-cases${epicQuery}`}
         data-testid="project-nav-test-cases"
         aria-current={navCurrent(active, "test-cases")}
         style={chipLinkStyle}

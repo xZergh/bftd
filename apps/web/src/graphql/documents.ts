@@ -142,6 +142,64 @@ export const ProjectSettingsQuery = parse(`
   }
 `);
 
+export const EpicsListQuery = parse(`
+  query EpicsList($projectId: ID!) {
+    epics(input: { projectId: $projectId }) {
+      id
+      externalKey
+      title
+      description
+      requirementCount
+      testCaseCount
+    }
+  }
+`);
+
+export const CreateEpicMutation = parse(`
+  mutation CreateEpic($input: CreateEpicInput!) {
+    createEpic(input: $input) {
+      epic {
+        id
+        externalKey
+        title
+        description
+      }
+      error {
+        code
+        message
+        fixHint
+        context
+      }
+    }
+  }
+`);
+
+export const UpdateEpicMutation = parse(`
+  mutation UpdateEpic($input: UpdateEpicInput!) {
+    updateEpic(input: $input) {
+      epic {
+        id
+        externalKey
+        title
+      }
+      error {
+        code
+        message
+        fixHint
+        context
+      }
+    }
+  }
+`);
+
+export const DeleteEpicMutation = parse(`
+  mutation DeleteEpic($input: DeleteEpicInput!) {
+    deleteEpic(input: $input) {
+      success
+    }
+  }
+`);
+
 export const RequirementsListQuery = parse(`
   query RequirementsList($projectId: ID!) {
     requirements(input: { projectId: $projectId }) {
@@ -156,6 +214,12 @@ export const RequirementsListQuery = parse(`
       priority
       tags
       parentRequirementId
+      epicId
+      epic {
+        id
+        externalKey
+        title
+      }
       linkedManualTestCaseCount
       createdAt
       updatedAt
@@ -178,6 +242,12 @@ export const RequirementByIdQuery = parse(`
       priority
       tags
       parentRequirementId
+      epicId
+      epic {
+        id
+        externalKey
+        title
+      }
       createdAt
       updatedAt
     }
@@ -217,6 +287,12 @@ export const UpdateRequirementMutation = parse(`
         priority
         tags
         linkedManualTestCaseCount
+        epicId
+        epic {
+          id
+          externalKey
+          title
+        }
       }
       error {
         code
@@ -249,6 +325,12 @@ export const TestCasesListQuery = parse(`
       deletedAt
       linkedRequirementCount
       linkedManualTestCaseCount
+      epicId
+      epic {
+        id
+        externalKey
+        title
+      }
       createdAt
       updatedAt
     }
@@ -263,6 +345,12 @@ export const TestCaseByIdQuery = parse(`
       type
       title
       externalId
+      epicId
+      epic {
+        id
+        externalKey
+        title
+      }
       isDeleted
       deletedAt
       createdAt

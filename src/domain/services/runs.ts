@@ -1,4 +1,4 @@
-import { asc, eq, inArray } from "drizzle-orm";
+import { asc, and, eq, inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { AppError } from "../errors";
 import {
@@ -9,17 +9,81 @@ import {
   runTraceabilityEdges,
   runTraceabilitySnapshots,
   testCases,
-  testPlanTestCaseLinks,
   testPlans,
   testResults,
   testRuns
 } from "../../db/schema";
 import { normalizeLabel } from "./labels";
+import { flattenTestPlanMembers } from "./test-plan-flatten";
 
 type Db = ReturnType<typeof import("../../db/client").createDb>;
 
 function now() {
   return new Date();
+}
+
+async function runHasResult(db: Db, runId: string, testCaseId: string) {
+  const rows = await db
+    .select({ id: testResults.id })
+    .from(testResults)
+    .where(and(eq(testResults.runId, runId), eq(testResults.testCaseId, testCaseId)));
+  return rows.length > 0;
+}
+
+async function insertTestResultRow(
+  db: Db,
+  input: {
+    runId: string;
+    testCaseId: string;
+    status: "passed" | "failed" | "skipped" | "blocked" | "not_run";
+    durationMs?: number;
+    attachments?: Array<{ kind: string; ref: string }>;
+  }
+) {
+  const result = {
+    id: randomUUID(),
+    runId: input.runId,
+    testCaseId: input.testCaseId,
+    status: input.status,
+    durationMs: input.durationMs ?? 0,
+    attachmentsJson:
+      input.attachments && input.attachments.length > 0 ? JSON.stringify(input.attachments) : null,
+    createdAt: now()
+  };
+  await db.insert(testResults).values(result);
+  return result;
+}
+
+async function rollupLinkedManualResults(
+  db: Db,
+  input: {
+    runId: string;
+    automatedTestCaseId: string;
+    automatedStatus: "passed" | "failed" | "skipped" | "blocked" | "not_run";
+    durationMs?: number;
+  }
+) {
+  if (input.automatedStatus === "skipped" || input.automatedStatus === "not_run" || input.automatedStatus === "blocked") {
+    return;
+  }
+  const manualStatus = input.automatedStatus === "passed" ? "passed" : "failed";
+  const links = await db
+    .select({ manualTestCaseId: automatedManualLinks.manualTestCaseId })
+    .from(automatedManualLinks)
+    .where(eq(automatedManualLinks.automatedTestCaseId, input.automatedTestCaseId));
+
+  for (const link of links) {
+    if (await runHasResult(db, input.runId, link.manualTestCaseId)) {
+      continue;
+    }
+    await insertTestResultRow(db, {
+      runId: input.runId,
+      testCaseId: link.manualTestCaseId,
+      status: manualStatus,
+      durationMs: input.durationMs,
+      attachments: [{ kind: "automation_rollup", ref: input.automatedTestCaseId }]
+    });
+  }
 }
 
 export async function createTestRun(
@@ -63,17 +127,14 @@ export async function createTestRun(
   };
   await db.insert(testRuns).values(run);
   if (input.testPlanId) {
-    const links = await db
-      .select({ testCaseId: testPlanTestCaseLinks.testCaseId })
-      .from(testPlanTestCaseLinks)
-      .where(eq(testPlanTestCaseLinks.testPlanId, input.testPlanId));
-    if (links.length > 0) {
+    const flattened = await flattenTestPlanMembers(db, input.testPlanId);
+    if (flattened.length > 0) {
       await db.insert(runTestCaseAssignments).values(
-        links.map((link) => ({
+        flattened.map((link) => ({
           id: randomUUID(),
           runId: run.id,
           testCaseId: link.testCaseId,
-          sourceTestPlanId: input.testPlanId!,
+          sourceTestPlanId: link.sourceTestPlanId,
           createdAt: now()
         }))
       );
@@ -97,7 +158,10 @@ export async function submitTestResult(
   if (run.length === 0) {
     throw new AppError("ENTITY_NOT_FOUND", "Test run not found.", "Create a test run before submitting results.", { runId: input.runId });
   }
-  const tc = await db.select({ id: testCases.id, projectId: testCases.projectId }).from(testCases).where(eq(testCases.id, input.testCaseId));
+  const tc = await db
+    .select({ id: testCases.id, projectId: testCases.projectId, type: testCases.type })
+    .from(testCases)
+    .where(eq(testCases.id, input.testCaseId));
   if (tc.length === 0 || tc[0].projectId !== run[0].projectId) {
     throw new AppError(
       "ENTITY_NOT_FOUND",
@@ -106,17 +170,15 @@ export async function submitTestResult(
       { runId: input.runId, testCaseId: input.testCaseId }
     );
   }
-  const result = {
-    id: randomUUID(),
-    runId: input.runId,
-    testCaseId: input.testCaseId,
-    status: input.status,
-    durationMs: input.durationMs ?? 0,
-    attachmentsJson:
-      input.attachments && input.attachments.length > 0 ? JSON.stringify(input.attachments) : null,
-    createdAt: now()
-  };
-  await db.insert(testResults).values(result);
+  const result = await insertTestResultRow(db, input);
+  if (tc[0].type === "automated") {
+    await rollupLinkedManualResults(db, {
+      runId: input.runId,
+      automatedTestCaseId: input.testCaseId,
+      automatedStatus: input.status,
+      durationMs: input.durationMs
+    });
+  }
   return result;
 }
 

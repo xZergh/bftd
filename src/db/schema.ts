@@ -17,6 +17,22 @@ export const projects = sqliteTable(
   })
 );
 
+export const epics = sqliteTable(
+  "epics",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id").notNull(),
+    externalKey: text("external_key").notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull()
+  },
+  (t) => ({
+    epicProjectExternalKeyUniq: uniqueIndex("epic_project_external_key_uniq").on(t.projectId, t.externalKey)
+  })
+);
+
 export const requirements = sqliteTable(
   "requirements",
   {
@@ -32,6 +48,7 @@ export const requirements = sqliteTable(
     priority: text("priority"),
     tagsJson: text("tags_json"),
     parentRequirementId: text("parent_requirement_id"),
+    epicId: text("epic_id"),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull()
   },
@@ -73,17 +90,25 @@ export const testCases = sqliteTable(
     id: text("id").primaryKey(),
     projectId: text("project_id").notNull(),
     externalId: text("external_id"),
+    externalKey: text("external_key"),
+    description: text("description"),
+    preconditions: text("preconditions"),
+    notes: text("notes"),
+    automationNotes: text("automation_notes"),
+    automationStatus: text("automation_status"),
     type: text("type", { enum: ["manual", "automated"] }).notNull(),
     title: text("title").notNull(),
     releaseLabel: text("release_label"),
     sprintLabel: text("sprint_label"),
+    epicId: text("epic_id"),
     isDeleted: integer("is_deleted", { mode: "boolean" }).notNull().default(false),
     deletedAt: integer("deleted_at", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull()
   },
   (t) => ({
-    projectExternalUniq: uniqueIndex("test_case_project_external_uniq").on(t.projectId, t.externalId)
+    projectExternalUniq: uniqueIndex("test_case_project_external_uniq").on(t.projectId, t.externalId),
+    projectExternalKeyUniq: uniqueIndex("test_case_project_external_key_uniq").on(t.projectId, t.externalKey)
   })
 );
 
@@ -209,6 +234,19 @@ export const testPlanTestCaseLinks = sqliteTable(
   },
   (t) => ({
     testPlanCaseUniq: uniqueIndex("test_plan_case_uniq").on(t.testPlanId, t.testCaseId)
+  })
+);
+
+export const testPlanPlanLinks = sqliteTable(
+  "test_plan_plan_links",
+  {
+    id: text("id").primaryKey(),
+    parentTestPlanId: text("parent_test_plan_id").notNull(),
+    childTestPlanId: text("child_test_plan_id").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0)
+  },
+  (t) => ({
+    testPlanPlanUniq: uniqueIndex("test_plan_plan_uniq").on(t.parentTestPlanId, t.childTestPlanId)
   })
 );
 

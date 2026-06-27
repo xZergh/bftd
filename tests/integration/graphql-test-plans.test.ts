@@ -69,13 +69,24 @@ describe("GraphQL integration - test plans", () => {
     });
     expect(linkManual.body.data.linkTestPlanTestCase.linked).toBe(true);
 
+    const planAfterManualLink = await t.agent.post("/graphql").send({
+      query: `query($input: TestPlanByInput!) {
+        testPlan(input: $input) { id testCases { id } }
+      }`,
+      variables: { input: { id: testPlanId, projectId } }
+    });
+    expect(planAfterManualLink.body.data.testPlan.testCases).toHaveLength(2);
+    expect(planAfterManualLink.body.data.testPlan.testCases.map((tc: { id: string }) => tc.id)).toEqual(
+      expect.arrayContaining([manualId, automatedId])
+    );
+
     const linkAuto = await t.agent.post("/graphql").send({
       query: `mutation($input: LinkTestPlanTestCaseInput!) {
         linkTestPlanTestCase(input: $input) { linked }
       }`,
       variables: { input: { testPlanId, testCaseId: automatedId } }
     });
-    expect(linkAuto.body.data.linkTestPlanTestCase.linked).toBe(true);
+    expect(linkAuto.body.data.linkTestPlanTestCase.linked).toBe(false);
 
     const listPlans = await t.agent.post("/graphql").send({
       query: `query($input: TestPlansListInput!) {
@@ -150,7 +161,7 @@ describe("GraphQL integration - test plans", () => {
       }`,
       variables: { input: { id: testPlanId, projectId } }
     });
-    expect(planDetail.body.data.testPlan.testCases).toHaveLength(1);
+    expect(planDetail.body.data.testPlan.testCases).toHaveLength(0);
 
     const deletePlan = await t.agent.post("/graphql").send({
       query: `mutation($input: DeleteTestPlanInput!) {

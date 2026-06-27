@@ -10,6 +10,7 @@ import {
   testResults
 } from "../../db/schema";
 import { normalizeLabel } from "./labels";
+import { assertEpicInProject, getEpic, getEpicsByIds } from "./epics";
 import { appendTestCaseVersion } from "./versioning";
 
 type Db = ReturnType<typeof import("../../db/client").createDb>;
@@ -65,6 +66,7 @@ export async function createManualTestCase(
     steps: Array<{ name: string; expectedResult?: string }>;
     releaseLabel?: string;
     sprintLabel?: string;
+    epicId?: string;
   }
 ) {
   if (!input.steps || input.steps.length === 0) {
@@ -96,6 +98,8 @@ export async function createManualTestCase(
     );
   }
 
+  await assertEpicInProject(db, input.projectId, input.epicId);
+
   const tc = {
     id: randomUUID(),
     projectId: input.projectId,
@@ -104,6 +108,7 @@ export async function createManualTestCase(
     title: input.title,
     releaseLabel: normalizeLabel(input.releaseLabel),
     sprintLabel: normalizeLabel(input.sprintLabel),
+    epicId: input.epicId ?? null,
     isDeleted: false,
     deletedAt: null as Date | null,
     createdAt: now(),
@@ -131,7 +136,7 @@ export async function createManualTestCase(
 
 export async function createAutomatedTestCase(
   db: Db,
-  input: { projectId: string; title: string; manualTestCaseIds: string[]; releaseLabel?: string; sprintLabel?: string }
+  input: { projectId: string; title: string; manualTestCaseIds: string[]; releaseLabel?: string; sprintLabel?: string; epicId?: string }
 ) {
   if (input.manualTestCaseIds.length === 0) {
     throw new AppError(
@@ -159,6 +164,8 @@ export async function createAutomatedTestCase(
     );
   }
 
+  await assertEpicInProject(db, input.projectId, input.epicId);
+
   const tc = {
     id: randomUUID(),
     projectId: input.projectId,
@@ -167,6 +174,7 @@ export async function createAutomatedTestCase(
     title: input.title,
     releaseLabel: normalizeLabel(input.releaseLabel),
     sprintLabel: normalizeLabel(input.sprintLabel),
+    epicId: input.epicId ?? null,
     isDeleted: false,
     deletedAt: null as Date | null,
     createdAt: now(),
@@ -199,10 +207,13 @@ export async function listTestCases(
   const automatedIds = sorted.filter((r) => r.type === "automated").map((r) => r.id);
   const reqCounts = await requirementLinkCountsByManualCase(db, manualIds);
   const manCounts = await manualLinkCountsByAutomatedCase(db, automatedIds);
+  const epicIds = [...new Set(sorted.map((r) => r.epicId).filter((id): id is string => id != null && id !== ""))];
+  const epicMap = await getEpicsByIds(db, epicIds);
   return sorted.map((r) => ({
     ...r,
     linkedRequirementCount: r.type === "manual" ? (reqCounts.get(r.id) ?? 0) : 0,
-    linkedManualTestCaseCount: r.type === "automated" ? (manCounts.get(r.id) ?? 0) : 0
+    linkedManualTestCaseCount: r.type === "automated" ? (manCounts.get(r.id) ?? 0) : 0,
+    epic: r.epicId ? (epicMap.get(r.epicId) ?? null) : null
   }));
 }
 
@@ -217,7 +228,8 @@ export async function getTestCase(db: Db, input: { id: string; projectId?: strin
     .from(testCaseSteps)
     .where(eq(testCaseSteps.testCaseId, tc.id))
     .orderBy(asc(testCaseSteps.stepOrder));
-  return { ...tc, steps };
+  const epic = tc.epicId ? await getEpic(db, { id: tc.epicId, projectId: tc.projectId }) : null;
+  return { ...tc, steps, epic };
 }
 
 export async function updateManualTestCase(
@@ -228,6 +240,7 @@ export async function updateManualTestCase(
     releaseLabel?: string | null;
     sprintLabel?: string | null;
     steps?: Array<{ name: string; expectedResult?: string }>;
+    epicId?: string | null;
   }
 ) {
   const rows = await db.select().from(testCases).where(eq(testCases.id, input.id));
@@ -240,10 +253,14 @@ export async function updateManualTestCase(
   if (input.steps !== undefined && input.steps.length === 0) {
     throw new AppError("STEPS_REQUIRED", "Manual testcase must keep at least one step.", "Provide one or more steps.", {});
   }
+  if (input.epicId !== undefined) {
+    await assertEpicInProject(db, rows[0].projectId, input.epicId ?? undefined);
+  }
   const patch: Record<string, unknown> = { updatedAt: now() };
   if (input.title !== undefined) patch.title = input.title;
   if (input.releaseLabel !== undefined) patch.releaseLabel = normalizeLabel(input.releaseLabel ?? undefined);
   if (input.sprintLabel !== undefined) patch.sprintLabel = normalizeLabel(input.sprintLabel ?? undefined);
+  if (input.epicId !== undefined) patch.epicId = input.epicId;
   await db.update(testCases).set(patch).where(eq(testCases.id, input.id));
   if (input.steps) {
     await db.delete(testCaseSteps).where(eq(testCaseSteps.testCaseId, input.id));
@@ -273,6 +290,7 @@ export async function updateAutomatedTestCase(
     releaseLabel?: string | null;
     sprintLabel?: string | null;
     manualTestCaseIds?: string[];
+    epicId?: string | null;
   }
 ) {
   const rows = await db.select().from(testCases).where(eq(testCases.id, input.id));
@@ -282,11 +300,15 @@ export async function updateAutomatedTestCase(
   if (rows[0].isDeleted) {
     throw new AppError("ENTITY_NOT_FOUND", "Test case is deleted.", "Restore the testcase before updating.", { id: input.id });
   }
+  if (input.epicId !== undefined) {
+    await assertEpicInProject(db, rows[0].projectId, input.epicId ?? undefined);
+  }
   const patch: Record<string, unknown> = { updatedAt: now() };
   if (input.title !== undefined) patch.title = input.title;
   if (input.externalId !== undefined) patch.externalId = input.externalId;
   if (input.releaseLabel !== undefined) patch.releaseLabel = normalizeLabel(input.releaseLabel ?? undefined);
   if (input.sprintLabel !== undefined) patch.sprintLabel = normalizeLabel(input.sprintLabel ?? undefined);
+  if (input.epicId !== undefined) patch.epicId = input.epicId;
   await db.update(testCases).set(patch).where(eq(testCases.id, input.id));
 
   if (input.manualTestCaseIds) {

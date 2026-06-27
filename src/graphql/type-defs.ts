@@ -19,6 +19,18 @@ export const typeDefs = /* GraphQL */ `
     updatedAt: DateTime!
   }
 
+  type Epic {
+    id: ID!
+    projectId: ID!
+    externalKey: String!
+    title: String!
+    description: String
+    requirementCount: Int!
+    testCaseCount: Int!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
   type Requirement {
     id: ID!
     projectId: ID!
@@ -32,6 +44,8 @@ export const typeDefs = /* GraphQL */ `
     priority: String
     tags: [String!]!
     parentRequirementId: ID
+    epicId: ID
+    epic: Epic
     linkedManualTestCaseCount: Int!
     createdAt: DateTime!
     updatedAt: DateTime!
@@ -53,9 +67,17 @@ export const typeDefs = /* GraphQL */ `
     projectId: ID!
     type: String!
     title: String!
+    externalKey: String
     externalId: String
+    description: String
+    preconditions: String
+    notes: String
+    automationNotes: String
+    automationStatus: String
     releaseLabel: String
     sprintLabel: String
+    epicId: ID
+    epic: Epic
     isDeleted: Boolean!
     deletedAt: DateTime
     linkedRequirementCount: Int!
@@ -89,6 +111,23 @@ export const typeDefs = /* GraphQL */ `
     createdAt: DateTime!
     updatedAt: DateTime!
     testCases: [TestCase!]!
+    childPlans: [TestPlanChild!]!
+    memberStats: TestPlanMemberStats!
+  }
+
+  type TestPlanChild {
+    id: ID!
+    name: String!
+    sortOrder: Int!
+    memberStats: TestPlanMemberStats!
+  }
+
+  type TestPlanMemberStats {
+    directTestCaseCount: Int!
+    childPlanCount: Int!
+    flattenedTestCaseCount: Int!
+    flattenedManualCount: Int!
+    flattenedAutomatedCount: Int!
   }
 
   type ResultAttachment {
@@ -369,6 +408,34 @@ export const typeDefs = /* GraphQL */ `
     priority: String
     tags: [String!]
     parentRequirementId: ID
+    epicId: ID
+  }
+
+  input CreateEpicInput {
+    projectId: ID!
+    externalKey: String!
+    title: String!
+    description: String
+  }
+
+  input UpdateEpicInput {
+    id: ID!
+    externalKey: String
+    title: String
+    description: String
+  }
+
+  input DeleteEpicInput {
+    id: ID!
+  }
+
+  input EpicsListInput {
+    projectId: ID!
+  }
+
+  input EpicByInput {
+    id: ID!
+    projectId: ID
   }
 
   input CreateManualTestCaseInput {
@@ -378,6 +445,13 @@ export const typeDefs = /* GraphQL */ `
     steps: [ManualStepInput!]!
     releaseLabel: String
     sprintLabel: String
+    epicId: ID
+    externalKey: String
+    description: String
+    preconditions: String
+    notes: String
+    automationNotes: String
+    automationStatus: String
   }
 
   input CreateAutomatedTestCaseInput {
@@ -386,6 +460,13 @@ export const typeDefs = /* GraphQL */ `
     manualTestCaseIds: [ID!]!
     releaseLabel: String
     sprintLabel: String
+    epicId: ID
+    externalKey: String
+    description: String
+    preconditions: String
+    notes: String
+    automationNotes: String
+    automationStatus: String
   }
 
   input CreateTestRunInput {
@@ -398,6 +479,7 @@ export const typeDefs = /* GraphQL */ `
     buildVersion: String
     trigger: String
     finishedAt: DateTime
+    executeAutomation: Boolean
   }
 
   input ProjectSummaryInput {
@@ -583,6 +665,7 @@ export const typeDefs = /* GraphQL */ `
     priority: String
     tags: [String!]
     parentRequirementId: ID
+    epicId: ID
   }
 
   input DeleteRequirementInput {
@@ -593,6 +676,7 @@ export const typeDefs = /* GraphQL */ `
     projectId: ID!
     type: String
     includeDeleted: Boolean
+    requirementId: ID
   }
 
   input TestCaseByInput {
@@ -607,6 +691,13 @@ export const typeDefs = /* GraphQL */ `
     releaseLabel: String
     sprintLabel: String
     steps: [ManualStepInput!]
+    epicId: ID
+    externalKey: String
+    description: String
+    preconditions: String
+    notes: String
+    automationNotes: String
+    automationStatus: String
   }
 
   input UpdateAutomatedTestCaseInput {
@@ -616,6 +707,13 @@ export const typeDefs = /* GraphQL */ `
     releaseLabel: String
     sprintLabel: String
     manualTestCaseIds: [ID!]
+    epicId: ID
+    externalKey: String
+    description: String
+    preconditions: String
+    notes: String
+    automationNotes: String
+    automationStatus: String
   }
 
   input DeleteTestCaseInput {
@@ -709,6 +807,28 @@ export const typeDefs = /* GraphQL */ `
     testCaseId: ID!
   }
 
+  input LinkTestPlanPlanInput {
+    parentTestPlanId: ID!
+    childTestPlanId: ID!
+  }
+
+  input UnlinkTestPlanPlanInput {
+    parentTestPlanId: ID!
+    childTestPlanId: ID!
+  }
+
+  input LaunchPlanAutomationInput {
+    projectId: ID!
+    testPlanId: ID!
+  }
+
+  type LaunchPlanAutomationPayload {
+    run: TestRun
+    automatedCount: Int!
+    specPaths: [String!]!
+    error: AppError
+  }
+
   type CreateProjectPayload {
     project: Project
     error: AppError
@@ -716,6 +836,16 @@ export const typeDefs = /* GraphQL */ `
 
   type CreateRequirementPayload {
     requirement: Requirement
+    error: AppError
+  }
+
+  type CreateEpicPayload {
+    epic: Epic
+    error: AppError
+  }
+
+  type UpdateEpicPayload {
+    epic: Epic
     error: AppError
   }
 
@@ -767,6 +897,8 @@ export const typeDefs = /* GraphQL */ `
     projectSettings(input: ProjectSettingsInput!): ProjectEnumSettings!
     requirements(input: RequirementsListInput!): [Requirement!]!
     requirement(input: RequirementByInput!): Requirement
+    epics(input: EpicsListInput!): [Epic!]!
+    epic(input: EpicByInput!): Epic
     testCases(input: TestCasesListInput!): [TestCase!]!
     testCase(input: TestCaseByInput!): TestCase
     testRuns(input: TestRunsListInput!): [TestRun!]!
@@ -786,6 +918,9 @@ export const typeDefs = /* GraphQL */ `
     updateProject(input: UpdateProjectInput!): UpdateProjectPayload!
     archiveProject(input: ArchiveProjectInput!): UpdateProjectPayload!
     createRequirement(input: CreateRequirementInput!): CreateRequirementPayload!
+    createEpic(input: CreateEpicInput!): CreateEpicPayload!
+    updateEpic(input: UpdateEpicInput!): UpdateEpicPayload!
+    deleteEpic(input: DeleteEpicInput!): UnlinkResult!
     updateRequirement(input: UpdateRequirementInput!): UpdateRequirementPayload!
     deleteRequirement(input: DeleteRequirementInput!): UnlinkResult!
     createManualTestCase(input: CreateManualTestCaseInput!): CreateTestCasePayload!
@@ -806,6 +941,9 @@ export const typeDefs = /* GraphQL */ `
     deleteTestPlan(input: DeleteTestPlanInput!): UnlinkResult!
     linkTestPlanTestCase(input: LinkTestPlanTestCaseInput!): LinkMutationResult!
     unlinkTestPlanTestCase(input: UnlinkTestPlanTestCaseInput!): UnlinkResult!
+    linkTestPlanPlan(input: LinkTestPlanPlanInput!): LinkMutationResult!
+    unlinkTestPlanPlan(input: UnlinkTestPlanPlanInput!): UnlinkResult!
+    launchPlanAutomation(input: LaunchPlanAutomationInput!): LaunchPlanAutomationPayload!
     submitTestResult(input: SubmitTestResultInput!): SubmitTestResultPayload!
     importRequirements(input: ImportRequirementsInput!): ImportRequirementsResult!
     importAutomatedFromTrr(input: ImportAutomatedFromTrrInput!): ImportAutomatedFromTrrResult!

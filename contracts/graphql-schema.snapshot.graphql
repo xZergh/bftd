@@ -21,6 +21,18 @@ type Project {
   updatedAt: DateTime!
 }
 
+type Epic {
+  id: ID!
+  projectId: ID!
+  externalKey: String!
+  title: String!
+  description: String
+  requirementCount: Int!
+  testCaseCount: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
 type Requirement {
   id: ID!
   projectId: ID!
@@ -34,6 +46,8 @@ type Requirement {
   priority: String
   tags: [String!]!
   parentRequirementId: ID
+  epicId: ID
+  epic: Epic
   linkedManualTestCaseCount: Int!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -55,9 +69,17 @@ type TestCase {
   projectId: ID!
   type: String!
   title: String!
+  externalKey: String
   externalId: String
+  description: String
+  preconditions: String
+  notes: String
+  automationNotes: String
+  automationStatus: String
   releaseLabel: String
   sprintLabel: String
+  epicId: ID
+  epic: Epic
   isDeleted: Boolean!
   deletedAt: DateTime
   linkedRequirementCount: Int!
@@ -371,6 +393,34 @@ input CreateRequirementInput {
   priority: String
   tags: [String!]
   parentRequirementId: ID
+  epicId: ID
+}
+
+input CreateEpicInput {
+  projectId: ID!
+  externalKey: String!
+  title: String!
+  description: String
+}
+
+input UpdateEpicInput {
+  id: ID!
+  externalKey: String
+  title: String
+  description: String
+}
+
+input DeleteEpicInput {
+  id: ID!
+}
+
+input EpicsListInput {
+  projectId: ID!
+}
+
+input EpicByInput {
+  id: ID!
+  projectId: ID
 }
 
 input CreateManualTestCaseInput {
@@ -380,6 +430,13 @@ input CreateManualTestCaseInput {
   steps: [ManualStepInput!]!
   releaseLabel: String
   sprintLabel: String
+  epicId: ID
+  externalKey: String
+  description: String
+  preconditions: String
+  notes: String
+  automationNotes: String
+  automationStatus: String
 }
 
 input CreateAutomatedTestCaseInput {
@@ -388,6 +445,13 @@ input CreateAutomatedTestCaseInput {
   manualTestCaseIds: [ID!]!
   releaseLabel: String
   sprintLabel: String
+  epicId: ID
+  externalKey: String
+  description: String
+  preconditions: String
+  notes: String
+  automationNotes: String
+  automationStatus: String
 }
 
 input CreateTestRunInput {
@@ -585,6 +649,7 @@ input UpdateRequirementInput {
   priority: String
   tags: [String!]
   parentRequirementId: ID
+  epicId: ID
 }
 
 input DeleteRequirementInput {
@@ -595,6 +660,7 @@ input TestCasesListInput {
   projectId: ID!
   type: String
   includeDeleted: Boolean
+  requirementId: ID
 }
 
 input TestCaseByInput {
@@ -609,6 +675,13 @@ input UpdateManualTestCaseInput {
   releaseLabel: String
   sprintLabel: String
   steps: [ManualStepInput!]
+  epicId: ID
+  externalKey: String
+  description: String
+  preconditions: String
+  notes: String
+  automationNotes: String
+  automationStatus: String
 }
 
 input UpdateAutomatedTestCaseInput {
@@ -618,6 +691,13 @@ input UpdateAutomatedTestCaseInput {
   releaseLabel: String
   sprintLabel: String
   manualTestCaseIds: [ID!]
+  epicId: ID
+  externalKey: String
+  description: String
+  preconditions: String
+  notes: String
+  automationNotes: String
+  automationStatus: String
 }
 
 input DeleteTestCaseInput {
@@ -721,6 +801,16 @@ type CreateRequirementPayload {
   error: AppError
 }
 
+type CreateEpicPayload {
+  epic: Epic
+  error: AppError
+}
+
+type UpdateEpicPayload {
+  epic: Epic
+  error: AppError
+}
+
 type CreateTestCasePayload {
   testCase: TestCase
   error: AppError
@@ -769,6 +859,8 @@ type Query {
   projectSettings(input: ProjectSettingsInput!): ProjectEnumSettings!
   requirements(input: RequirementsListInput!): [Requirement!]!
   requirement(input: RequirementByInput!): Requirement
+  epics(input: EpicsListInput!): [Epic!]!
+  epic(input: EpicByInput!): Epic
   testCases(input: TestCasesListInput!): [TestCase!]!
   testCase(input: TestCaseByInput!): TestCase
   testRuns(input: TestRunsListInput!): [TestRun!]!
@@ -788,6 +880,9 @@ type Mutation {
   updateProject(input: UpdateProjectInput!): UpdateProjectPayload!
   archiveProject(input: ArchiveProjectInput!): UpdateProjectPayload!
   createRequirement(input: CreateRequirementInput!): CreateRequirementPayload!
+  createEpic(input: CreateEpicInput!): CreateEpicPayload!
+  updateEpic(input: UpdateEpicInput!): UpdateEpicPayload!
+  deleteEpic(input: DeleteEpicInput!): UnlinkResult!
   updateRequirement(input: UpdateRequirementInput!): UpdateRequirementPayload!
   deleteRequirement(input: DeleteRequirementInput!): UnlinkResult!
   createManualTestCase(input: CreateManualTestCaseInput!): CreateTestCasePayload!

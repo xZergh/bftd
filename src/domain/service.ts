@@ -13,6 +13,8 @@ import {
   createRequirement as createRequirementRecord,
   createTestPlan as createTestPlanRecord,
   createTestRun as createTestRunRecord,
+  createEpic as createEpicRecord,
+  deleteEpic as deleteEpicRecord,
   deleteTestPlan as deleteTestPlanRecord,
   deleteAutomatedTestCase as deleteAutomatedTestCaseSvc,
   deleteManualTestCase as deleteManualTestCaseSvc,
@@ -20,6 +22,8 @@ import {
   getProject as getProjectRecord,
   getProjectSummary as getProjectSummaryStats,
   getRequirement as getRequirementRecord,
+  getEpic as getEpicRecord,
+  getEpicUsageCounts as getEpicUsageCountsRecords,
   getTestPlan as getTestPlanRecord,
   getRequirementDesignLinks as getRequirementDesignLinksRecords,
   getRunAggregate as getRunAggregateRecord,
@@ -32,10 +36,14 @@ import {
   importRequirements as importRequirementsBatch,
   linkAutomatedManualTestCase as linkAutomatedManual,
   linkRequirementManualTestCase as linkRequirementManual,
+  linkTestPlanPlan as linkTestPlanPlanRecord,
   linkTestPlanTestCase as linkTestPlanTestCaseRecord,
+  launchPlanAutomation as launchPlanAutomationRecord,
+  spawnAutomationForRun as spawnAutomationForRunRecord,
   listProjects as listProjectsRecords,
   purgeArchivedProjects as purgeArchivedProjectsRecords,
   listRequirements as listRequirementsRecords,
+  listEpics as listEpicsRecords,
   listTestPlans as listTestPlansRecords,
   listTestCases as listTestCasesRecords,
   listTestCaseVersionHistory,
@@ -47,11 +55,13 @@ import {
   unlinkAutomatedManualTestCase as unlinkAutomatedManual,
   unlinkRequirementDesignLink as unlinkRequirementDesignLinkRecord,
   unlinkRequirementManualTestCase as unlinkRequirementManual,
+  unlinkTestPlanPlan as unlinkTestPlanPlanRecord,
   unlinkTestPlanTestCase as unlinkTestPlanTestCaseRecord,
   updateAutomatedTestCase as updateAutomatedTestCaseSvc,
   updateManualTestCase as updateManualTestCaseSvc,
   updateProject as updateProjectRecord,
   updateRequirement as updateRequirementRecord,
+  updateEpic as updateEpicRecord,
   updateTestPlan as updateTestPlanRecord,
   upsertRequirementDesignLink as upsertRequirementDesignLinkRecord
 } from "./services";
@@ -96,8 +106,33 @@ export class TcmsService {
     priority?: string;
     tags?: string[];
     parentRequirementId?: string;
+    epicId?: string;
   }) {
     return createRequirementRecord(this.db, input);
+  }
+
+  async listEpics(input: { projectId: string }) {
+    return listEpicsRecords(this.db, input);
+  }
+
+  async getEpicUsageCounts(projectId: string) {
+    return getEpicUsageCountsRecords(this.db, projectId);
+  }
+
+  async getEpic(input: { id: string; projectId?: string }) {
+    return getEpicRecord(this.db, input);
+  }
+
+  async createEpic(input: { projectId: string; externalKey: string; title: string; description?: string }) {
+    return createEpicRecord(this.db, input);
+  }
+
+  async updateEpic(input: { id: string; title?: string; description?: string | null; externalKey?: string }) {
+    return updateEpicRecord(this.db, input);
+  }
+
+  async deleteEpic(input: { id: string }) {
+    return deleteEpicRecord(this.db, input);
   }
 
   async listRequirements(input: { projectId: string }) {
@@ -123,6 +158,13 @@ export class TcmsService {
     steps: Array<{ name: string; expectedResult?: string }>;
     releaseLabel?: string;
     sprintLabel?: string;
+    epicId?: string;
+    externalKey?: string | null;
+    description?: string | null;
+    preconditions?: string | null;
+    notes?: string | null;
+    automationNotes?: string | null;
+    automationStatus?: string | null;
   }) {
     return createManualTestCaseSvc(this.db, input);
   }
@@ -133,11 +175,23 @@ export class TcmsService {
     manualTestCaseIds: string[];
     releaseLabel?: string;
     sprintLabel?: string;
+    epicId?: string;
+    externalKey?: string | null;
+    description?: string | null;
+    preconditions?: string | null;
+    notes?: string | null;
+    automationNotes?: string | null;
+    automationStatus?: string | null;
   }) {
     return createAutomatedTestCaseSvc(this.db, input);
   }
 
-  async listTestCases(input: { projectId: string; type?: "manual" | "automated"; includeDeleted?: boolean }) {
+  async listTestCases(input: {
+    projectId: string;
+    type?: "manual" | "automated";
+    includeDeleted?: boolean;
+    requirementId?: string;
+  }) {
     return listTestCasesRecords(this.db, input);
   }
 
@@ -259,6 +313,22 @@ export class TcmsService {
 
   async unlinkTestPlanTestCase(input: { testPlanId: string; testCaseId: string }) {
     return unlinkTestPlanTestCaseRecord(this.db, input);
+  }
+
+  async linkTestPlanPlan(input: { parentTestPlanId: string; childTestPlanId: string }) {
+    return linkTestPlanPlanRecord(this.db, input);
+  }
+
+  async unlinkTestPlanPlan(input: { parentTestPlanId: string; childTestPlanId: string }) {
+    return unlinkTestPlanPlanRecord(this.db, input);
+  }
+
+  async launchPlanAutomation(input: { projectId: string; testPlanId: string }) {
+    return launchPlanAutomationRecord(this.db, input);
+  }
+
+  async spawnAutomationForRun(input: { runId: string; projectId: string }) {
+    return spawnAutomationForRunRecord(this.db, input);
   }
 
   async listTestRuns(input: { projectId: string }) {

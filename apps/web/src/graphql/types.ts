@@ -8,6 +8,14 @@ export type ProjectListItem = {
   isArchived: boolean;
 };
 
+export type EpicListItem = {
+  id: string;
+  externalKey: string;
+  title: string;
+  requirementCount?: number;
+  testCaseCount?: number;
+};
+
 export type RequirementListItem = {
   id: string;
   externalKey: string;
@@ -20,6 +28,8 @@ export type RequirementListItem = {
   priority: string | null;
   tags: string[];
   parentRequirementId: string | null;
+  epicId: string | null;
+  epic: EpicListItem | null;
   linkedManualTestCaseCount: number;
   createdAt: string;
   updatedAt: string;
@@ -32,6 +42,8 @@ export type TestCaseListItem = {
   externalId: string | null;
   releaseLabel: string | null;
   sprintLabel: string | null;
+  epicId: string | null;
+  epic: EpicListItem | null;
   isDeleted: boolean;
   deletedAt: string | null;
   linkedRequirementCount: number;

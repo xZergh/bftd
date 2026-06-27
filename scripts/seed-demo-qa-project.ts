@@ -4,14 +4,14 @@
  * Usage: npm run seed:demo
  * Force reset E2E DB: npm run e2e:reset-db
  */
-import { join } from "node:path";
 import { createDb } from "../src/db/client";
 import { initSqlite } from "../src/db/init";
+import { resolveDatabasePath } from "../src/db/registry";
 import { TcmsService } from "../src/domain/service";
 import { seedDemoQaProject } from "../src/seed/demo-qa-seed";
 
 async function main() {
-  const dbPath = process.env.DB_PATH ?? join(process.cwd(), "data", "tcms.sqlite");
+  const dbPath = process.env.DB_PATH ?? resolveDatabasePath("demo");
   initSqlite(dbPath);
   const db = createDb(dbPath);
   const service = new TcmsService(db);

@@ -265,6 +265,16 @@ export function RunDetailPage() {
         ) : null}
       </div>
 
+      <div className="projects-create run-report-panel" data-testid="run-report-panel">
+        <h3 className="projects-subheading">Test report</h3>
+        <p className="automation-section-hint">
+          Embedded HTML report (Allure-style) will appear here when automation uploads an attachment for this run.
+        </p>
+        <div className="run-report-embed-shell" data-testid="run-report-embed-shell">
+          <p className="projects-empty">No report attached yet.</p>
+        </div>
+      </div>
+
       <div className="projects-create">
         <div className="run-results-header">
           <h3 className="projects-subheading">Results</h3>

@@ -18,6 +18,17 @@ export {
 } from "./projects";
 export { purgeArchivedProjects } from "./project-purge";
 export {
+  assertEpicInProject,
+  createEpic,
+  deleteEpic,
+  getEpic,
+  getEpicUsageCounts,
+  getEpicsByIds,
+  listEpics,
+  mapEpicRow,
+  updateEpic
+} from "./epics";
+export {
   createRequirement,
   deleteRequirement,
   getRequirement,
@@ -40,11 +51,14 @@ export {
   createTestPlan,
   deleteTestPlan,
   getTestPlan,
+  linkTestPlanPlan,
   linkTestPlanTestCase,
   listTestPlans,
+  unlinkTestPlanPlan,
   unlinkTestPlanTestCase,
   updateTestPlan
 } from "./test-plans";
+export { launchPlanAutomation, spawnAutomationForRun } from "./plan-automation";
 export {
   createTestRun,
   getRunAggregate,

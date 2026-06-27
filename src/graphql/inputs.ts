@@ -16,26 +16,39 @@ export const requirementInput = z.object({
   status: z.string().optional(),
   priority: z.string().optional(),
   tags: z.array(z.string()).optional(),
-  parentRequirementId: z.string().optional()
+  parentRequirementId: z.string().optional(),
+  epicId: z.string().optional()
 });
 export const manualStepInput = z.object({
   name: z.string().min(1),
   expectedResult: z.string().optional()
 });
+const testCaseContentInput = {
+  externalKey: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  preconditions: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  automationNotes: z.string().nullable().optional(),
+  automationStatus: z.string().nullable().optional()
+};
 export const manualInput = z.object({
   projectId: z.string().min(1),
   title: z.string().min(1),
   requirementIds: z.array(z.string().min(1)),
   steps: z.array(manualStepInput).min(1),
   releaseLabel: z.string().optional(),
-  sprintLabel: z.string().optional()
+  sprintLabel: z.string().optional(),
+  epicId: z.string().optional(),
+  ...testCaseContentInput
 });
 export const automatedInput = z.object({
   projectId: z.string().min(1),
   title: z.string().min(1),
   manualTestCaseIds: z.array(z.string().min(1)),
   releaseLabel: z.string().optional(),
-  sprintLabel: z.string().optional()
+  sprintLabel: z.string().optional(),
+  epicId: z.string().optional(),
+  ...testCaseContentInput
 });
 export const runInput = z.object({
   projectId: z.string().min(1),
@@ -49,7 +62,8 @@ export const runInput = z.object({
   finishedAt: z
     .union([z.string(), z.date()])
     .optional()
-    .transform((v) => (v instanceof Date ? v.toISOString() : v))
+    .transform((v) => (v instanceof Date ? v.toISOString() : v)),
+  executeAutomation: z.boolean().optional()
 });
 export const projectSummaryInput = z.object({
   projectId: z.string().min(1),
@@ -226,13 +240,30 @@ export const updateRequirementInput = z.object({
   status: z.string().optional(),
   priority: z.string().optional(),
   tags: z.array(z.string()).optional(),
-  parentRequirementId: z.string().nullable().optional()
+  parentRequirementId: z.string().nullable().optional(),
+  epicId: z.string().nullable().optional()
 });
 export const deleteRequirementInput = z.object({ id: z.string().min(1) });
+export const epicInput = z.object({
+  projectId: z.string().min(1),
+  externalKey: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string().optional()
+});
+export const updateEpicInput = z.object({
+  id: z.string().min(1),
+  externalKey: z.string().optional(),
+  title: z.string().optional(),
+  description: z.string().nullable().optional()
+});
+export const deleteEpicInput = z.object({ id: z.string().min(1) });
+export const epicsListInput = z.object({ projectId: z.string().min(1) });
+export const epicByInput = z.object({ id: z.string().min(1), projectId: z.string().optional() });
 export const testCasesListInput = z.object({
   projectId: z.string().min(1),
   type: z.enum(["manual", "automated"]).optional(),
-  includeDeleted: z.boolean().optional()
+  includeDeleted: z.boolean().optional(),
+  requirementId: z.string().min(1).optional()
 });
 export const testCaseByInput = z.object({
   id: z.string().min(1),
@@ -244,7 +275,9 @@ export const updateManualTestCaseInput = z.object({
   title: z.string().optional(),
   releaseLabel: z.string().nullable().optional(),
   sprintLabel: z.string().nullable().optional(),
-  steps: z.array(manualStepInput).optional()
+  steps: z.array(manualStepInput).optional(),
+  epicId: z.string().nullable().optional(),
+  ...testCaseContentInput
 });
 export const updateAutomatedTestCaseInput = z.object({
   id: z.string().min(1),
@@ -252,7 +285,9 @@ export const updateAutomatedTestCaseInput = z.object({
   externalId: z.string().nullable().optional(),
   releaseLabel: z.string().nullable().optional(),
   sprintLabel: z.string().nullable().optional(),
-  manualTestCaseIds: z.array(z.string().min(1)).optional()
+  manualTestCaseIds: z.array(z.string().min(1)).optional(),
+  epicId: z.string().nullable().optional(),
+  ...testCaseContentInput
 });
 export const deleteTestCaseInput = z.object({ id: z.string().min(1) });
 export const linkRequirementManualInput = z.object({
@@ -306,4 +341,16 @@ export const linkTestPlanTestCaseInput = z.object({
 export const unlinkTestPlanTestCaseInput = z.object({
   testPlanId: z.string().min(1),
   testCaseId: z.string().min(1)
+});
+export const linkTestPlanPlanInput = z.object({
+  parentTestPlanId: z.string().min(1),
+  childTestPlanId: z.string().min(1)
+});
+export const unlinkTestPlanPlanInput = z.object({
+  parentTestPlanId: z.string().min(1),
+  childTestPlanId: z.string().min(1)
+});
+export const launchPlanAutomationInput = z.object({
+  projectId: z.string().min(1),
+  testPlanId: z.string().min(1)
 });

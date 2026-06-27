@@ -16,6 +16,7 @@ import {
   testCaseVersionSteps,
   testCaseVersions,
   testPlanTestCaseLinks,
+  testPlanPlanLinks,
   testPlans,
   testResults,
   testRuns
@@ -47,6 +48,8 @@ export async function deleteProjectCascade(db: Db, projectId: string) {
   const planRows = await db.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.projectId, projectId));
   const planIds = planRows.map((p) => p.id);
   if (planIds.length > 0) {
+    await db.delete(testPlanPlanLinks).where(inArray(testPlanPlanLinks.parentTestPlanId, planIds));
+    await db.delete(testPlanPlanLinks).where(inArray(testPlanPlanLinks.childTestPlanId, planIds));
     await db.delete(testPlanTestCaseLinks).where(inArray(testPlanTestCaseLinks.testPlanId, planIds));
     await db.delete(testPlans).where(inArray(testPlans.id, planIds));
   }

@@ -1,18 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
 import { ProjectWorkspaceHeader } from "../components/ProjectWorkspaceHeader";
-import { RowSaveIndicator } from "../components/workspace/RowSaveIndicator";
+import { PlanCaseCatalogTable } from "../components/plans/PlanCaseCatalogTable";
+import { filterPlanCatalogRows, type CaseTypeFilter, type PlanMembershipFilter } from "../components/plans/planCaseFilters";
+import { PlanMetadataPanel } from "../components/plans/PlanMetadataPanel";
+import { TestCaseQuickViewModal } from "../components/plans/TestCaseQuickViewModal";
 import { SplitWorkspace } from "../components/workspace/SplitWorkspace";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
-import { demoPlaceholders } from "../constants/demoPlaceholders";
 import {
   CreateTestPlanMutation,
   DeleteTestPlanMutation,
+  EpicsListQuery,
   LinkTestPlanTestCaseMutation,
   TestCasesListQuery,
   TestPlansListQuery,
+  TraceabilityGraphQuery,
   UnlinkTestPlanTestCaseMutation,
   UpdateTestPlanMutation
 } from "../graphql/documents";
@@ -21,6 +25,7 @@ import type { TestCaseListItem, TestPlanListItem } from "../graphql/types";
 import { REQUIRED_MSG, trimmedNonEmpty } from "../forms/mandatoryFields";
 import { useDebouncedAutosaveEffect } from "../hooks/useDebouncedAutosaveEffect";
 import { useShellErrors } from "../shell/ShellErrorsContext";
+import { parseGraphNodeId } from "../traceability/graphNodeIds";
 import "./ProjectsPage.css";
 
 type PlanEditBaseline = {
@@ -41,9 +46,15 @@ function baselineFromPlan(plan: TestPlanListItem): PlanEditBaseline {
 
 export function TestPlansListPage() {
   const { projectId } = useParams();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedPlanId = searchParams.get("plan");
+  const creatingPlan = searchParams.get("new") === "1";
   const { clearShellMessages, setTransportMessage, setPayloadAppError } = useShellErrors();
+
+  const [planSearch, setPlanSearch] = useState("");
+  const [planReleaseFilter, setPlanReleaseFilter] = useState("");
+  const [planSprintFilter, setPlanSprintFilter] = useState("");
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -51,7 +62,13 @@ export function TestPlansListPage() {
   const [sprintLabel, setSprintLabel] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
   const [showValidationPayload, setShowValidationPayload] = useState(false);
-  const [caseFilter, setCaseFilter] = useState("");
+
+  const [caseSearch, setCaseSearch] = useState("");
+  const [membershipFilter, setMembershipFilter] = useState<PlanMembershipFilter>("all");
+  const [typeFilter, setTypeFilter] = useState<CaseTypeFilter>("manual");
+  const [epicFilterId, setEpicFilterId] = useState("");
+  const [bulkPending, setBulkPending] = useState(false);
+  const [quickViewTc, setQuickViewTc] = useState<TestCaseListItem | null>(null);
 
   const [editBaseline, setEditBaseline] = useState<PlanEditBaseline | null>(null);
   const [editName, setEditName] = useState("");
@@ -74,6 +91,18 @@ export function TestPlansListPage() {
     pause: paused,
     requestPolicy: "network-only"
   });
+  const [epicsResult] = useQuery({
+    query: EpicsListQuery,
+    variables: { projectId: projectId ?? "" },
+    pause: paused,
+    requestPolicy: "cache-and-network"
+  });
+  const [graphResult] = useQuery({
+    query: TraceabilityGraphQuery,
+    variables: { projectId: projectId ?? "" },
+    pause: paused,
+    requestPolicy: "network-only"
+  });
 
   const [, createPlan] = useMutation(CreateTestPlanMutation);
   const [, updatePlan] = useMutation(UpdateTestPlanMutation);
@@ -82,15 +111,28 @@ export function TestPlansListPage() {
   const [, unlinkCase] = useMutation(UnlinkTestPlanTestCaseMutation);
 
   useEffect(() => {
-    if (!plansResult.error) {
-      return;
-    }
+    if (!plansResult.error) return;
     setTransportMessage(formatGraphQlTransportError(plansResult.error));
   }, [plansResult.error, setTransportMessage]);
 
   const plans: TestPlanListItem[] = plansResult.data?.testPlans ?? [];
   const testCases: TestCaseListItem[] = casesResult.data?.testCases ?? [];
+  const epics = epicsResult.data?.epics ?? [];
   const selectedPlan = plans.find((p) => p.id === selectedPlanId) ?? null;
+  const memberIds = useMemo(() => new Set(selectedPlan?.testCases.map((tc) => tc.id) ?? []), [selectedPlan?.testCases]);
+
+  const linkedAutomatedCountByManual = useMemo(() => {
+    const out = new Map<string, number>();
+    const graph = graphResult.data?.traceabilityGraph;
+    if (!graph) return out;
+    for (const e of graph.edges) {
+      if (e.kind !== "MANUAL_AUTO") continue;
+      const manual = parseGraphNodeId(e.sourceId);
+      if (manual?.kind !== "man") continue;
+      out.set(manual.id, (out.get(manual.id) ?? 0) + 1);
+    }
+    return out;
+  }, [graphResult.data?.traceabilityGraph]);
 
   useEffect(() => {
     if (!selectedPlan) {
@@ -113,9 +155,7 @@ export function TestPlansListPage() {
       editSprintLabel.trim() !== editBaseline.sprintLabel.trim());
 
   const performSaveEdit = useCallback(async (): Promise<boolean> => {
-    if (!selectedPlan || !trimmedNonEmpty(editName.trim())) {
-      return false;
-    }
+    if (!selectedPlan || !trimmedNonEmpty(editName.trim())) return false;
     setSavePhase("saving");
     const res = await updatePlan({
       input: {
@@ -140,27 +180,16 @@ export function TestPlansListPage() {
     }
     const p = res.data?.updateTestPlan?.testPlan;
     if (p) {
-      const b = {
+      setEditBaseline({
         name: p.name,
         description: p.description ?? "",
         releaseLabel: p.releaseLabel ?? "",
         sprintLabel: p.sprintLabel ?? ""
-      };
-      setEditBaseline(b);
+      });
     }
     await reexecutePlans({ requestPolicy: "network-only" });
     return true;
-  }, [
-    editDescription,
-    editName,
-    editReleaseLabel,
-    editSprintLabel,
-    reexecutePlans,
-    selectedPlan,
-    setPayloadAppError,
-    setTransportMessage,
-    updatePlan
-  ]);
+  }, [editDescription, editName, editReleaseLabel, editSprintLabel, reexecutePlans, selectedPlan, setPayloadAppError, setTransportMessage, updatePlan]);
 
   useDebouncedAutosaveEffect(
     selectedPlan !== null && editDirty && trimmedNonEmpty(editName.trim()),
@@ -170,21 +199,39 @@ export function TestPlansListPage() {
     }
   );
 
-  const createPayload = useMemo(
-    () => ({
-      mutation: "CreateTestPlan",
-      variables: {
-        input: {
-          projectId: projectId ?? null,
-          name: name.trim() || null,
-          description: description.trim() || null,
-          releaseLabel: releaseLabel.trim() || null,
-          sprintLabel: sprintLabel.trim() || null
-        }
-      }
-    }),
-    [description, name, projectId, releaseLabel, sprintLabel]
+  const filteredPlans = useMemo(() => {
+    const q = planSearch.trim().toLowerCase();
+    return plans.filter((p) => {
+      if (planReleaseFilter !== "" && (p.releaseLabel ?? "") !== planReleaseFilter) return false;
+      if (planSprintFilter !== "" && (p.sprintLabel ?? "") !== planSprintFilter) return false;
+      if (q === "") return true;
+      return p.name.toLowerCase().includes(q) || (p.description ?? "").toLowerCase().includes(q);
+    });
+  }, [planReleaseFilter, planSearch, planSprintFilter, plans]);
+
+  const planReleaseOptions = useMemo(
+    () => [...new Set(plans.map((p) => p.releaseLabel).filter((v): v is string => Boolean(v)))].sort(),
+    [plans]
   );
+  const planSprintOptions = useMemo(
+    () => [...new Set(plans.map((p) => p.sprintLabel).filter((v): v is string => Boolean(v)))].sort(),
+    [plans]
+  );
+
+  const filteredCases = useMemo(
+    () =>
+      filterPlanCatalogRows(testCases, memberIds, {
+        search: caseSearch,
+        membership: membershipFilter,
+        type: typeFilter,
+        epicId: epicFilterId
+      }),
+    [caseSearch, epicFilterId, memberIds, membershipFilter, testCases, typeFilter]
+  );
+
+  const refreshPlans = useCallback(async () => {
+    await reexecutePlans({ requestPolicy: "network-only" });
+  }, [reexecutePlans]);
 
   const onCreate = useCallback(async () => {
     if (paused) return;
@@ -214,24 +261,24 @@ export function TestPlansListPage() {
       setPayloadAppError(appErr);
       return;
     }
+    const newId = res.data?.createTestPlan?.testPlan?.id;
     setName("");
     setDescription("");
     setReleaseLabel("");
     setSprintLabel("");
-    await reexecutePlans({ requestPolicy: "network-only" });
-  }, [
-    clearShellMessages,
-    createPlan,
-    description,
-    name,
-    paused,
-    projectId,
-    reexecutePlans,
-    releaseLabel,
-    setPayloadAppError,
-    setTransportMessage,
-    sprintLabel
-  ]);
+    await refreshPlans();
+    if (newId) {
+      setSearchParams(
+        (prev) => {
+          const n = new URLSearchParams(prev);
+          n.set("plan", newId);
+          n.delete("new");
+          return n;
+        },
+        { replace: true }
+      );
+    }
+  }, [clearShellMessages, createPlan, description, name, paused, projectId, refreshPlans, releaseLabel, setPayloadAppError, setSearchParams, setTransportMessage, sprintLabel]);
 
   const onDelete = useCallback(async () => {
     if (!selectedPlan) return;
@@ -248,21 +295,45 @@ export function TestPlansListPage() {
       },
       { replace: true }
     );
-    await reexecutePlans({ requestPolicy: "network-only" });
-  }, [deletePlan, reexecutePlans, selectedPlan, setSearchParams, setTransportMessage]);
+    await refreshPlans();
+  }, [deletePlan, refreshPlans, selectedPlan, setSearchParams, setTransportMessage]);
 
-  const onToggleCase = useCallback(
-    async (testCaseId: string, checked: boolean) => {
+  const onMembershipToggle = useCallback(
+    async (testCaseId: string, inPlan: boolean) => {
       if (!selectedPlan) return;
-      if (checked) {
-        await unlinkCase({ testPlanId: selectedPlan.id, testCaseId });
-      } else {
+      if (inPlan) {
         await linkCase({ testPlanId: selectedPlan.id, testCaseId });
+      } else {
+        await unlinkCase({ testPlanId: selectedPlan.id, testCaseId });
       }
-      await reexecutePlans({ requestPolicy: "network-only" });
+      await refreshPlans();
     },
-    [linkCase, reexecutePlans, selectedPlan, unlinkCase]
+    [linkCase, refreshPlans, selectedPlan, unlinkCase]
   );
+
+  const onAddAllMatching = useCallback(async () => {
+    if (!selectedPlan) return;
+    const toAdd = filteredCases.filter((tc) => !memberIds.has(tc.id));
+    if (toAdd.length === 0) return;
+    setBulkPending(true);
+    for (const tc of toAdd) {
+      await linkCase({ testPlanId: selectedPlan.id, testCaseId: tc.id });
+    }
+    setBulkPending(false);
+    await refreshPlans();
+  }, [filteredCases, linkCase, memberIds, refreshPlans, selectedPlan]);
+
+  const onRemoveAllMatching = useCallback(async () => {
+    if (!selectedPlan) return;
+    const toRemove = filteredCases.filter((tc) => memberIds.has(tc.id));
+    if (toRemove.length === 0) return;
+    setBulkPending(true);
+    for (const tc of toRemove) {
+      await unlinkCase({ testPlanId: selectedPlan.id, testCaseId: tc.id });
+    }
+    setBulkPending(false);
+    await refreshPlans();
+  }, [filteredCases, memberIds, refreshPlans, selectedPlan, unlinkCase]);
 
   const selectPlan = useCallback(
     (id: string) => {
@@ -270,6 +341,7 @@ export function TestPlansListPage() {
         (prev) => {
           const n = new URLSearchParams(prev);
           n.set("plan", id);
+          n.delete("new");
           return n;
         },
         { replace: true }
@@ -283,204 +355,214 @@ export function TestPlansListPage() {
       (prev) => {
         const n = new URLSearchParams(prev);
         n.delete("plan");
+        n.delete("new");
         return n;
       },
       { replace: true }
     );
   }, [setSearchParams]);
 
+  const openCreatePanel = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.delete("plan");
+        n.set("new", "1");
+        return n;
+      },
+      { replace: true }
+    );
+  }, [setSearchParams]);
+
+  const onCreateRun = useCallback(() => {
+    if (!selectedPlan || !projectId) return;
+    navigate(`/projects/${projectId}/runs?new=1&plan=${selectedPlan.id}`);
+  }, [navigate, projectId, selectedPlan]);
+
   if (paused) return null;
 
   const saveState = savePhase === "saving" ? "saving" : editDirty ? "unsaved" : "saved";
+  const createPayload = {
+    mutation: "CreateTestPlan",
+    variables: {
+      input: {
+        projectId: projectId ?? null,
+        name: name.trim() || null,
+        description: description.trim() || null,
+        releaseLabel: releaseLabel.trim() || null,
+        sprintLabel: sprintLabel.trim() || null
+      }
+    }
+  };
 
-  const filteredCases = testCases.filter((tc) => {
-    const q = caseFilter.trim().toLowerCase();
-    if (q === "") return true;
-    return tc.title.toLowerCase().includes(q) || tc.type.toLowerCase().includes(q);
-  });
-
-  const table = (
-    <table className="projects-table projects-table--dense" data-testid="plans-table">
-      <thead>
-        <tr>
-          <th scope="col">Name</th>
-          <th scope="col">Labels</th>
-          <th scope="col">Test cases</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr className="projects-table-create-row" data-testid="plan-create-row">
-          <td>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                setNameError(null);
-                setShowValidationPayload(false);
-              }}
-              placeholder={demoPlaceholders.plan.name}
-              data-testid="plan-create-name"
-              className="projects-table-inline-input"
-            />
-            {nameError ? (
-              <p className="field-error" role="alert" data-testid="plan-create-name-error">
-                {nameError}
-              </p>
+  const planTable = (
+    <div className="plans-list-section" data-testid="plans-list-section">
+      <div className="projects-list-toolbar plans-list-toolbar">
+        <label className="projects-toolbar-filter">
+          Search plans
+          <input type="search" value={planSearch} onChange={(e) => setPlanSearch(e.target.value)} data-testid="plans-filter-search" />
+        </label>
+        <label className="projects-toolbar-filter">
+          Release
+          <select value={planReleaseFilter} onChange={(e) => setPlanReleaseFilter(e.target.value)} data-testid="plans-filter-release">
+            <option value="">All</option>
+            {planReleaseOptions.map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="projects-toolbar-filter">
+          Sprint
+          <select value={planSprintFilter} onChange={(e) => setPlanSprintFilter(e.target.value)} data-testid="plans-filter-sprint">
+            <option value="">All</option>
+            {planSprintOptions.map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="button" onClick={openCreatePanel} data-testid="plan-open-create-panel">
+          Create plan
+        </button>
+      </div>
+      <div className="plans-table-scroll">
+        <table className="projects-table projects-table--dense" data-testid="plans-table">
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Labels</th>
+              <th scope="col">Cases</th>
+              <th scope="col">Manual</th>
+              <th scope="col">Auto</th>
+            </tr>
+          </thead>
+          <tbody>
+            {plansResult.fetching && plans.length === 0 ? (
+              <tr>
+                <td colSpan={5}>
+                  <PageLoading />
+                </td>
+              </tr>
             ) : null}
-          </td>
-          <td>
-            <input
-              type="text"
-              value={releaseLabel}
-              onChange={(e) => setReleaseLabel(e.target.value)}
-              placeholder={demoPlaceholders.plan.releaseLabel}
-              data-testid="plan-create-release-label"
-              className="projects-table-inline-input"
-            />
-            <input
-              type="text"
-              value={sprintLabel}
-              onChange={(e) => setSprintLabel(e.target.value)}
-              placeholder={demoPlaceholders.plan.sprintLabel}
-              data-testid="plan-create-sprint-label"
-              className="projects-table-inline-input"
-            />
-          </td>
-          <td>
-            <input
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={demoPlaceholders.plan.description}
-              data-testid="plan-create-description"
-              className="projects-table-inline-input"
-            />
-            <button type="button" data-testid="plan-create-submit" onClick={() => void onCreate()}>
-              Create plan
-            </button>
-          </td>
-        </tr>
-        {showValidationPayload ? (
-          <tr className="projects-table-create-meta-row">
-            <td colSpan={3}>
-              <ValidationErrorPayloadPreview open={showValidationPayload} payload={createPayload} />
-            </td>
-          </tr>
-        ) : null}
-        {plansResult.fetching && plans.length === 0 ? (
-          <tr>
-            <td colSpan={3}>
-              <PageLoading />
-            </td>
-          </tr>
-        ) : null}
-        {plans.map((plan) => (
-          <tr
-            key={plan.id}
-            data-testid="plan-row"
-            data-plan-id={plan.id}
-            className={selectedPlanId === plan.id ? "projects-table-row--selected" : undefined}
-            onClick={() => selectPlan(plan.id)}
-          >
-            <td>{plan.name}</td>
-            <td>
-              {plan.releaseLabel ?? "—"} / {plan.sprintLabel ?? "—"}
-            </td>
-            <td>{plan.testCases.length}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+            {filteredPlans.map((plan) => (
+              <tr
+                key={plan.id}
+                data-testid="plan-row"
+                data-plan-id={plan.id}
+                className={selectedPlanId === plan.id ? "projects-table-row--selected" : undefined}
+                onClick={() => selectPlan(plan.id)}
+              >
+                <td>{plan.name}</td>
+                <td>
+                  {plan.releaseLabel ?? "—"} / {plan.sprintLabel ?? "—"}
+                </td>
+                <td>{plan.memberStats?.directTestCaseCount ?? plan.testCases.length}</td>
+                <td>{plan.memberStats?.flattenedManualCount ?? 0}</td>
+                <td>{plan.memberStats?.flattenedAutomatedCount ?? 0}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 
-  const inspector =
+  const catalog =
     selectedPlan !== null ? (
-      <section className="plan-edit-panel" data-testid="plan-manage-panel">
-        <div className="detail-panel-header">
-          <button type="button" className="detail-panel-close" onClick={closeInspector} data-testid="plan-inspector-close">
-            Close
-          </button>
-        </div>
-        <h3 className="projects-subheading">Edit plan</h3>
-        <div className="projects-create-fields">
-          <label>
-            Name
-            <input value={editName} onChange={(e) => setEditName(e.target.value)} data-testid="plan-edit-name" />
-          </label>
-          <label>
-            Description
-            <input
-              value={editDescription}
-              onChange={(e) => setEditDescription(e.target.value)}
-              data-testid="plan-edit-description"
-            />
-          </label>
-          <label>
-            Release
-            <input
-              value={editReleaseLabel}
-              onChange={(e) => setEditReleaseLabel(e.target.value)}
-              data-testid="plan-edit-release-label"
-            />
-          </label>
-          <label>
-            Sprint
-            <input
-              value={editSprintLabel}
-              onChange={(e) => setEditSprintLabel(e.target.value)}
-              data-testid="plan-edit-sprint-label"
-            />
-          </label>
-        </div>
-        <div className="form-edit-actions">
-          <RowSaveIndicator state={saveState} />
-          <button type="button" data-testid="plan-edit-save" onClick={() => void performSaveEdit()}>
-            Save
-          </button>
-          <button type="button" data-testid="plan-delete" onClick={() => void onDelete()}>
-            Delete
-          </button>
-        </div>
+      <PlanCaseCatalogTable
+        rows={testCases}
+        filteredRows={filteredCases}
+        memberIds={memberIds}
+        linkedAutomatedCountByManual={linkedAutomatedCountByManual}
+        loading={casesResult.fetching}
+        mode="membership"
+        membershipFilter={membershipFilter}
+        onMembershipFilterChange={setMembershipFilter}
+        typeFilter={typeFilter}
+        onTypeFilterChange={setTypeFilter}
+        search={caseSearch}
+        onSearchChange={setCaseSearch}
+        epicFilterId={epicFilterId}
+        onEpicFilterChange={setEpicFilterId}
+        epics={epics}
+        onMembershipToggle={(id, inPlan) => void onMembershipToggle(id, inPlan)}
+        onQuickView={setQuickViewTc}
+        onAddAllMatching={() => void onAddAllMatching()}
+        onRemoveAllMatching={() => void onRemoveAllMatching()}
+        bulkPending={bulkPending}
+      />
+    ) : (
+      <p className="projects-empty plans-select-hint">Select a plan above to manage its test cases.</p>
+    );
 
-        <fieldset className="testcase-fieldset">
-          <legend>Linked test cases</legend>
-          <label className="projects-checkbox-label">
-            Filter
-            <input
-              type="search"
-              value={caseFilter}
-              onChange={(e) => setCaseFilter(e.target.value)}
-              data-testid="plan-case-filter"
-              placeholder="Type or title"
-            />
-          </label>
-          <ul className="testcase-req-checklist" data-testid="plan-case-checklist">
-            {filteredCases.map((tc) => {
-              const checked = selectedPlan.testCases.some((linked) => linked.id === tc.id);
-              return (
-                <li key={tc.id}>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => void onToggleCase(tc.id, checked)}
-                      data-testid={`plan-case-${tc.id}`}
-                    />
-                    <span className="badge active">{tc.type}</span> {tc.title}
-                  </label>
-                </li>
-              );
-            })}
-          </ul>
-        </fieldset>
-      </section>
+  const metadataInspector =
+    selectedPlan !== null ? (
+      <PlanMetadataPanel
+        title="Plan details"
+        name={editName}
+        description={editDescription}
+        releaseLabel={editReleaseLabel}
+        sprintLabel={editSprintLabel}
+        onNameChange={setEditName}
+        onDescriptionChange={setEditDescription}
+        onReleaseLabelChange={setEditReleaseLabel}
+        onSprintLabelChange={setEditSprintLabel}
+        saveState={saveState}
+        onSave={() => void performSaveEdit()}
+        onDelete={() => void onDelete()}
+        onCreateRun={onCreateRun}
+        onClose={closeInspector}
+        mode="edit"
+      >
+        <p className="automation-section-hint">
+          {selectedPlan.testCases.length} direct members. Linked automated tests are included when you add manual cases.
+        </p>
+      </PlanMetadataPanel>
+    ) : creatingPlan ? (
+      <PlanMetadataPanel
+        title="Create plan"
+        name={name}
+        description={description}
+        releaseLabel={releaseLabel}
+        sprintLabel={sprintLabel}
+        onNameChange={(v) => {
+          setName(v);
+          setNameError(null);
+          setShowValidationPayload(false);
+        }}
+        onDescriptionChange={setDescription}
+        onReleaseLabelChange={setReleaseLabel}
+        onSprintLabelChange={setSprintLabel}
+        onClose={closeInspector}
+        mode="create"
+        nameError={nameError}
+        onSubmitCreate={() => void onCreate()}
+        nameTestId="plan-create-name"
+      >
+        <ValidationErrorPayloadPreview open={showValidationPayload} payload={createPayload} />
+      </PlanMetadataPanel>
     ) : null;
 
   return (
     <section className="projects-page" data-testid="plans-page">
       <ProjectWorkspaceHeader title="Plans" titleId="plans-heading" projectId={projectId} active="plans" />
-      <SplitWorkspace sectionKey="plans" data-testid="plans-split" main={table} inspector={inspector} />
+      <div className="plans-workspace">
+        {planTable}
+        {(selectedPlan !== null || creatingPlan) && (
+          <SplitWorkspace sectionKey="plans-detail" data-testid="plans-split" main={catalog} inspector={metadataInspector} />
+        )}
+      </div>
+      {quickViewTc ? (
+        <TestCaseQuickViewModal
+          testCase={quickViewTc}
+          linkedAutomatedCount={linkedAutomatedCountByManual.get(quickViewTc.id) ?? 0}
+          inPlan={memberIds.has(quickViewTc.id)}
+          onClose={() => setQuickViewTc(null)}
+        />
+      ) : null}
     </section>
   );
 }

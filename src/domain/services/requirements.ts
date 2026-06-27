@@ -7,6 +7,7 @@ import {
   assertRequirementType
 } from "../projectSettings";
 import { requirementTestCaseLinks, requirements } from "../../db/schema";
+import { assertEpicInProject, getEpic, getEpicsByIds, mapEpicRow } from "./epics";
 import { normalizeLabel } from "./labels";
 
 type Db = ReturnType<typeof import("../../db/client").createDb>;
@@ -35,6 +36,19 @@ export function mapRequirementRow(row: typeof requirements.$inferSelect) {
     ...row,
     tags: parseTags(row.tagsJson)
   };
+}
+
+export type RequirementWithEpic = ReturnType<typeof mapRequirementRow> & {
+  linkedManualTestCaseCount: number;
+  epic: ReturnType<typeof mapEpicRow> | null;
+};
+
+async function attachEpicSummaries(
+  db: Db,
+  rows: ReturnType<typeof mapRequirementRow>[]
+): Promise<Map<string, ReturnType<typeof mapEpicRow>>> {
+  const epicIds = [...new Set(rows.map((r) => r.epicId).filter((id): id is string => id != null && id !== ""))];
+  return getEpicsByIds(db, epicIds);
 }
 
 async function assertParentInProject(db: Db, projectId: string, parentId: string | null | undefined) {
@@ -86,9 +100,11 @@ export async function createRequirement(
     priority?: string;
     tags?: string[];
     parentRequirementId?: string;
+    epicId?: string;
   }
 ) {
   await assertParentInProject(db, input.projectId, input.parentRequirementId);
+  await assertEpicInProject(db, input.projectId, input.epicId);
   const requirementType = input.requirementType ?? "functional";
   const status = input.status ?? "draft";
   const priority = input.priority ?? "medium";
@@ -108,11 +124,13 @@ export async function createRequirement(
     priority,
     tagsJson: tagsToJson(input.tags),
     parentRequirementId: input.parentRequirementId ?? null,
+    epicId: input.epicId ?? null,
     createdAt: now(),
     updatedAt: now()
   };
   await db.insert(requirements).values(req);
-  return { ...mapRequirementRow(req), linkedManualTestCaseCount: 0 };
+  const epic = req.epicId ? await getEpic(db, { id: req.epicId, projectId: input.projectId }) : null;
+  return { ...mapRequirementRow(req), linkedManualTestCaseCount: 0, epic };
 }
 
 export async function listRequirements(db: Db, input: { projectId: string }) {
@@ -122,9 +140,11 @@ export async function listRequirements(db: Db, input: { projectId: string }) {
     db,
     mapped.map((r) => r.id)
   );
+  const epicMap = await attachEpicSummaries(db, mapped);
   return mapped.map((r) => ({
     ...r,
-    linkedManualTestCaseCount: linkCounts.get(r.id) ?? 0
+    linkedManualTestCaseCount: linkCounts.get(r.id) ?? 0,
+    epic: r.epicId ? (epicMap.get(r.epicId) ?? null) : null
   }));
 }
 
@@ -135,7 +155,8 @@ export async function getRequirement(db: Db, input: { id: string; projectId?: st
   if (input.projectId && r.projectId !== input.projectId) return null;
   const mapped = mapRequirementRow(r);
   const counts = await manualLinkCountsByRequirement(db, [mapped.id]);
-  return { ...mapped, linkedManualTestCaseCount: counts.get(mapped.id) ?? 0 };
+  const epic = mapped.epicId ? await getEpic(db, { id: mapped.epicId, projectId: r.projectId }) : null;
+  return { ...mapped, linkedManualTestCaseCount: counts.get(mapped.id) ?? 0, epic };
 }
 
 export async function updateRequirement(
@@ -151,6 +172,7 @@ export async function updateRequirement(
     priority?: string;
     tags?: string[];
     parentRequirementId?: string | null;
+    epicId?: string | null;
   }
 ) {
   const existing = await db.select().from(requirements).where(eq(requirements.id, input.id));
@@ -163,6 +185,8 @@ export async function updateRequirement(
     throw new AppError("PARENT_REQUIREMENT_INVALID", "Requirement cannot be its own parent.", "Clear parent or choose another requirement.", {});
   }
   await assertParentInProject(db, row.projectId, nextParent ?? undefined);
+  const nextEpic = input.epicId !== undefined ? input.epicId : row.epicId;
+  await assertEpicInProject(db, row.projectId, nextEpic ?? undefined);
 
   const patch: Partial<typeof row> = { updatedAt: now() };
   if (input.title !== undefined) patch.title = input.title;
@@ -183,6 +207,7 @@ export async function updateRequirement(
   }
   if (input.tags !== undefined) patch.tagsJson = tagsToJson(input.tags);
   if (input.parentRequirementId !== undefined) patch.parentRequirementId = input.parentRequirementId;
+  if (input.epicId !== undefined) patch.epicId = input.epicId;
 
   await db.update(requirements).set(patch).where(eq(requirements.id, input.id));
   return getRequirement(db, { id: input.id });

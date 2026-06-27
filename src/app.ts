@@ -1,18 +1,15 @@
 import { createYoga, maskError as yogaDefaultMaskError } from "graphql-yoga";
 import { createServer } from "node:http";
-import { createDb } from "./db/client";
-import { initSqlite } from "./db/init";
-import { TcmsService } from "./domain/service";
+import { AppRuntime } from "./db/runtime";
 import { buildSchema } from "./graphql/schema";
+import { tryHandleDbRoute } from "./http/db-routes";
 
 export function createApp(dbPath: string) {
-  initSqlite(dbPath);
-  const db = createDb(dbPath);
-  const service = new TcmsService(db);
+  const runtime = new AppRuntime(dbPath);
 
   const yoga = createYoga({
     schema: buildSchema(),
-    context: { service },
+    context: () => ({ service: runtime.service }),
     graphqlEndpoint: "/graphql",
     graphiql: {
       title: "TCMS GraphQL",
@@ -34,8 +31,12 @@ export function createApp(dbPath: string) {
     }
   });
 
-  const server = createServer((req, res) => {
+  const server = createServer(async (req, res) => {
+    if (await tryHandleDbRoute(req, res, runtime)) {
+      return;
+    }
     return yoga(req, res);
   });
-  return { server };
+
+  return { server, runtime };
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useState, startTransi
 import { useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
+import { EpicsManagePanel } from "../components/epics/EpicsManagePanel";
 import { ProjectWorkspaceHeader } from "../components/ProjectWorkspaceHeader";
 import { RequirementDetailPanel } from "../components/requirements/RequirementDetailPanel";
 import { RequirementTableRow } from "../components/requirements/RequirementTableRow";
@@ -14,6 +15,7 @@ import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayl
 import { demoPlaceholders, parseCommaTags } from "../constants/demoPlaceholders";
 import {
   CreateRequirementMutation,
+  EpicsListQuery,
   ProjectSettingsQuery,
   RequirementsListQuery
 } from "../graphql/documents";
@@ -28,6 +30,7 @@ import { REQUIRED_MSG, trimmedNonEmpty } from "../forms/mandatoryFields";
 import type { ProjectEnumSettings, RequirementListItem } from "../graphql/types";
 import { useColumnSort } from "../hooks/useColumnSort";
 import { useDebouncedAutosaveEffect } from "../hooks/useDebouncedAutosaveEffect";
+import { useEpicFilter } from "../hooks/useEpicFilter";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import "./ProjectsPage.css";
 
@@ -41,6 +44,9 @@ export function RequirementsListPage() {
   const { projectId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedReqId = searchParams.get("req");
+  const creatingReq = searchParams.get("new") === "1";
+  const managingEpics = searchParams.get("epics") === "1";
+  const { epicFilterId, setEpicFilter } = useEpicFilter(projectId ?? "");
   const { clearShellMessages, setTransportMessage, setPayloadAppError } = useShellErrors();
 
   const [draftHydrated, setDraftHydrated] = useState(false);
@@ -52,6 +58,7 @@ export function RequirementsListPage() {
   const [createRelease, setCreateRelease] = useState("");
   const [createSprint, setCreateSprint] = useState("");
   const [createTags, setCreateTags] = useState("");
+  const [createEpicId, setCreateEpicId] = useState("");
   const [externalKeyError, setExternalKeyError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
   const [showValidationPayload, setShowValidationPayload] = useState(false);
@@ -71,12 +78,28 @@ export function RequirementsListPage() {
     pause: paused
   });
 
+  const [epicsResult, reexecuteEpics] = useQuery({
+    query: EpicsListQuery,
+    variables: { projectId: projectId ?? "" },
+    pause: paused,
+    requestPolicy: "cache-and-network"
+  });
+
   const [, createRequirement] = useMutation(CreateRequirementMutation);
 
   const enumSettings = settingsResult.data?.projectSettings ?? defaultEnumSettings;
+  const epics = epicsResult.data?.epics ?? [];
   const sortAccessors = useRequirementSortAccessors();
+  // Non-default: this column sorts as numeric and treats null as 0.
+  const sortOptions = useMemo(() => ({ linkedManualTestCaseCount: { type: "number" as const, nullValue: 0 } }), []);
   const rows: RequirementListItem[] = listResult.data?.requirements ?? [];
-  const { sorted, sortKey, sortDir, toggleSort } = useColumnSort(rows, sortAccessors);
+  const filteredRows = useMemo(() => {
+    if (epicFilterId === "") {
+      return rows;
+    }
+    return rows.filter((r) => r.epicId === epicFilterId);
+  }, [epicFilterId, rows]);
+  const { sorted, sortKey, sortDir, toggleSort } = useColumnSort(filteredRows, sortAccessors, sortOptions);
 
   useLayoutEffect(() => {
     if (paused) {
@@ -193,7 +216,8 @@ export function RequirementsListPage() {
         requirementType: createType,
         releaseLabel: createRelease.trim() || undefined,
         sprintLabel: createSprint.trim() || undefined,
-        tags: parseCommaTags(createTags)
+        tags: parseCommaTags(createTags),
+        epicId: createEpicId === "" ? undefined : createEpicId
       }
     });
     if (res.error) {
@@ -210,11 +234,13 @@ export function RequirementsListPage() {
     setCreateRelease("");
     setCreateSprint("");
     setCreateTags("");
+    setCreateEpicId("");
     clearCreateRequirementDraft(projectId!);
     reexecuteList({ requestPolicy: "network-only" });
   }, [
     cancelDraftWrite,
     clearShellMessages,
+    createEpicId,
     createPriority,
     createRelease,
     createRequirement,
@@ -237,6 +263,8 @@ export function RequirementsListPage() {
         (prev) => {
           const n = new URLSearchParams(prev);
           n.set("req", id);
+          n.delete("new");
+          n.delete("epics");
           return n;
         },
         { replace: true }
@@ -250,6 +278,34 @@ export function RequirementsListPage() {
       (prev) => {
         const n = new URLSearchParams(prev);
         n.delete("req");
+        n.delete("new");
+        n.delete("epics");
+        return n;
+      },
+      { replace: true }
+    );
+  }, [setSearchParams]);
+
+  const openCreatePanel = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.delete("req");
+        n.set("new", "1");
+        n.delete("epics");
+        return n;
+      },
+      { replace: true }
+    );
+  }, [setSearchParams]);
+
+  const openEpicsPanel = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.delete("req");
+        n.delete("new");
+        n.set("epics", "1");
         return n;
       },
       { replace: true }
@@ -266,6 +322,7 @@ export function RequirementsListPage() {
         <tr>
           <SortableTh label="Key" sortKey="externalKey" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
           <SortableTh label="Title" sortKey="title" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+          <SortableTh label="Epic" sortKey="epic" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
           <SortableTh label="Status" sortKey="status" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
           <SortableTh label="Priority" sortKey="priority" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
           <SortableTh label="Type" sortKey="requirementType" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
@@ -283,149 +340,19 @@ export function RequirementsListPage() {
         </tr>
       </thead>
       <tbody>
-        <tr className="projects-table-create-row" data-testid="requirement-create-row">
-          <td>
-            <input
-              type="text"
-              value={externalKey}
-              onChange={(e) => {
-                setExternalKey(e.target.value);
-                setExternalKeyError(null);
-                setShowValidationPayload(false);
-              }}
-              data-testid="requirement-create-key"
-              placeholder={demoPlaceholders.requirement.externalKey}
-              className="projects-table-inline-input"
-              aria-label="External key"
-            />
-            {externalKeyError !== null && (
-              <p className="field-error" role="alert" data-testid="requirement-create-key-error">
-                {externalKeyError}
-              </p>
-            )}
-          </td>
-          <td>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value);
-                setTitleError(null);
-                setShowValidationPayload(false);
-              }}
-              data-testid="requirement-create-title"
-              placeholder={demoPlaceholders.requirement.title}
-              className="projects-table-inline-input"
-              aria-label="Title"
-            />
-            {titleError !== null && (
-              <p className="field-error" role="alert" data-testid="requirement-create-title-error">
-                {titleError}
-              </p>
-            )}
-          </td>
-          <td>
-            <select
-              value={createStatus}
-              onChange={(e) => setCreateStatus(e.target.value)}
-              className="projects-table-inline-input"
-              data-testid="requirement-create-status"
-              aria-label="Status"
-            >
-              {enumSettings.requirementStatuses.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </td>
-          <td>
-            <select
-              value={createPriority}
-              onChange={(e) => setCreatePriority(e.target.value)}
-              className="projects-table-inline-input"
-              data-testid="requirement-create-priority"
-              aria-label="Priority"
-            >
-              {enumSettings.requirementPriorities.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </td>
-          <td>
-            <select
-              value={createType}
-              onChange={(e) => setCreateType(e.target.value)}
-              className="projects-table-inline-input"
-              data-testid="requirement-create-type"
-              aria-label="Type"
-            >
-              {enumSettings.requirementTypes.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </td>
-          <td>
-            <input
-              type="text"
-              value={createRelease}
-              onChange={(e) => setCreateRelease(e.target.value)}
-              placeholder={demoPlaceholders.requirement.releaseLabel}
-              className="projects-table-inline-input"
-              data-testid="requirement-create-release"
-              aria-label="Release"
-            />
-          </td>
-          <td>
-            <input
-              type="text"
-              value={createSprint}
-              onChange={(e) => setCreateSprint(e.target.value)}
-              placeholder={demoPlaceholders.requirement.sprintLabel}
-              className="projects-table-inline-input"
-              data-testid="requirement-create-sprint"
-              aria-label="Sprint"
-            />
-          </td>
-          <td>
-            <input
-              type="text"
-              value={createTags}
-              onChange={(e) => setCreateTags(e.target.value)}
-              placeholder={demoPlaceholders.requirement.tags}
-              className="projects-table-inline-input"
-              data-testid="requirement-create-tags"
-              aria-label="Tags"
-            />
-          </td>
-          <td colSpan={2}>
-            <button type="button" onClick={() => void onCreate()} data-testid="requirement-create-submit">
-              Create
-            </button>
-          </td>
-        </tr>
-        {showValidationPayload ? (
-          <tr className="projects-table-create-meta-row">
-            <td colSpan={10}>
-              <ValidationErrorPayloadPreview open={showValidationPayload} payload={createRequirementClientPayload} />
-            </td>
-          </tr>
-        ) : null}
         {listResult.fetching && rows.length === 0 ? (
           <tr data-testid="requirements-list-loading">
-            <td colSpan={10}>
+            <td colSpan={11}>
               <PageLoading />
             </td>
           </tr>
         ) : null}
-        {!listResult.fetching && rows.length === 0 ? (
+        {!listResult.fetching && filteredRows.length === 0 ? (
           <tr data-testid="requirements-list-empty">
-            <td colSpan={10}>
-              <p className="projects-empty">No requirements yet.</p>
+            <td colSpan={11}>
+              <p className="projects-empty">
+                {rows.length === 0 ? "No requirements yet." : "No requirements match this epic filter."}
+              </p>
             </td>
           </tr>
         ) : null}
@@ -435,9 +362,7 @@ export function RequirementsListPage() {
             row={r}
             projectId={projectId}
             selected={selectedReqId === r.id}
-            enumSettings={enumSettings}
             onSelect={() => selectRow(r.id)}
-            onSaved={() => reexecuteList({ requestPolicy: "network-only" })}
           />
         ))}
       </tbody>
@@ -452,6 +377,31 @@ export function RequirementsListPage() {
         projectId={projectId}
         active="requirements"
       />
+      <div className="projects-list-toolbar">
+        <label className="projects-toolbar-filter">
+          Epic
+          <select
+            value={epicFilterId}
+            onChange={(e) => setEpicFilter(e.target.value)}
+            data-testid="requirement-epic-filter"
+          >
+            <option value="">All epics</option>
+            {epics.map((epic) => (
+              <option key={epic.id} value={epic.id}>
+                {epic.externalKey}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="projects-list-toolbar-actions">
+          <button type="button" onClick={openCreatePanel} data-testid="requirement-open-create-panel">
+            Create requirement
+          </button>
+          <button type="button" onClick={openEpicsPanel} data-testid="requirement-open-epics-panel">
+            Manage epics
+          </button>
+        </div>
+      </div>
 
       <SplitWorkspace
         sectionKey="requirements"
@@ -464,11 +414,143 @@ export function RequirementsListPage() {
               requirementId={selectedReqId}
               variant="inspector"
               onClose={closeInspector}
+              onUpdated={() => reexecuteList({ requestPolicy: "network-only" })}
               onDeleted={() => {
                 closeInspector();
                 reexecuteList({ requestPolicy: "network-only" });
               }}
             />
+          ) : managingEpics ? (
+            <EpicsManagePanel
+              projectId={projectId}
+              onClose={closeInspector}
+              onChanged={() => {
+                reexecuteEpics({ requestPolicy: "network-only" });
+                reexecuteList({ requestPolicy: "network-only" });
+              }}
+            />
+          ) : creatingReq ? (
+            <div className="projects-create" data-testid="requirement-create-panel">
+              <h3 className="projects-subheading">Create requirement</h3>
+              <div className="detail-edit-fields">
+                <label>
+                  Key <span className="required-star" aria-hidden="true">*</span>
+                  <input
+                    type="text"
+                    value={externalKey}
+                    onChange={(e) => {
+                      setExternalKey(e.target.value);
+                      setExternalKeyError(null);
+                      setShowValidationPayload(false);
+                    }}
+                    data-testid="requirement-create-key"
+                    placeholder={demoPlaceholders.requirement.externalKey}
+                  />
+                  {externalKeyError !== null ? <p className="field-error">{externalKeyError}</p> : null}
+                </label>
+                <label>
+                  Title <span className="required-star" aria-hidden="true">*</span>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => {
+                      setTitle(e.target.value);
+                      setTitleError(null);
+                      setShowValidationPayload(false);
+                    }}
+                    data-testid="requirement-create-title"
+                    placeholder={demoPlaceholders.requirement.title}
+                  />
+                  {titleError !== null ? <p className="field-error">{titleError}</p> : null}
+                </label>
+                <label>
+                  Epic
+                  <select
+                    value={createEpicId}
+                    onChange={(e) => setCreateEpicId(e.target.value)}
+                    data-testid="requirement-create-epic"
+                  >
+                    <option value="">— None —</option>
+                    {epics.map((epic) => (
+                      <option key={epic.id} value={epic.id}>
+                        {epic.externalKey} — {epic.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="detail-edit-fields">
+                <label>
+                  Status
+                  <select value={createStatus} onChange={(e) => setCreateStatus(e.target.value)} data-testid="requirement-create-status">
+                    {enumSettings.requirementStatuses.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Priority
+                  <select value={createPriority} onChange={(e) => setCreatePriority(e.target.value)} data-testid="requirement-create-priority">
+                    {enumSettings.requirementPriorities.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Type
+                  <select value={createType} onChange={(e) => setCreateType(e.target.value)} data-testid="requirement-create-type">
+                    {enumSettings.requirementTypes.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Release
+                  <input
+                    type="text"
+                    value={createRelease}
+                    onChange={(e) => setCreateRelease(e.target.value)}
+                    placeholder={demoPlaceholders.requirement.releaseLabel}
+                    data-testid="requirement-create-release"
+                  />
+                </label>
+                <label>
+                  Sprint
+                  <input
+                    type="text"
+                    value={createSprint}
+                    onChange={(e) => setCreateSprint(e.target.value)}
+                    placeholder={demoPlaceholders.requirement.sprintLabel}
+                    data-testid="requirement-create-sprint"
+                  />
+                </label>
+                <label>
+                  Tags
+                  <input
+                    type="text"
+                    value={createTags}
+                    onChange={(e) => setCreateTags(e.target.value)}
+                    placeholder={demoPlaceholders.requirement.tags}
+                    data-testid="requirement-create-tags"
+                  />
+                </label>
+              </div>
+              <ValidationErrorPayloadPreview open={showValidationPayload} payload={createRequirementClientPayload} />
+              <div className="form-edit-actions">
+                <button type="button" onClick={() => void onCreate()} data-testid="requirement-create-submit">
+                  Create
+                </button>
+                <button type="button" onClick={closeInspector}>
+                  Cancel
+                </button>
+              </div>
+            </div>
           ) : null
         }
       />

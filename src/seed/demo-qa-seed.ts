@@ -1,4 +1,5 @@
 import type { TcmsService } from "../domain/service";
+import { slugifyProjectKey } from "../domain/services/projects";
 import {
   DEMO_QA_AUTOMATED_TITLE,
   DEMO_QA_MANUAL_TITLES,
@@ -21,7 +22,8 @@ export async function seedDemoQaProject(
 ): Promise<DemoQaSeedManifest | null> {
   const skipIfExists = options.skipIfExists ?? true;
   const projects = await service.listProjects({ includeArchived: true });
-  const existing = projects.find((p) => p.key === DEMO_QA_PROJECT_KEY);
+  const demoKey = slugifyProjectKey(DEMO_QA_PROJECT_KEY);
+  const existing = projects.find((p) => p.key === demoKey);
   if (existing) {
     if (skipIfExists) {
       return null;
