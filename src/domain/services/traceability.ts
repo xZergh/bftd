@@ -6,6 +6,10 @@ import { appendTestCaseVersionSync } from "./versioning";
 
 type Db = ReturnType<typeof import("../../db/client").createDb>;
 
+function now() {
+  return new Date();
+}
+
 async function assertRequirementProject(db: Db, requirementId: string, projectId: string) {
   const rows = await db.select().from(requirements).where(eq(requirements.id, requirementId));
   if (rows.length === 0 || rows[0].projectId !== projectId) {
@@ -108,6 +112,19 @@ export async function linkAutomatedManualTestCase(
     automatedTestCaseId: input.automatedTestCaseId,
     manualTestCaseId: input.manualTestCaseId
   });
+  const manualRows = await db.select().from(testCases).where(eq(testCases.id, input.manualTestCaseId));
+  const manual = manualRows[0];
+  if (
+    manual &&
+    manual.automationStatus !== "not_automatable" &&
+    manual.automationStatus !== "automated"
+  ) {
+    await db
+      .update(testCases)
+      .set({ automationStatus: "automated", updatedAt: now() })
+      .where(eq(testCases.id, input.manualTestCaseId));
+    appendTestCaseVersionSync(db, input.manualTestCaseId);
+  }
   appendTestCaseVersionSync(db, input.automatedTestCaseId);
   return { linked: true as const };
 }

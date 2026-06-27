@@ -200,6 +200,7 @@ export const testRuns = sqliteTable("test_runs", {
   environment: text("environment"),
   buildVersion: text("build_version"),
   trigger: text("trigger"),
+  automationReportJson: text("automation_report_json"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   finishedAt: integer("finished_at", { mode: "timestamp" })
 });

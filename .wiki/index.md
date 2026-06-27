@@ -3,7 +3,7 @@ title: "Project Wiki"
 type: "index"
 status: "active"
 last_commit: "a77e32279703922c9fcd0e3cfbcc4eb2186e01df"
-updated_at: "2026-05-09"
+updated_at: "2026-06-25"
 ---
 
 # TCMS Project Wiki
@@ -65,3 +65,4 @@ This wiki captures the current architecture and major feature flows from reposit
 ## Notes
 
 - `[[notes-release-playbook]]` - practical pre-release command and sign-off checklist.
+- `[[notes-apps-web-list-editing-ux-2026-06]]` - unified Requirements/Test cases list UX, sorting null rules, demo-qa DB verification.

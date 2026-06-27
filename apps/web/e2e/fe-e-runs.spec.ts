@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { createManualTestCaseOnListPage, createRequirementOnListPage, createRunOnListPage } from "./helpers/workspace";
 
 test.describe.configure({ mode: "serial" });
 
@@ -31,21 +32,14 @@ async function seedProjectManualAndOpenRun(
 
   await page.getByTestId("project-nav-requirements").click();
   await expect(page.getByTestId("requirements-page")).toBeVisible();
-  await page.getByTestId("requirement-create-key").fill(reqKey);
-  await page.getByTestId("requirement-create-title").fill(reqTitle);
-  await page.getByTestId("requirement-create-submit").click();
-  await expect(page.locator(`tr[data-requirement-key="${reqKey}"]`)).toBeVisible();
+  await createRequirementOnListPage(page, { key: reqKey, title: reqTitle });
 
   await page.getByTestId("project-nav-overview").click();
   await expect(page.getByTestId("project-detail-page")).toBeVisible();
   await page.getByTestId("project-nav-test-cases").click();
   await expect(page.getByTestId("testcases-page")).toBeVisible();
 
-  await page.getByTestId("testcase-create-type").selectOption("manual");
-  await page.getByTestId("testcase-create-title").fill(manualTitle);
-  await page.getByTestId(`testcase-create-manual-req-${reqKey}`).check();
-  await page.getByTestId("testcase-create-manual-step-name-0").fill(stepName);
-  await page.getByTestId("testcase-create-submit").click();
+  await createManualTestCaseOnListPage(page, { title: manualTitle, reqKey, stepName });
 
   const manualRow = page.locator(`tr[data-testid="testcase-row"]`).filter({ hasText: manualTitle });
   await expect(manualRow).toBeVisible();
@@ -58,12 +52,8 @@ async function seedProjectManualAndOpenRun(
   await expect(page.getByTestId("runs-page")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Runs" })).toBeVisible();
 
-  await page.getByTestId("run-create-name").fill(runName);
-  await page.getByTestId("run-create-submit").click();
+  await createRunOnListPage(page, { name: runName });
 
-  const runRow = page.locator(`tr[data-testid="run-row"]`).filter({ hasText: runName });
-  await expect(runRow).toBeVisible();
-  await runRow.getByTestId("run-open").click();
   await expect(page.getByTestId("run-detail-page")).toBeVisible();
   await expect(page.getByTestId("run-detail-name")).toHaveText(runName);
 
@@ -168,10 +158,18 @@ test.describe("FE-E runs", () => {
     await expect(page.getByTestId("runs-page")).toBeVisible();
 
     const secondRunName = `${runName} two`;
-    await page.getByTestId("run-create-name").fill(secondRunName);
-    await page.getByTestId("run-create-submit").click();
+    await createRunOnListPage(page, { name: secondRunName });
+    await expect(page.getByTestId("run-detail-page")).toBeVisible();
+    await expect(page.getByTestId("run-detail-name")).toHaveText(secondRunName);
 
-    await expect(page.getByTestId("run-row").filter({ hasText: runName })).toBeVisible();
+    await page.getByTestId("project-nav-runs").click();
+    await expect(page.getByTestId("runs-page")).toBeVisible();
+
+    await expect(
+      page.getByTestId("run-row").filter({
+        has: page.locator("td").first().getByText(runName, { exact: true })
+      })
+    ).toBeVisible();
     await expect(page.getByTestId("run-row").filter({ hasText: secondRunName })).toBeVisible();
   });
 });

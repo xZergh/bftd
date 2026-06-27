@@ -38,7 +38,22 @@ type TestCaseDetailEmbedProps = {
   onUpdated?: () => void;
 };
 
-type ManualEditBaseline = { title: string; stepsJson: string };
+type ManualEditBaseline = {
+  title: string;
+  stepsJson: string;
+  externalKey: string;
+  description: string;
+  preconditions: string;
+  notes: string;
+};
+
+type AutomatedEditBaseline = {
+  title: string;
+  externalKey: string;
+  description: string;
+  preconditions: string;
+  notes: string;
+};
 
 type TestCaseVersionRow = {
   id: string;
@@ -60,6 +75,32 @@ function normalizedFilledSteps(drafts: StepDraft[]): Array<{ name: string; expec
 
 function normalizedStepsJson(drafts: StepDraft[]): string {
   return JSON.stringify(normalizedFilledSteps(drafts));
+}
+
+function contentBaselineFromTestCase(tc: {
+  externalKey?: string | null;
+  description?: string | null;
+  preconditions?: string | null;
+  notes?: string | null;
+}) {
+  return {
+    externalKey: tc.externalKey ?? "",
+    description: tc.description ?? "",
+    preconditions: tc.preconditions ?? "",
+    notes: tc.notes ?? ""
+  };
+}
+
+function contentDirty(
+  baseline: { externalKey: string; description: string; preconditions: string; notes: string },
+  drafts: { externalKey: string; description: string; preconditions: string; notes: string }
+) {
+  return (
+    drafts.externalKey.trim() !== baseline.externalKey.trim() ||
+    drafts.description.trim() !== baseline.description.trim() ||
+    drafts.preconditions.trim() !== baseline.preconditions.trim() ||
+    drafts.notes.trim() !== baseline.notes.trim()
+  );
 }
 
 function stepsFromTestCase(
@@ -89,10 +130,14 @@ export function TestCaseDetailPage({
 
   const [titleDraft, setTitleDraft] = useState("");
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [externalKeyDraft, setExternalKeyDraft] = useState("");
+  const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [preconditionsDraft, setPreconditionsDraft] = useState("");
+  const [notesDraft, setNotesDraft] = useState("");
 
   const [stepDrafts, setStepDrafts] = useState<StepDraft[]>([]);
   const [manualEditBaseline, setManualEditBaseline] = useState<ManualEditBaseline | null>(null);
-  const [automatedTitleBaseline, setAutomatedTitleBaseline] = useState<string | null>(null);
+  const [automatedEditBaseline, setAutomatedEditBaseline] = useState<AutomatedEditBaseline | null>(null);
 
   const [savePhase, setSavePhase] = useState<"idle" | "saving">("idle");
   const [failBump, setFailBump] = useState(0);
@@ -203,6 +248,11 @@ export function TestCaseDetailPage({
     }
     if (tc.type === "manual") {
       setTitleDraft(tc.title);
+      const content = contentBaselineFromTestCase(tc);
+      setExternalKeyDraft(content.externalKey);
+      setDescriptionDraft(content.description);
+      setPreconditionsDraft(content.preconditions);
+      setNotesDraft(content.notes);
       const ordered = [...(tc.steps ?? [])].sort((a, b) => a.stepOrder - b.stepOrder);
       const drafts = ordered.map((s) => ({
         name: s.name,
@@ -210,11 +260,16 @@ export function TestCaseDetailPage({
       }));
       setStepDrafts(drafts.length > 0 ? drafts : [{ name: "", expectedResult: "" }]);
       const filled = normalizedFilledSteps(drafts);
-      setManualEditBaseline({ title: tc.title, stepsJson: JSON.stringify(filled) });
-      setAutomatedTitleBaseline(null);
+      setManualEditBaseline({ title: tc.title, stepsJson: JSON.stringify(filled), ...content });
+      setAutomatedEditBaseline(null);
     } else {
       setTitleDraft(tc.title);
-      setAutomatedTitleBaseline(tc.title);
+      const content = contentBaselineFromTestCase(tc);
+      setExternalKeyDraft(content.externalKey);
+      setDescriptionDraft(content.description);
+      setPreconditionsDraft(content.preconditions);
+      setNotesDraft(content.notes);
+      setAutomatedEditBaseline({ title: tc.title, ...content });
       setManualEditBaseline(null);
       setStepDrafts([]);
     }
@@ -306,16 +361,38 @@ export function TestCaseDetailPage({
     return manuals.filter((m) => !linked.has(m.id));
   }, [linkedManuals, manualListResult.data?.testCases]);
 
+  const contentDrafts = useMemo(
+    () => ({
+      externalKey: externalKeyDraft,
+      description: descriptionDraft,
+      preconditions: preconditionsDraft,
+      notes: notesDraft
+    }),
+    [descriptionDraft, externalKeyDraft, notesDraft, preconditionsDraft]
+  );
+
+  const contentPatchInput = useMemo(
+    () => ({
+      externalKey: externalKeyDraft.trim() === "" ? null : externalKeyDraft.trim(),
+      description: descriptionDraft.trim() === "" ? null : descriptionDraft.trim(),
+      preconditions: preconditionsDraft.trim() === "" ? null : preconditionsDraft.trim(),
+      notes: notesDraft.trim() === "" ? null : notesDraft.trim()
+    }),
+    [descriptionDraft, externalKeyDraft, notesDraft, preconditionsDraft]
+  );
+
   const manualDirty =
     tc?.type === "manual" &&
     manualEditBaseline !== null &&
     (titleDraft.trim() !== manualEditBaseline.title.trim() ||
-      normalizedStepsJson(stepDrafts) !== manualEditBaseline.stepsJson);
+      normalizedStepsJson(stepDrafts) !== manualEditBaseline.stepsJson ||
+      contentDirty(manualEditBaseline, contentDrafts));
 
   const automatedDirty =
     tc?.type === "automated" &&
-    automatedTitleBaseline !== null &&
-    titleDraft.trim() !== automatedTitleBaseline.trim();
+    automatedEditBaseline !== null &&
+    (titleDraft.trim() !== automatedEditBaseline.title.trim() ||
+      contentDirty(automatedEditBaseline, contentDrafts));
 
   const canAutosaveManual =
     trimmedNonEmpty(titleDraft.trim()) && normalizedFilledSteps(stepDrafts).length > 0;
@@ -351,6 +428,7 @@ export function TestCaseDetailPage({
         input: {
           id: tc.id,
           title: titleDraft.trim(),
+          ...contentPatchInput,
           steps: filledSteps.map((s) => ({
             name: s.name,
             expectedResult: s.expectedResult === "" ? undefined : s.expectedResult
@@ -372,10 +450,15 @@ export function TestCaseDetailPage({
       const t = res.data?.updateManualTestCase?.testCase;
       if (t !== undefined && t !== null) {
         setTitleDraft(t.title);
+        const content = contentBaselineFromTestCase(t);
+        setExternalKeyDraft(content.externalKey);
+        setDescriptionDraft(content.description);
+        setPreconditionsDraft(content.preconditions);
+        setNotesDraft(content.notes);
         const drafts = stepsFromTestCase(t.steps);
         setStepDrafts(drafts.length > 0 ? drafts : [{ name: "", expectedResult: "" }]);
         const filled = normalizedFilledSteps(drafts.length > 0 ? drafts : [{ name: "", expectedResult: "" }]);
-        setManualEditBaseline({ title: t.title, stepsJson: JSON.stringify(filled) });
+        setManualEditBaseline({ title: t.title, stepsJson: JSON.stringify(filled), ...content });
       }
       reexecuteDetail({ requestPolicy: "network-only" });
       reexecuteGraph({ requestPolicy: "network-only" });
@@ -390,6 +473,7 @@ export function TestCaseDetailPage({
       reexecuteVersionHistory,
       setPayloadAppError,
       setTransportMessage,
+      contentPatchInput,
       stepDrafts,
       tc,
       titleDraft,
@@ -415,7 +499,7 @@ export function TestCaseDetailPage({
       }
       setSavePhase("saving");
       const res = await updateAutomated({
-        input: { id: tc.id, title: titleDraft.trim() }
+        input: { id: tc.id, title: titleDraft.trim(), ...contentPatchInput }
       });
       setSavePhase("idle");
       if (res.error) {
@@ -432,7 +516,12 @@ export function TestCaseDetailPage({
       const t = res.data?.updateAutomatedTestCase?.testCase;
       if (t !== undefined && t !== null) {
         setTitleDraft(t.title);
-        setAutomatedTitleBaseline(t.title);
+        const content = contentBaselineFromTestCase(t);
+        setExternalKeyDraft(content.externalKey);
+        setDescriptionDraft(content.description);
+        setPreconditionsDraft(content.preconditions);
+        setNotesDraft(content.notes);
+        setAutomatedEditBaseline({ title: t.title, ...content });
       }
       reexecuteDetail({ requestPolicy: "network-only" });
       reexecuteVersionHistory({ requestPolicy: "network-only" });
@@ -445,13 +534,14 @@ export function TestCaseDetailPage({
       reexecuteVersionHistory,
       setPayloadAppError,
       setTransportMessage,
+      contentPatchInput,
       tc,
       titleDraft,
       updateAutomated
     ]
   );
 
-  const manualAutosaveKey = `${titleDraft}\0${normalizedStepsJson(stepDrafts)}\0${failBump}`;
+  const manualAutosaveKey = `${titleDraft}\0${normalizedStepsJson(stepDrafts)}\0${externalKeyDraft}\0${descriptionDraft}\0${preconditionsDraft}\0${notesDraft}\0${failBump}`;
   const cancelManualAutosave = useDebouncedAutosaveEffect(
     !paused &&
       tc?.type === "manual" &&
@@ -470,7 +560,7 @@ export function TestCaseDetailPage({
       tc.isDeleted === false &&
       automatedDirty &&
       canAutosaveAutomated,
-    `${titleDraft}\0${failBump}`,
+    `${titleDraft}\0${externalKeyDraft}\0${descriptionDraft}\0${preconditionsDraft}\0${notesDraft}\0${failBump}`,
     () => {
       void performSaveAutomated(false);
     }
@@ -680,7 +770,7 @@ export function TestCaseDetailPage({
             <span className="detail-breadcrumbs-sep" aria-hidden="true">
               /
             </span>
-            <span data-testid="testcase-breadcrumb-id">{tc.externalId ?? tc.id}</span>
+            <span data-testid="testcase-breadcrumb-id">{tc.externalKey ?? tc.externalId ?? tc.id}</span>
           </nav>
           <div className="detail-panel-header">
             <RouterLink to={`/projects/${projectId}/test-cases`} data-testid="testcase-back-list">
@@ -713,21 +803,34 @@ export function TestCaseDetailPage({
 
       <dl className="detail-meta-strip" aria-label="Test case summary">
         <div className="detail-meta-item">
-          <dt className="detail-meta-label">Type</dt>
-          <dd data-testid="testcase-detail-type">{tc.type}</dd>
+          <dt className="detail-meta-label">Key</dt>
+          <dd data-testid="testcase-detail-key">{tc.externalKey ?? "—"}</dd>
+        </div>
+        <div className="detail-meta-item">
+          <dt className="detail-meta-label">ID</dt>
+          <dd>
+            <code data-testid="testcase-detail-id">{tc.id}</code>
+          </dd>
         </div>
         <div className="detail-meta-item">
           <dt className="detail-meta-label">Status</dt>
           <dd data-testid="testcase-detail-status">{tc.isDeleted ? "Deleted" : "Active"}</dd>
         </div>
-        {tc.externalId ? (
+        {tc.type === "automated" ? (
           <div className="detail-meta-item">
-            <dt className="detail-meta-label">External</dt>
+            <dt className="detail-meta-label">Automation</dt>
             <dd>
-              <code>{tc.externalId}</code>
+              <RouterLink to={`/projects/${projectId}/automation?auto=${tc.id}`}>View on Automation tab</RouterLink>
             </dd>
           </div>
-        ) : null}
+        ) : (
+          <div className="detail-meta-item">
+            <dt className="detail-meta-label">Automation</dt>
+            <dd>
+              <RouterLink to={`/projects/${projectId}/automation?manual=${tc.id}`}>Coverage on Automation tab</RouterLink>
+            </dd>
+          </div>
+        )}
       </dl>
 
       {tc.isDeleted && (
@@ -755,6 +858,17 @@ export function TestCaseDetailPage({
           </label>
         ) : null}
         <label>
+          Key
+          <input
+            type="text"
+            value={externalKeyDraft}
+            disabled={!editable}
+            onChange={(e) => setExternalKeyDraft(e.target.value)}
+            placeholder="e.g. TCMS-TC-R1-05"
+            data-testid="testcase-edit-key"
+          />
+        </label>
+        <label>
           Title <span className="required-star" aria-hidden="true">*</span>
           <input
             type="text"
@@ -772,6 +886,36 @@ export function TestCaseDetailPage({
               {titleError}
             </p>
           )}
+        </label>
+        <label>
+          Description
+          <textarea
+            value={descriptionDraft}
+            disabled={!editable}
+            onChange={(e) => setDescriptionDraft(e.target.value)}
+            rows={4}
+            data-testid="testcase-edit-description"
+          />
+        </label>
+        <label>
+          Preconditions
+          <textarea
+            value={preconditionsDraft}
+            disabled={!editable}
+            onChange={(e) => setPreconditionsDraft(e.target.value)}
+            rows={3}
+            data-testid="testcase-edit-preconditions"
+          />
+        </label>
+        <label>
+          Notes
+          <textarea
+            value={notesDraft}
+            disabled={!editable}
+            onChange={(e) => setNotesDraft(e.target.value)}
+            rows={3}
+            data-testid="testcase-edit-notes"
+          />
         </label>
         {tc.type === "manual" && editable ? (
           <div className="form-edit-actions">

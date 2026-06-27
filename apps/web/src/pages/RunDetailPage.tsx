@@ -6,7 +6,9 @@ import { PageLoading } from "../components/PageLoading";
 import { ProjectWorkspaceHeader } from "../components/ProjectWorkspaceHeader";
 import { ValidationErrorPayloadPreview } from "../components/ValidationErrorPayloadPreview";
 import {
+  ExecuteRunAutomationMutation,
   RunAggregateQuery,
+  RunAutomationPreviewQuery,
   SubmitTestResultMutation,
   TestCasesListQuery,
   TestRunDetailQuery
@@ -38,6 +40,8 @@ export function RunDetailPage() {
   const [durationMs, setDurationMs] = useState("0");
   const [submitModalOpen, setSubmitModalOpen] = useState(false);
   const [rowStatusDraft, setRowStatusDraft] = useState<Record<string, string>>({});
+  const [selectedManualIds, setSelectedManualIds] = useState<Set<string>>(new Set());
+  const [automationPolling, setAutomationPolling] = useState(false);
   const [tcError, setTcError] = useState<string | null>(null);
   const [showValidationPayload, setShowValidationPayload] = useState(false);
 
@@ -65,6 +69,7 @@ export function RunDetailPage() {
   });
 
   const [, submitResult] = useMutation(SubmitTestResultMutation);
+  const [, executeAutomation] = useMutation(ExecuteRunAutomationMutation);
 
   const detail = detailResult.data?.testRun;
 
@@ -90,6 +95,54 @@ export function RunDetailPage() {
     }
     return m;
   }, [casesResult.data?.testCases]);
+
+  const caseTypeById = useMemo(() => {
+    const testCases: TestCaseListItem[] = casesResult.data?.testCases ?? [];
+    const m = new Map<string, string>();
+    for (const t of testCases) {
+      m.set(t.id, t.type);
+    }
+    return m;
+  }, [casesResult.data?.testCases]);
+
+  const manualResultIds = useMemo(() => {
+    const results = detail?.results ?? [];
+    return results
+      .map((r: { testCaseId: string }) => r.testCaseId)
+      .filter((id: string) => caseTypeById.get(id) === "manual");
+  }, [caseTypeById, detail?.results]);
+
+  useEffect(() => {
+    setSelectedManualIds(new Set());
+  }, [runId]);
+
+  useEffect(() => {
+    if (manualResultIds.length === 0) {
+      return;
+    }
+    setSelectedManualIds((prev) => {
+      if (prev.size > 0) {
+        return prev;
+      }
+      return new Set(manualResultIds);
+    });
+  }, [manualResultIds]);
+
+  const selectedManualList = useMemo(() => [...selectedManualIds], [selectedManualIds]);
+
+  const [previewResult] = useQuery({
+    query: RunAutomationPreviewQuery,
+    variables: {
+      input: {
+        runId: runId ?? "",
+        projectId: projectId ?? "",
+        manualTestCaseIds: selectedManualList.length > 0 ? selectedManualList : undefined
+      }
+    },
+    pause: paused || selectedManualList.length === 0
+  });
+
+  const automationPreview = previewResult.data?.runAutomationPreview;
 
   const selectableCases = useMemo(() => {
     const results = detail?.results ?? [];
@@ -172,6 +225,89 @@ export function RunDetailPage() {
     testCaseId
   ]);
 
+  const refreshRunData = useCallback(() => {
+    reexecuteDetail({ requestPolicy: "network-only" });
+    reexecuteAggregate({ requestPolicy: "network-only" });
+  }, [reexecuteAggregate, reexecuteDetail]);
+
+  useEffect(() => {
+    if (detail?.run?.automationReport) {
+      setAutomationPolling(false);
+    }
+  }, [detail?.run?.automationReport]);
+
+  useEffect(() => {
+    if (!automationPolling) {
+      return;
+    }
+    const interval = window.setInterval(() => {
+      refreshRunData();
+    }, 3000);
+    const timeout = window.setTimeout(() => {
+      setAutomationPolling(false);
+    }, 60000);
+    return () => {
+      window.clearInterval(interval);
+      window.clearTimeout(timeout);
+    };
+  }, [automationPolling, refreshRunData]);
+
+  const onRunLinkedAutomation = useCallback(async () => {
+    if (paused || runId === undefined || projectId === undefined) {
+      return;
+    }
+    if (selectedManualList.length === 0) {
+      setTransportMessage("Select at least one manual test case.");
+      return;
+    }
+    clearShellMessages();
+    const res = await executeAutomation({
+      input: {
+        runId,
+        projectId,
+        manualTestCaseIds: selectedManualList
+      }
+    });
+    if (res.error) {
+      setTransportMessage(formatGraphQlTransportError(res.error));
+      return;
+    }
+    const appErr = res.data?.executeRunAutomation?.error;
+    if (appErr) {
+      setPayloadAppError(appErr);
+      return;
+    }
+    if (res.data?.executeRunAutomation?.started) {
+      setAutomationPolling(true);
+      setTransportMessage(
+        `Started ${res.data.executeRunAutomation.automatedCount} linked automated test(s) in the background.`
+      );
+    }
+    refreshRunData();
+  }, [
+    clearShellMessages,
+    executeAutomation,
+    paused,
+    projectId,
+    refreshRunData,
+    runId,
+    selectedManualList,
+    setPayloadAppError,
+    setTransportMessage
+  ]);
+
+  const toggleManualSelection = useCallback((testCaseId: string, checked: boolean) => {
+    setSelectedManualIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(testCaseId);
+      } else {
+        next.delete(testCaseId);
+      }
+      return next;
+    });
+  }, []);
+
   if (paused) {
     return null;
   }
@@ -203,6 +339,11 @@ export function RunDetailPage() {
 
   const run = detail.run;
   const agg = aggregateResult.data?.runAggregate;
+  const automationReport = run.automationReport;
+  const ctrfReportUrl =
+    typeof automationReport?.ctrfReportUrl === "string" && automationReport.ctrfReportUrl.length > 0
+      ? automationReport.ctrfReportUrl
+      : null;
 
   return (
     <section className="projects-page" data-testid="run-detail-page">
@@ -267,18 +408,115 @@ export function RunDetailPage() {
 
       <div className="projects-create run-report-panel" data-testid="run-report-panel">
         <h3 className="projects-subheading">Test report</h3>
+        <div className="run-automation-bar" data-testid="run-automation-bar">
+          <button
+            type="button"
+            data-testid="run-linked-automation-button"
+            disabled={selectedManualList.length === 0 || (automationPreview?.automatedCount ?? 0) === 0}
+            onClick={() => void onRunLinkedAutomation()}
+          >
+            Run linked automation
+          </button>
+          <span className="automation-preview-count" data-testid="run-automation-preview">
+            {selectedManualList.length} manual selected · {automationPreview?.automatedCount ?? 0} automated linked
+            {automationPolling ? " · running…" : ""}
+          </span>
+        </div>
         <p className="automation-section-hint">
-          Embedded HTML report (Allure-style) will appear here when automation uploads an attachment for this run.
+          Preconditions: main dev on <strong>5180</strong> (tcms.sqlite) plus automation sandbox on{" "}
+          <strong>5182</strong> (plan-automation.sqlite) — see{" "}
+          <code>docs/plans/plan-automation-local.md</code>. Reports use the{" "}
+          <a href="https://ctrf.io" target="_blank" rel="noreferrer">
+            CTRF
+          </a>{" "}
+          format so any framework with a CTRF reporter can plug in. The table lists only specs executed in this run.
+          Use <strong>Select all manual</strong> to run every linked automated test.
         </p>
         <div className="run-report-embed-shell" data-testid="run-report-embed-shell">
-          <p className="projects-empty">No report attached yet.</p>
+          {automationPolling && !automationReport ? (
+            <p className="projects-empty" data-testid="run-report-running">
+              Running automation…
+            </p>
+          ) : automationReport ? (
+            <>
+              <dl className="run-report-summary-grid">
+                <div>
+                  <dt>Framework</dt>
+                  <dd>{automationReport.framework}</dd>
+                </div>
+                <div>
+                  <dt>Generated</dt>
+                  <dd>
+                    <time dateTime={automationReport.generatedAt}>
+                      {new Date(automationReport.generatedAt).toLocaleString()}
+                    </time>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Passed</dt>
+                  <dd data-testid="run-report-passed">{automationReport.summary.passed}</dd>
+                </div>
+                <div>
+                  <dt>Failed</dt>
+                  <dd data-testid="run-report-failed">{automationReport.summary.failed}</dd>
+                </div>
+                <div>
+                  <dt>Duration (ms)</dt>
+                  <dd>{automationReport.summary.durationMs}</dd>
+                </div>
+              </dl>
+              <table className="projects-table run-report-spec-table" data-testid="run-report-spec-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Spec</th>
+                    <th scope="col">Test</th>
+                    <th scope="col">Suite</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Duration (ms)</th>
+                    <th scope="col">Failure</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {automationReport.summary.specs.map((spec) => (
+                    <tr key={spec.testCaseId}>
+                      <td>{spec.externalId}</td>
+                      <td>{spec.testName ?? "—"}</td>
+                      <td>{spec.suite ?? "—"}</td>
+                      <td>{formatRunStatusLabel(spec.status)}</td>
+                      <td>{spec.durationMs}</td>
+                      <td className="run-report-failure-cell">{spec.failureMessage ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {ctrfReportUrl ? (
+                <div className="run-report-ctrf-actions" data-testid="run-report-ctrf-actions">
+                  <a href={ctrfReportUrl} target="_blank" rel="noreferrer" data-testid="run-report-download-ctrf">
+                    Download CTRF report
+                  </a>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <p className="projects-empty">No report attached yet.</p>
+          )}
         </div>
       </div>
 
       <div className="projects-create">
         <div className="run-results-header">
           <h3 className="projects-subheading">Results</h3>
-          <button
+          <div className="run-results-header-actions">
+            {manualResultIds.length > 0 ? (
+              <button
+                type="button"
+                data-testid="run-select-all-manual"
+                onClick={() => setSelectedManualIds(new Set(manualResultIds))}
+              >
+                Select all manual
+              </button>
+            ) : null}
+            <button
             type="button"
             data-testid="result-submit-open"
             onClick={() => {
@@ -290,6 +528,7 @@ export function RunDetailPage() {
           >
             Submit result
           </button>
+          </div>
         </div>
         {(detail?.results ?? []).length === 0 ? (
           <p className="projects-empty" data-testid="run-results-empty">
@@ -299,6 +538,7 @@ export function RunDetailPage() {
           <table className="projects-table" data-testid="run-results-table">
             <thead>
               <tr>
+                <th scope="col" aria-label="Select manual cases" />
                 <th scope="col">Test case</th>
                 <th scope="col">Status</th>
                 <th scope="col">Set status</th>
@@ -307,8 +547,21 @@ export function RunDetailPage() {
             </thead>
             <tbody>
               {(detail?.results ?? []).map(
-                (r: { id: string; testCaseId: string; status: string; durationMs: number }) => (
+                (r: { id: string; testCaseId: string; status: string; durationMs: number }) => {
+                  const isManual = caseTypeById.get(r.testCaseId) === "manual";
+                  return (
                   <tr key={r.id} data-testid="run-result-row">
+                    <td>
+                      {isManual ? (
+                        <input
+                          type="checkbox"
+                          checked={selectedManualIds.has(r.testCaseId)}
+                          data-testid="run-result-manual-select"
+                          aria-label={`Select ${caseTitleById.get(r.testCaseId) ?? r.testCaseId}`}
+                          onChange={(e) => toggleManualSelection(r.testCaseId, e.target.checked)}
+                        />
+                      ) : null}
+                    </td>
                     <td data-testid="run-result-testcase-title">
                       {caseTitleById.get(r.testCaseId) ?? r.testCaseId}
                     </td>
@@ -335,7 +588,8 @@ export function RunDetailPage() {
                     </td>
                     <td>{r.durationMs}</td>
                   </tr>
-                )
+                  );
+                }
               )}
             </tbody>
           </table>

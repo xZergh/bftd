@@ -1,5 +1,6 @@
 import { RouterLink } from "../../tamagui/RouterLink";
 import type { RequirementListItem } from "../../graphql/types";
+import { buildLinkedRequirementTestCasesPath } from "../../navigation/requirementLinkFilter";
 
 type Props = {
   row: RequirementListItem;
@@ -29,7 +30,22 @@ export function RequirementTableRow({ row, projectId, selected, onSelect }: Prop
       <td>{row.releaseLabel ?? "—"}</td>
       <td>{row.sprintLabel ?? "—"}</td>
       <td>{row.tags.length > 0 ? row.tags.join(", ") : "—"}</td>
-      <td>{row.linkedManualTestCaseCount}</td>
+      <td onClick={(e) => e.stopPropagation()}>
+        {row.linkedManualTestCaseCount > 0 ? (
+          <RouterLink
+            to={buildLinkedRequirementTestCasesPath(projectId, row.id, row.epicId)}
+            className="traceability-count-link"
+            data-testid={`requirement-linked-tc-count-${row.externalKey}`}
+            title={`Show ${row.linkedManualTestCaseCount} linked test case(s) for ${row.externalKey}`}
+          >
+            {row.linkedManualTestCaseCount}
+          </RouterLink>
+        ) : (
+          <span className="traceability-count-zero" data-testid={`requirement-linked-tc-count-${row.externalKey}`}>
+            0
+          </span>
+        )}
+      </td>
       <td onClick={(e) => e.stopPropagation()}>
         <RouterLink to={`/projects/${projectId}/requirements/${row.id}`} data-testid="requirement-open">
           Open

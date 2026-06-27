@@ -39,7 +39,13 @@ export type TestCaseListItem = {
   id: string;
   type: string;
   title: string;
+  externalKey: string | null;
   externalId: string | null;
+  description: string | null;
+  preconditions: string | null;
+  notes: string | null;
+  automationNotes: string | null;
+  automationStatus: string | null;
   releaseLabel: string | null;
   sprintLabel: string | null;
   epicId: string | null;
@@ -80,6 +86,21 @@ export type TestRunListItem = {
   finishedAt: string | null;
 };
 
+export type TestPlanMemberStats = {
+  directTestCaseCount: number;
+  childPlanCount: number;
+  flattenedTestCaseCount: number;
+  flattenedManualCount: number;
+  flattenedAutomatedCount: number;
+};
+
+export type TestPlanChild = {
+  id: string;
+  name: string;
+  sortOrder: number;
+  memberStats: TestPlanMemberStats;
+};
+
 export type TestPlanListItem = {
   id: string;
   projectId: string;
@@ -89,7 +110,9 @@ export type TestPlanListItem = {
   sprintLabel: string | null;
   createdAt: string;
   updatedAt: string;
-  testCases: Array<{ id: string; type: string; title: string }>;
+  testCases: Array<{ id: string; type: string; title: string; externalKey?: string | null }>;
+  childPlans: TestPlanChild[];
+  memberStats: TestPlanMemberStats;
 };
 
 export type KpiCoverageFormulaInfo = {

@@ -8,6 +8,7 @@ import { ProjectDetailPage } from "./pages/ProjectDetailPage";
 import { ProjectsListPage } from "./pages/ProjectsListPage";
 import { RequirementDetailPage } from "./pages/RequirementDetailPage";
 import { RequirementsListPage } from "./pages/RequirementsListPage";
+import { ProjectAutomationPage } from "./pages/ProjectAutomationPage";
 import { ProjectDesignLinksPage } from "./pages/ProjectDesignLinksPage";
 import { ProjectImportsPage } from "./pages/ProjectImportsPage";
 import { ProjectReportingPage } from "./pages/ProjectReportingPage";
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="projects/:projectId/requirements" element={<RequirementsListPage />} />
         <Route path="projects/:projectId/test-cases/:testCaseId" element={<TestCaseDetailPage />} />
         <Route path="projects/:projectId/test-cases" element={<TestCasesListInlinePage />} />
+        <Route path="projects/:projectId/automation" element={<ProjectAutomationPage />} />
         <Route path="projects/:projectId/plans" element={<TestPlansListPage />} />
         <Route path="projects/:projectId/runs/:runId" element={<RunDetailPage />} />
         <Route path="projects/:projectId/runs" element={<TestRunsListPage />} />

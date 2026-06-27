@@ -1,10 +1,11 @@
-import { spawn } from "node:child_process";
-import { join } from "node:path";
-import { inArray, eq } from "drizzle-orm";
 import { AppError } from "../errors";
-import { runTestCaseAssignments, testCases, testPlans, testRuns } from "../../db/schema";
 import { createTestRun } from "./runs";
 import { flattenTestPlanMembers } from "./test-plan-flatten";
+import { defaultDbPath, spawnAutomationRunner } from "../automation/spawn-runner";
+import { resolveLinkedAutomationTargets } from "../automation/resolve-linked";
+import { executeRunAutomation } from "./run-automation";
+import { eq, inArray } from "drizzle-orm";
+import { testCases, testPlans } from "../../db/schema";
 
 type Db = ReturnType<typeof import("../../db/client").createDb>;
 
@@ -43,7 +44,6 @@ export async function launchPlanAutomation(
     .select({
       id: testCases.id,
       type: testCases.type,
-      externalId: testCases.externalId,
       isDeleted: testCases.isDeleted
     })
     .from(testCases)
@@ -54,33 +54,22 @@ export async function launchPlanAutomation(
       )
     );
 
-  const automatedCases = caseRows.filter((tc) => tc.type === "automated" && !tc.isDeleted);
+  const manualIds = caseRows.filter((tc) => tc.type === "manual" && !tc.isDeleted).map((tc) => tc.id);
+  const targets = await resolveLinkedAutomationTargets(db, {
+    projectId: input.projectId,
+    manualTestCaseIds: manualIds
+  });
 
-  const specPaths = [
-    ...new Set(
-      automatedCases
-        .map((tc) => tc.externalId)
-        .filter((id): id is string => typeof id === "string" && id.length > 0)
-    )
-  ];
-
-  if (automatedCases.length === 0) {
+  if (targets.length === 0) {
     throw new AppError(
       "PLAN_NO_AUTOMATION",
-      "Test plan has no automated test cases to run.",
-      "Link automated tests to this plan (directly or via sub-plans) before launching.",
+      "Test plan has no linked automated tests to run.",
+      "Link automated tests to manual cases in this plan and set externalId on automated cases.",
       { testPlanId: input.testPlanId }
     );
   }
 
-  if (specPaths.length === 0) {
-    throw new AppError(
-      "PLAN_AUTOMATION_NO_EXTERNAL_ID",
-      "Automated tests in this plan are missing externalId (spec path).",
-      "Set externalId on automated test cases (e.g. e2e/fe-projects-create.spec.ts).",
-      { testPlanId: input.testPlanId, automatedTestCaseIds: automatedCases.map((a) => a.id) }
-    );
-  }
+  const specPaths = [...new Set(targets.map((t) => t.externalId))];
 
   const run = await createTestRun(db, {
     projectId: input.projectId,
@@ -92,90 +81,33 @@ export async function launchPlanAutomation(
   const shouldSpawn = options?.spawnRunner !== false;
   if (shouldSpawn) {
     const repoRoot = options?.repoRoot ?? process.cwd();
-    const dbPath = options?.dbPath ?? process.env.DB_PATH ?? join(repoRoot, "data", "tcms.sqlite");
-    const npx = process.platform === "win32" ? "npx.cmd" : "npx";
-    const child = spawn(npx, ["tsx", "scripts/run-plan-automation.ts", "--run-id", run.id, "--db-path", dbPath], {
-      cwd: repoRoot,
-      detached: true,
-      stdio: "ignore",
-      env: { ...process.env, DB_PATH: dbPath }
+    const dbPath = options?.dbPath ?? defaultDbPath(repoRoot);
+    spawnAutomationRunner({
+      repoRoot,
+      dbPath,
+      runId: run.id,
+      automatedTestCaseIds: targets.map((t) => t.automatedTestCaseId),
+      framework: "playwright"
     });
-    child.unref();
   }
 
-  return { run, automatedCount: automatedCases.length, specPaths };
+  return { run, automatedCount: targets.length, specPaths };
 }
 
-/** Spawn Playwright runner for an existing run that already has plan assignments. */
+/** Spawn framework runner for an existing run (manual cases → linked automation). */
 export async function spawnAutomationForRun(
   db: Db,
-  input: { runId: string; projectId: string },
+  input: { runId: string; projectId: string; manualTestCaseIds?: string[]; framework?: string },
   options?: { spawnRunner?: boolean; repoRoot?: string; dbPath?: string }
 ): Promise<{ automatedCount: number; specPaths: string[] }> {
-  const runRows = await db.select().from(testRuns).where(eq(testRuns.id, input.runId));
-  if (runRows.length === 0 || runRows[0].projectId !== input.projectId) {
-    throw new AppError(
-      "ENTITY_NOT_FOUND",
-      "Test run not found in project scope.",
-      "Use a run from the same project.",
-      { runId: input.runId, projectId: input.projectId }
-    );
-  }
-
-  const assignments = await db
-    .select({ testCaseId: runTestCaseAssignments.testCaseId })
-    .from(runTestCaseAssignments)
-    .where(eq(runTestCaseAssignments.runId, input.runId));
-
-  const caseRows =
-    assignments.length === 0
-      ? []
-      : await db
-          .select({
-            id: testCases.id,
-            type: testCases.type,
-            externalId: testCases.externalId,
-            isDeleted: testCases.isDeleted
-          })
-          .from(testCases)
-          .where(
-            inArray(
-              testCases.id,
-              assignments.map((a) => a.testCaseId)
-            )
-          );
-
-  const automatedCases = caseRows.filter((tc) => tc.type === "automated" && !tc.isDeleted);
-  const specPaths = [
-    ...new Set(
-      automatedCases
-        .map((tc) => tc.externalId)
-        .filter((id): id is string => typeof id === "string" && id.length > 0)
-    )
-  ];
-
-  if (automatedCases.length === 0) {
-    throw new AppError(
-      "RUN_NO_AUTOMATION",
-      "This run has no automated test cases to execute.",
-      "Link a test plan with automated coverage or assign automated cases before executing.",
-      { runId: input.runId }
-    );
-  }
-
-  const shouldSpawn = options?.spawnRunner !== false;
-  if (shouldSpawn) {
-    const repoRoot = options?.repoRoot ?? process.cwd();
-    const dbPath = options?.dbPath ?? process.env.DB_PATH ?? join(repoRoot, "data", "tcms.sqlite");
-    const npx = process.platform === "win32" ? "npx.cmd" : "npx";
-    const child = spawn(npx, ["tsx", "scripts/run-plan-automation.ts", "--run-id", input.runId, "--db-path", dbPath], {
-      cwd: repoRoot,
-      detached: true,
-      stdio: "ignore",
-      env: { ...process.env, DB_PATH: dbPath }
-    });
-    child.unref();
-  }
-
-  return { automatedCount: automatedCases.length, specPaths };
+  const result = await executeRunAutomation(db, {
+    runId: input.runId,
+    projectId: input.projectId,
+    manualTestCaseIds: input.manualTestCaseIds,
+    framework: input.framework,
+    spawnRunner: options?.spawnRunner,
+    repoRoot: options?.repoRoot,
+    dbPath: options?.dbPath
+  });
+  return { automatedCount: result.automatedCount, specPaths: result.specPaths };
 }

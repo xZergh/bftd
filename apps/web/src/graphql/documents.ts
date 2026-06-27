@@ -313,12 +313,18 @@ export const DeleteRequirementMutation = parse(`
 `);
 
 export const TestCasesListQuery = parse(`
-  query TestCasesList($projectId: ID!, $type: String, $includeDeleted: Boolean) {
-    testCases(input: { projectId: $projectId, type: $type, includeDeleted: $includeDeleted }) {
+  query TestCasesList($projectId: ID!, $type: String, $includeDeleted: Boolean, $requirementId: ID) {
+    testCases(input: { projectId: $projectId, type: $type, includeDeleted: $includeDeleted, requirementId: $requirementId }) {
       id
       type
       title
+      externalKey
       externalId
+      description
+      preconditions
+      notes
+      automationNotes
+      automationStatus
       releaseLabel
       sprintLabel
       isDeleted
@@ -344,7 +350,13 @@ export const TestCaseByIdQuery = parse(`
       projectId
       type
       title
+      externalKey
       externalId
+      description
+      preconditions
+      notes
+      automationNotes
+      automationStatus
       epicId
       epic {
         id
@@ -360,6 +372,9 @@ export const TestCaseByIdQuery = parse(`
         stepOrder
         name
         expectedResult
+        parentStepId
+        sourceStepId
+        metaJson
       }
     }
   }
@@ -385,6 +400,9 @@ export const TestCaseVersionHistoryQuery = parse(`
         stepOrder
         name
         expectedResult
+        parentStepId
+        sourceStepId
+        metaJson
       }
     }
   }
@@ -505,6 +523,12 @@ export const UpdateManualTestCaseMutation = parse(`
       testCase {
         id
         title
+        externalKey
+        description
+        preconditions
+        notes
+        automationNotes
+        automationStatus
         steps {
           id
           stepOrder
@@ -529,6 +553,11 @@ export const UpdateAutomatedTestCaseMutation = parse(`
         id
         title
         externalId
+        externalKey
+        description
+        preconditions
+        notes
+        automationNotes
       }
       error {
         code
@@ -616,10 +645,27 @@ export const TestPlansListQuery = parse(`
       sprintLabel
       createdAt
       updatedAt
+      memberStats {
+        directTestCaseCount
+        childPlanCount
+        flattenedTestCaseCount
+        flattenedManualCount
+        flattenedAutomatedCount
+      }
+      childPlans {
+        id
+        name
+        sortOrder
+        memberStats {
+          flattenedTestCaseCount
+          flattenedAutomatedCount
+        }
+      }
       testCases {
         id
         type
         title
+        externalKey
       }
     }
   }
@@ -639,6 +685,30 @@ export const TestRunDetailQuery = parse(`
         trigger
         createdAt
         finishedAt
+        automationReport {
+          framework
+          generatedAt
+          ctrfReportUrl
+          attachment {
+            kind
+            ref
+          }
+          summary {
+            total
+            passed
+            failed
+            durationMs
+            specs {
+              testCaseId
+              externalId
+              status
+              durationMs
+              failureMessage
+              testName
+              suite
+            }
+          }
+        }
       }
       results {
         id
@@ -675,6 +745,48 @@ export const CreateTestRunMutation = parse(`
         id
         name
         createdAt
+      }
+      error {
+        code
+        message
+        fixHint
+        context
+      }
+    }
+  }
+`);
+
+export const RunAutomationPreviewQuery = parse(`
+  query RunAutomationPreview($input: RunAutomationPreviewInput!) {
+    runAutomationPreview(input: $input) {
+      manualCount
+      automatedCount
+      specPaths
+      targets {
+        manualTestCaseId
+        automatedTestCaseId
+        externalId
+      }
+      error {
+        code
+        message
+        fixHint
+      }
+    }
+  }
+`);
+
+export const ExecuteRunAutomationMutation = parse(`
+  mutation ExecuteRunAutomation($input: ExecuteRunAutomationInput!) {
+    executeRunAutomation(input: $input) {
+      manualCount
+      automatedCount
+      specPaths
+      started
+      targets {
+        manualTestCaseId
+        automatedTestCaseId
+        externalId
       }
       error {
         code
@@ -752,6 +864,44 @@ export const UnlinkTestPlanTestCaseMutation = parse(`
   mutation UnlinkTestPlanTestCase($testPlanId: ID!, $testCaseId: ID!) {
     unlinkTestPlanTestCase(input: { testPlanId: $testPlanId, testCaseId: $testCaseId }) {
       success
+    }
+  }
+`);
+
+export const LinkTestPlanPlanMutation = parse(`
+  mutation LinkTestPlanPlan($parentTestPlanId: ID!, $childTestPlanId: ID!) {
+    linkTestPlanPlan(input: { parentTestPlanId: $parentTestPlanId, childTestPlanId: $childTestPlanId }) {
+      linked
+    }
+  }
+`);
+
+export const UnlinkTestPlanPlanMutation = parse(`
+  mutation UnlinkTestPlanPlan($parentTestPlanId: ID!, $childTestPlanId: ID!) {
+    unlinkTestPlanPlan(input: { parentTestPlanId: $parentTestPlanId, childTestPlanId: $childTestPlanId }) {
+      success
+    }
+  }
+`);
+
+export const LaunchPlanAutomationMutation = parse(`
+  mutation LaunchPlanAutomation($input: LaunchPlanAutomationInput!) {
+    launchPlanAutomation(input: $input) {
+      run {
+        id
+        name
+        testPlanId
+        trigger
+        createdAt
+      }
+      automatedCount
+      specPaths
+      error {
+        code
+        message
+        fixHint
+        context
+      }
     }
   }
 `);

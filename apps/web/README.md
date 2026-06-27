@@ -1,13 +1,13 @@
 # TCMS Web (`tcms-web`)
 
-React + Vite front end for the TCMS GraphQL API. Dev server proxies API routes to `http://127.0.0.1:4000` by default.
+React + Vite front end for the TCMS GraphQL API. Dev server proxies API routes to `http://127.0.0.1:4010` by default.
 
 ## Scripts
 
 
 | Script                | Description                                                                  |
 | --------------------- | ---------------------------------------------------------------------------- |
-| `npm run dev`         | Vite dev server (127.0.0.1:5173).                                            |
+| `npm run dev`         | Vite dev server (127.0.0.1:5180).                                            |
 | `npm run build`       | Production build to `dist/`.                                                 |
 | `npm run preview`     | Preview production build.                                                    |
 | `npm run e2e`         | Playwright tests (starts API + web via config when not reused).              |
@@ -21,7 +21,7 @@ React + Vite front end for the TCMS GraphQL API. Dev server proxies API routes t
 
 1. Start the API from the **repo root** (`npm run dev` in `[../..](../..)`).
 2. In this package: `npm run dev`.
-3. Open [http://127.0.0.1:5173/](http://127.0.0.1:5173/).
+3. Open [http://127.0.0.1:5180/](http://127.0.0.1:5180/).
 
 Full step-by-step (env, clean DB, troubleshooting): `[docs/LOCAL_MANUAL_TESTING.md](../../docs/LOCAL_MANUAL_TESTING.md)`.
 

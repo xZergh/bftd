@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { AppRuntime } from "./db/runtime";
 import { buildSchema } from "./graphql/schema";
 import { tryHandleDbRoute } from "./http/db-routes";
+import { tryHandleRunReportRoute } from "./http/run-report-routes";
 
 export function createApp(dbPath: string) {
   const runtime = new AppRuntime(dbPath);
@@ -32,6 +33,9 @@ export function createApp(dbPath: string) {
   });
 
   const server = createServer(async (req, res) => {
+    if (tryHandleRunReportRoute(req, res)) {
+      return;
+    }
     if (await tryHandleDbRoute(req, res, runtime)) {
       return;
     }

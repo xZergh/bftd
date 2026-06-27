@@ -354,3 +354,14 @@ export const launchPlanAutomationInput = z.object({
   projectId: z.string().min(1),
   testPlanId: z.string().min(1)
 });
+export const runAutomationPreviewInput = z.object({
+  runId: z.string().min(1),
+  projectId: z.string().min(1),
+  manualTestCaseIds: z.array(z.string().min(1)).optional()
+});
+export const executeRunAutomationInput = z.object({
+  runId: z.string().min(1),
+  projectId: z.string().min(1),
+  manualTestCaseIds: z.array(z.string().min(1)).optional(),
+  framework: z.string().min(1).optional()
+});

@@ -115,6 +115,15 @@ describe("GraphQL integration - UI redesign API", () => {
     expect(listTc.body.data.testCases[0].linkedRequirementCount).toBe(1);
     expect(listTc.body.data.testCases[0].linkedManualTestCaseCount).toBe(0);
 
+    const filteredTc = await t.agent.post("/graphql").send({
+      query: `query($input: TestCasesListInput!) {
+        testCases(input: $input) { id title type }
+      }`,
+      variables: { input: { projectId, requirementId } }
+    });
+    expect(filteredTc.body.data.testCases).toHaveLength(1);
+    expect(filteredTc.body.data.testCases[0].title).toBe("Manual one");
+
     await t.close();
   });
 });

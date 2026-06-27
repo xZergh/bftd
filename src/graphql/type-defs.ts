@@ -97,8 +97,41 @@ export const typeDefs = /* GraphQL */ `
     environment: String
     buildVersion: String
     trigger: String
+    automationReport: AutomationReport
     createdAt: DateTime!
     finishedAt: DateTime
+  }
+
+  type AutomationReport {
+    framework: String!
+    generatedAt: DateTime!
+    attachment: ResultAttachment!
+    ctrfReportUrl: String
+    summary: AutomationReportSummary!
+  }
+
+  type AutomationReportSummary {
+    total: Int!
+    passed: Int!
+    failed: Int!
+    durationMs: Int!
+    specs: [AutomationSpecOutcome!]!
+  }
+
+  type AutomationSpecOutcome {
+    testCaseId: ID!
+    externalId: String!
+    status: String!
+    durationMs: Int!
+    failureMessage: String
+    testName: String
+    suite: String
+  }
+
+  type RunAutomationTarget {
+    manualTestCaseId: ID!
+    automatedTestCaseId: ID!
+    externalId: String!
   }
 
   type TestPlan {
@@ -829,6 +862,36 @@ export const typeDefs = /* GraphQL */ `
     error: AppError
   }
 
+  input RunAutomationPreviewInput {
+    runId: ID!
+    projectId: ID!
+    manualTestCaseIds: [ID!]
+  }
+
+  type RunAutomationPreviewPayload {
+    manualCount: Int!
+    automatedCount: Int!
+    specPaths: [String!]!
+    targets: [RunAutomationTarget!]!
+    error: AppError
+  }
+
+  input ExecuteRunAutomationInput {
+    runId: ID!
+    projectId: ID!
+    manualTestCaseIds: [ID!]
+    framework: String
+  }
+
+  type ExecuteRunAutomationPayload {
+    manualCount: Int!
+    automatedCount: Int!
+    specPaths: [String!]!
+    targets: [RunAutomationTarget!]!
+    started: Boolean!
+    error: AppError
+  }
+
   type CreateProjectPayload {
     project: Project
     error: AppError
@@ -911,6 +974,7 @@ export const typeDefs = /* GraphQL */ `
     kpiDashboard(input: KpiDashboardInput!): KpiDashboard!
     requirementDesignLinks(input: RequirementDesignLinksQueryInput!): [RequirementDesignLink!]!
     testCaseVersionHistory(input: TestCaseVersionHistoryInput!): [TestCaseVersion!]!
+    runAutomationPreview(input: RunAutomationPreviewInput!): RunAutomationPreviewPayload!
   }
 
   type Mutation {
@@ -944,6 +1008,7 @@ export const typeDefs = /* GraphQL */ `
     linkTestPlanPlan(input: LinkTestPlanPlanInput!): LinkMutationResult!
     unlinkTestPlanPlan(input: UnlinkTestPlanPlanInput!): UnlinkResult!
     launchPlanAutomation(input: LaunchPlanAutomationInput!): LaunchPlanAutomationPayload!
+    executeRunAutomation(input: ExecuteRunAutomationInput!): ExecuteRunAutomationPayload!
     submitTestResult(input: SubmitTestResultInput!): SubmitTestResultPayload!
     importRequirements(input: ImportRequirementsInput!): ImportRequirementsResult!
     importAutomatedFromTrr(input: ImportAutomatedFromTrrInput!): ImportAutomatedFromTrrResult!

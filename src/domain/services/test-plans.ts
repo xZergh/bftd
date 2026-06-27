@@ -5,6 +5,7 @@ import { automatedManualLinks, testCases, testPlanPlanLinks, testPlanTestCaseLin
 import { normalizeLabel } from "./labels";
 import {
   computeTestPlanMemberStats,
+  flattenTestPlanMembers,
   listChildTestPlans,
   wouldCreatePlanCycle,
   type TestPlanMemberStats

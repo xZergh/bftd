@@ -60,6 +60,12 @@ export {
 } from "./test-plans";
 export { launchPlanAutomation, spawnAutomationForRun } from "./plan-automation";
 export {
+  attachAutomationReport,
+  executeRunAutomation,
+  parseAutomationReport,
+  previewRunAutomation
+} from "./run-automation";
+export {
   createTestRun,
   getRunAggregate,
   getRunTraceabilityReport,

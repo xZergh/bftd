@@ -19,6 +19,12 @@ export const DATABASE_PROFILES: DatabaseProfile[] = [
     label: "Demo",
     description: "DEMO-QA sample project for exploration",
     fileName: "demo.sqlite"
+  },
+  {
+    id: "plan-automation",
+    label: "Plan automation sandbox",
+    description: "Disposable DB for Playwright runs (Run linked automation); not your project DB",
+    fileName: "plan-automation.sqlite"
   }
 ];
 

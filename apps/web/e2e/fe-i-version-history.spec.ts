@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { createManualTestCaseOnListPage, createRequirementOnListPage } from "./helpers/workspace";
 
 test.describe.configure({ mode: "serial" });
 
@@ -27,26 +28,18 @@ test.describe("FE-I version history", () => {
 
     await page.getByTestId("project-nav-requirements").click();
     await expect(page.getByTestId("requirements-page")).toBeVisible();
-    await page.getByTestId("requirement-create-key").fill(reqKey);
-    await page.getByTestId("requirement-create-title").fill(reqTitle);
-    await page.getByTestId("requirement-create-submit").click();
-    const rrow = page.locator(`tr[data-requirement-key="${reqKey}"]`);
-    await expect(rrow).toBeVisible();
+    await createRequirementOnListPage(page, { key: reqKey, title: reqTitle });
 
     await page.getByTestId("project-nav-overview").click();
     await expect(page.getByTestId("project-detail-page")).toBeVisible();
     await page.getByTestId("project-nav-test-cases").click();
     await expect(page.getByTestId("testcases-page")).toBeVisible();
 
-    await page.getByTestId("testcase-create-type").selectOption("manual");
-    await page.getByTestId("testcase-create-title").fill(manualTitle);
-    await page.getByTestId(`testcase-create-manual-req-${reqKey}`).check();
-    await page.getByTestId("testcase-create-manual-step-name-0").fill(stepName);
-    await page.getByTestId("testcase-create-submit").click();
+    await createManualTestCaseOnListPage(page, { title: manualTitle, reqKey, stepName });
 
     const manualRow = page.locator(`tr[data-testid="testcase-row"]`).filter({ hasText: manualTitle });
     await expect(manualRow).toBeVisible();
-    await manualRow.getByTestId("testcase-open").click();
+    await manualRow.click();
     await expect(page.getByTestId("testcase-detail-page")).toBeVisible();
 
     const history = page.getByTestId("testcase-version-history");

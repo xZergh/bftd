@@ -46,6 +46,14 @@ export function ProjectSubNav({ projectId, active }: Props) {
         Test cases
       </RouterLink>
       <RouterLink
+        to={`${base}/automation${epicQuery}`}
+        data-testid="project-nav-automation"
+        aria-current={navCurrent(active, "automation")}
+        style={chipLinkStyle}
+      >
+        Automation
+      </RouterLink>
+      <RouterLink
         to={`${base}/plans`}
         data-testid="project-nav-plans"
         aria-current={navCurrent(active, "plans")}

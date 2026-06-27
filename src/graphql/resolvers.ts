@@ -10,6 +10,8 @@ import {
   linkTestPlanPlanInput,
   linkTestPlanTestCaseInput,
   launchPlanAutomationInput,
+  executeRunAutomationInput,
+  runAutomationPreviewInput,
   listProjectsInput,
   manualInput,
   projectByInput,
@@ -92,7 +94,7 @@ function formatError(error: unknown) {
   }
   return {
     code: "VALIDATION_ERROR",
-    message: "Unhandled server error",
+    message: error instanceof Error ? error.message : "Unhandled server error",
     fixHint: "Check request payload and try again.",
     context: null
   };
@@ -322,6 +324,27 @@ export const resolvers = {
     runTraceabilityReport: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       const input = runTraceabilityInput.parse(args.input);
       return ctx.service.getRunTraceabilityReport(input);
+    },
+    runAutomationPreview: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      try {
+        const input = runAutomationPreviewInput.parse(args.input);
+        const preview = await ctx.service.previewRunAutomation(input);
+        return {
+          manualCount: preview.manualCount,
+          automatedCount: preview.automatedCount,
+          specPaths: preview.specPaths,
+          targets: preview.targets,
+          error: null
+        };
+      } catch (error) {
+        return {
+          manualCount: 0,
+          automatedCount: 0,
+          specPaths: [],
+          targets: [],
+          error: formatError(error)
+        };
+      }
     },
     traceabilityGraph: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
       const input = traceabilityGraphInput.parse(args.input);
@@ -597,6 +620,29 @@ export const resolvers = {
         };
       } catch (error) {
         return { run: null, automatedCount: 0, specPaths: [], error: formatError(error) };
+      }
+    },
+    executeRunAutomation: async (_root: unknown, args: { input: unknown }, ctx: Context) => {
+      try {
+        const input = executeRunAutomationInput.parse(args.input);
+        const result = await ctx.service.executeRunAutomation(input);
+        return {
+          manualCount: result.manualCount,
+          automatedCount: result.automatedCount,
+          specPaths: result.specPaths,
+          targets: result.targets,
+          started: result.started,
+          error: null
+        };
+      } catch (error) {
+        return {
+          manualCount: 0,
+          automatedCount: 0,
+          specPaths: [],
+          targets: [],
+          started: false,
+          error: formatError(error)
+        };
       }
     },
     submitTestResult: async (_root: unknown, args: { input: unknown }, ctx: Context) => {

@@ -7,9 +7,12 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "dev:api": "tsx watch src/server.ts",
-    "dev:web": "npm run dev -w tcms-web",
+    "dev": "cross-env PORT=4010 DB_PATH=./data/tcms.sqlite tsx watch src/server.ts",
+    "dev:api": "cross-env PORT=4010 DB_PATH=./data/tcms.sqlite tsx watch src/server.ts",
+    "dev:web": "cross-env VITE_API_PROXY_TARGET=http://127.0.0.1:4010 TCMS_DEV_WEB_PORT=5180 npm run dev -w tcms-web -- --port 5180 --strictPort --host 127.0.0.1",
+    "dev:automation-api": "cross-env PORT=4012 DB_PATH=./data/plan-automation.sqlite tsx watch src/server.ts",
+    "dev:automation-web": "cross-env VITE_API_PROXY_TARGET=http://127.0.0.1:4012 TCMS_DEV_WEB_PORT=5182 npm run dev -w tcms-web -- --port 5182 --strictPort --host 127.0.0.1",
+    "seed:plan-automation-db": "tsx scripts/reset-plan-automation-db.ts",
     "seed:demo": "tsx scripts/seed-demo-qa-project.ts",
     "seed:tcms": "tsx scripts/seed-tcms-project.ts",
     "seed:tcms:epics": "tsx scripts/backfill-tcms-epics.ts",

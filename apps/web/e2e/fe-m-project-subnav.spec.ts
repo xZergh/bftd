@@ -8,6 +8,7 @@ test.describe("FE-M project workspace subnav (DEMO-QA)", () => {
     await expect(page.getByTestId("project-nav-overview")).toBeVisible();
     await expect(page.getByTestId("project-nav-requirements")).toBeVisible();
     await expect(page.getByTestId("project-nav-test-cases")).toBeVisible();
+    await expect(page.getByTestId("project-nav-automation")).toBeVisible();
     await expect(page.getByTestId("project-nav-plans")).toBeVisible();
     await expect(page.getByTestId("project-nav-runs")).toBeVisible();
     await expect(page.getByTestId("project-nav-reporting")).toBeVisible();
@@ -23,16 +24,18 @@ test.describe("FE-M project workspace subnav (DEMO-QA)", () => {
 
     const navLinks = page.locator(".project-detail-header-links a");
     await expect(navLinks.nth(2)).toHaveText("Test cases");
-    await expect(navLinks.nth(3)).toHaveText("Plans");
-    await expect(navLinks.nth(4)).toHaveText("Runs");
+    await expect(navLinks.nth(3)).toHaveText("Automation");
+    await expect(navLinks.nth(4)).toHaveText("Plans");
+    await expect(navLinks.nth(5)).toHaveText("Runs");
   });
 
-  test("test cases link opens inline create row", async ({ page }) => {
+  test("test cases link opens inline create panel", async ({ page }) => {
     await openDemoProjectOverview(page);
 
     await page.getByTestId("project-nav-test-cases").click();
     await expect(page.getByTestId("testcases-page")).toBeVisible();
-    await expect(page.getByTestId("testcase-create-row")).toBeVisible();
+    await page.getByTestId("testcase-open-create-panel").click();
+    await expect(page.getByTestId("testcase-create-panel")).toBeVisible();
     await expect(page.getByTestId("testcase-create-dialog")).toHaveCount(0);
   });
 });

@@ -53,3 +53,11 @@ export function buildEpicQuery(epicId: string | null | undefined): string {
   }
   return `?epic=${encodeURIComponent(epicId)}`;
 }
+
+export function buildEpicFilterPath(
+  projectId: string,
+  section: "requirements" | "test-cases",
+  epicId: string
+): string {
+  return `/projects/${projectId}/${section}${buildEpicQuery(epicId)}`;
+}

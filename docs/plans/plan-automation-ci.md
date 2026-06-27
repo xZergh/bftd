@@ -36,4 +36,4 @@ Runner submits results with existing GraphQL `submitTestResult`; rollup rules:
 | `TCMS_CI_GITHUB_TOKEN` | `workflow_dispatch` auth |
 | `TCMS_GRAPHQL_URL` | Result submission from CI job |
 
-Until CI is wired, use **Run automated tests** on a dev machine with API + web running and `DB_PATH` pointing at the TCMS database.
+Until CI is wired, use **Run linked automation** on a dev machine. See **[plan-automation-local.md](plan-automation-local.md)** for ports, sandbox DB, and preconditions.

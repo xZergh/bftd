@@ -15,6 +15,8 @@ import {
 } from "../../db/schema";
 import { normalizeLabel } from "./labels";
 import { flattenTestPlanMembers } from "./test-plan-flatten";
+import { parseAutomationReport } from "./run-automation";
+import { runReportPublicUrl } from "../../http/run-report-routes";
 
 type Db = ReturnType<typeof import("../../db/client").createDb>;
 
@@ -216,6 +218,16 @@ export async function getTestRun(db: Db, input: { runId: string; projectId?: str
     }));
   return {
     ...run,
+    automationReport: (() => {
+      const report = parseAutomationReport(run.automationReportJson);
+      if (!report) {
+        return null;
+      }
+      return {
+        ...report,
+        ctrfReportUrl: report.ctrfAttachment ? runReportPublicUrl(input.runId) : null
+      };
+    })(),
     results: [
       ...results.map((r) => ({
         ...r,

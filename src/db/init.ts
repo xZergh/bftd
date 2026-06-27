@@ -114,6 +114,7 @@ function applyAdditiveMigrations(db: Database.Database) {
     ensureColumn(db, "test_runs", "build_version", "TEXT");
     ensureColumn(db, "test_runs", "trigger", "TEXT");
     ensureColumn(db, "test_runs", "finished_at", "INTEGER");
+    ensureColumn(db, "test_runs", "automation_report_json", "TEXT");
   }
 
   if (names.has("test_results")) {
@@ -304,6 +305,7 @@ export function initSqlite(dbPath: string) {
       environment TEXT,
       build_version TEXT,
       trigger TEXT,
+      automation_report_json TEXT,
       created_at INTEGER NOT NULL,
       finished_at INTEGER
     );

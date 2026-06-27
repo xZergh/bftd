@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { createRequirementOnListPage } from "./helpers/workspace";
 
 test.describe.configure({ mode: "serial" });
 
@@ -89,10 +90,7 @@ test.describe("FE-G imports", () => {
     await page.locator(`tr[data-project-key="${projectKey}"]`).getByTestId("project-name-link").click();
 
     await page.getByTestId("project-nav-requirements").click();
-    await page.getByTestId("requirement-create-key").fill(reqKey);
-    await page.getByTestId("requirement-create-title").fill(`Design target ${suffix}`);
-    await page.getByTestId("requirement-create-submit").click();
-    await expect(page.locator(`tr[data-requirement-key="${reqKey}"]`)).toBeVisible();
+    await createRequirementOnListPage(page, { key: reqKey, title: `Design target ${suffix}` });
 
     await page.getByTestId("project-nav-overview").click();
     await page.getByTestId("project-nav-imports").click();

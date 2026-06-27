@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { createManualTestCaseOnListPage, createPlanOnListPage, createRequirementOnListPage, createRunOnListPage } from "./helpers/workspace";
 
 test.describe("FE-J plans", () => {
   test("create plan, link testcase, and create run with selected plan", async ({ page }) => {
@@ -21,16 +22,10 @@ test.describe("FE-J plans", () => {
     await prow.getByTestId("project-name-link").click();
 
     await page.getByTestId("project-nav-requirements").click();
-    await page.getByTestId("requirement-create-key").fill(reqKey);
-    await page.getByTestId("requirement-create-title").fill(`Req ${suffix}`);
-    await page.getByTestId("requirement-create-submit").click();
+    await createRequirementOnListPage(page, { key: reqKey, title: `Req ${suffix}` });
 
     await page.getByTestId("project-nav-test-cases").click();
-    await page.getByTestId("testcase-create-type").selectOption("manual");
-    await page.getByTestId("testcase-create-title").fill(manualTitle);
-    await page.getByTestId(`testcase-create-manual-req-${reqKey}`).check();
-    await page.getByTestId("testcase-create-manual-step-name-0").fill("Step 1");
-    await page.getByTestId("testcase-create-submit").click();
+    await createManualTestCaseOnListPage(page, { title: manualTitle, reqKey, stepName: "Step 1" });
 
     const manualRow = page.locator(`tr[data-testid="testcase-row"]`).filter({ hasText: manualTitle });
     await expect(manualRow).toBeVisible();
@@ -39,21 +34,19 @@ test.describe("FE-J plans", () => {
 
     await page.getByTestId("project-nav-plans").click();
     await expect(page.getByTestId("plans-page")).toBeVisible();
-    await page.getByTestId("plan-create-name").fill(planName);
-    await page.getByTestId("plan-create-submit").click();
+    await createPlanOnListPage(page, { name: planName });
     const planRow = page.locator(`tr[data-testid="plan-row"]`).filter({ hasText: planName });
     await expect(planRow).toBeVisible();
     await planRow.click();
     await expect(page.getByTestId("plan-manage-panel")).toBeVisible();
-    const planCaseCheckbox = page.getByTestId(`plan-case-${manualId}`);
+    const planCaseCheckbox = page.getByTestId(`plan-case-member-${manualId}`);
     await planCaseCheckbox.click();
     await expect(planCaseCheckbox).toBeChecked({ timeout: 10000 });
 
     await page.getByTestId("project-nav-runs").click();
-    await page.getByTestId("run-create-name").fill(runName);
-    await page.getByTestId("run-create-test-plan-id").selectOption({ label: planName });
-    await page.getByTestId("run-create-submit").click();
+    await createRunOnListPage(page, { name: runName, planName });
 
-    await expect(page.getByTestId("run-row").filter({ hasText: runName })).toBeVisible();
+    await expect(page.getByTestId("run-detail-page")).toBeVisible();
+    await expect(page.getByTestId("run-detail-name")).toHaveText(runName);
   });
 });

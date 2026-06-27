@@ -3,6 +3,7 @@
  *
  * - demo.sqlite: seeded with DEMO-QA when missing
  * - tcms.sqlite: empty schema for your project work
+ * - plan-automation.sqlite: use `npm run seed:plan-automation-db` (automation sandbox; not created here)
  * - Legacy: if only tcms.sqlite exists with demo data, copies it to demo.sqlite first
  */
 import { copyFileSync, existsSync, mkdirSync, unlinkSync } from "node:fs";

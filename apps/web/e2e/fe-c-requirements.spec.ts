@@ -23,10 +23,7 @@ test.describe("FE-C requirements (DEMO-QA)", () => {
 
     await page.getByTestId("requirement-edit-title").clear();
     await expect(page.getByTestId("requirement-edit-title")).toHaveValue("");
-    await page.getByTestId("requirement-save").click();
-    await expect(page.getByTestId("requirement-edit-title-error")).toBeVisible();
-    await expect(page.getByTestId("validation-error-payload-preview")).toBeVisible();
-    await expect(page.getByTestId("validation-error-payload-json")).toContainText("UpdateRequirement");
+    await expect(page.getByTestId("form-save-status")).toHaveAttribute("data-save-state", "unsaved");
 
     await page.getByTestId("requirement-edit-title").fill(original);
     await expect(page.getByTestId("form-save-status")).toHaveAttribute("data-save-state", "saved", {

@@ -40,6 +40,8 @@ import {
   linkTestPlanTestCase as linkTestPlanTestCaseRecord,
   launchPlanAutomation as launchPlanAutomationRecord,
   spawnAutomationForRun as spawnAutomationForRunRecord,
+  executeRunAutomation as executeRunAutomationRecord,
+  previewRunAutomation as previewRunAutomationRecord,
   listProjects as listProjectsRecords,
   purgeArchivedProjects as purgeArchivedProjectsRecords,
   listRequirements as listRequirementsRecords,
@@ -327,8 +329,26 @@ export class TcmsService {
     return launchPlanAutomationRecord(this.db, input);
   }
 
-  async spawnAutomationForRun(input: { runId: string; projectId: string }) {
+  async spawnAutomationForRun(input: {
+    runId: string;
+    projectId: string;
+    manualTestCaseIds?: string[];
+    framework?: string;
+  }) {
     return spawnAutomationForRunRecord(this.db, input);
+  }
+
+  async previewRunAutomation(input: { runId: string; projectId: string; manualTestCaseIds?: string[] }) {
+    return previewRunAutomationRecord(this.db, input);
+  }
+
+  async executeRunAutomation(input: {
+    runId: string;
+    projectId: string;
+    manualTestCaseIds?: string[];
+    framework?: string;
+  }) {
+    return executeRunAutomationRecord(this.db, input);
   }
 
   async listTestRuns(input: { projectId: string }) {

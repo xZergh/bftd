@@ -12,11 +12,98 @@ import {
 import { normalizeLabel } from "./labels";
 import { assertEpicInProject, getEpic, getEpicsByIds } from "./epics";
 import { appendTestCaseVersion } from "./versioning";
+import {
+  defaultAutomationStatusForType,
+  isTestCaseAutomationStatus,
+  type TestCaseAutomationStatus
+} from "../automationStatus";
 
 type Db = ReturnType<typeof import("../../db/client").createDb>;
 
 function now() {
   return new Date();
+}
+
+type TestCaseContentInput = {
+  externalKey?: string | null;
+  description?: string | null;
+  preconditions?: string | null;
+  notes?: string | null;
+  automationNotes?: string | null;
+  automationStatus?: string | null;
+};
+
+function normalizeAutomationStatusField(
+  value: string | null | undefined,
+  type: "manual" | "automated",
+  explicitDefault?: TestCaseAutomationStatus
+): TestCaseAutomationStatus {
+  if (value === undefined || value === null || value.trim() === "") {
+    return explicitDefault ?? defaultAutomationStatusForType(type);
+  }
+  const trimmed = value.trim();
+  if (!isTestCaseAutomationStatus(trimmed)) {
+    throw new AppError(
+      "INVALID_AUTOMATION_STATUS",
+      "Automation status is not valid.",
+      `Use one of: not_automated, automation_required, in_progress, automated, not_automatable.`,
+      { automationStatus: trimmed }
+    );
+  }
+  return trimmed;
+}
+
+function normalizeOptionalText(value: string | null | undefined): string | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
+}
+
+async function assertTestCaseExternalKeyAvailable(
+  db: Db,
+  projectId: string,
+  externalKey: string | null | undefined,
+  excludeId?: string
+) {
+  const normalized = normalizeOptionalText(externalKey);
+  if (normalized === undefined || normalized === null) {
+    return;
+  }
+  const rows = await db
+    .select({ id: testCases.id })
+    .from(testCases)
+    .where(and(eq(testCases.projectId, projectId), eq(testCases.externalKey, normalized)));
+  if (rows.some((r) => r.id !== excludeId)) {
+    throw new AppError(
+      "TEST_CASE_KEY_CONFLICT",
+      "Test case key already exists in this project.",
+      "Choose a different externalKey for the test case.",
+      { externalKey: normalized, projectId }
+    );
+  }
+}
+
+function applyContentPatch(patch: Record<string, unknown>, input: TestCaseContentInput) {
+  if (input.externalKey !== undefined) {
+    patch.externalKey = normalizeOptionalText(input.externalKey) ?? null;
+  }
+  if (input.description !== undefined) {
+    patch.description = normalizeOptionalText(input.description) ?? null;
+  }
+  if (input.preconditions !== undefined) {
+    patch.preconditions = normalizeOptionalText(input.preconditions) ?? null;
+  }
+  if (input.notes !== undefined) {
+    patch.notes = normalizeOptionalText(input.notes) ?? null;
+  }
+  if (input.automationNotes !== undefined) {
+    patch.automationNotes = normalizeOptionalText(input.automationNotes) ?? null;
+  }
 }
 
 async function requirementLinkCountsByManualCase(db: Db, manualIds: string[]): Promise<Map<string, number>> {
@@ -67,7 +154,7 @@ export async function createManualTestCase(
     releaseLabel?: string;
     sprintLabel?: string;
     epicId?: string;
-  }
+  } & TestCaseContentInput
 ) {
   if (!input.steps || input.steps.length === 0) {
     throw new AppError(
@@ -99,11 +186,18 @@ export async function createManualTestCase(
   }
 
   await assertEpicInProject(db, input.projectId, input.epicId);
+  await assertTestCaseExternalKeyAvailable(db, input.projectId, input.externalKey);
 
   const tc = {
     id: randomUUID(),
     projectId: input.projectId,
     externalId: null as string | null,
+    externalKey: normalizeOptionalText(input.externalKey) ?? null,
+    description: normalizeOptionalText(input.description) ?? null,
+    preconditions: normalizeOptionalText(input.preconditions) ?? null,
+    notes: normalizeOptionalText(input.notes) ?? null,
+    automationNotes: normalizeOptionalText(input.automationNotes) ?? null,
+    automationStatus: normalizeAutomationStatusField(input.automationStatus, "manual"),
     type: "manual" as const,
     title: input.title,
     releaseLabel: normalizeLabel(input.releaseLabel),
@@ -136,7 +230,14 @@ export async function createManualTestCase(
 
 export async function createAutomatedTestCase(
   db: Db,
-  input: { projectId: string; title: string; manualTestCaseIds: string[]; releaseLabel?: string; sprintLabel?: string; epicId?: string }
+  input: {
+    projectId: string;
+    title: string;
+    manualTestCaseIds: string[];
+    releaseLabel?: string;
+    sprintLabel?: string;
+    epicId?: string;
+  } & TestCaseContentInput
 ) {
   if (input.manualTestCaseIds.length === 0) {
     throw new AppError(
@@ -165,11 +266,18 @@ export async function createAutomatedTestCase(
   }
 
   await assertEpicInProject(db, input.projectId, input.epicId);
+  await assertTestCaseExternalKeyAvailable(db, input.projectId, input.externalKey);
 
   const tc = {
     id: randomUUID(),
     projectId: input.projectId,
     externalId: null as string | null,
+    externalKey: normalizeOptionalText(input.externalKey) ?? null,
+    description: normalizeOptionalText(input.description) ?? null,
+    preconditions: normalizeOptionalText(input.preconditions) ?? null,
+    notes: normalizeOptionalText(input.notes) ?? null,
+    automationNotes: normalizeOptionalText(input.automationNotes) ?? null,
+    automationStatus: normalizeAutomationStatusField(input.automationStatus, "automated"),
     type: "automated" as const,
     title: input.title,
     releaseLabel: normalizeLabel(input.releaseLabel),
@@ -190,8 +298,17 @@ export async function createAutomatedTestCase(
 
 export async function listTestCases(
   db: Db,
-  input: { projectId: string; type?: "manual" | "automated"; includeDeleted?: boolean }
+  input: { projectId: string; type?: "manual" | "automated"; includeDeleted?: boolean; requirementId?: string }
 ) {
+  let linkedManualIds: Set<string> | null = null;
+  if (input.requirementId) {
+    const links = await db
+      .select({ manualTestCaseId: requirementTestCaseLinks.manualTestCaseId })
+      .from(requirementTestCaseLinks)
+      .where(eq(requirementTestCaseLinks.requirementId, input.requirementId));
+    linkedManualIds = new Set(links.map((l) => l.manualTestCaseId));
+  }
+
   const rows = await db
     .select()
     .from(testCases)
@@ -202,7 +319,10 @@ export async function listTestCases(
         input.includeDeleted ? undefined : eq(testCases.isDeleted, false)
       )
     );
-  const sorted = rows.sort((a, b) => a.title.localeCompare(b.title));
+  let sorted = rows.sort((a, b) => a.title.localeCompare(b.title));
+  if (linkedManualIds !== null) {
+    sorted = sorted.filter((r) => r.type === "manual" && linkedManualIds!.has(r.id));
+  }
   const manualIds = sorted.filter((r) => r.type === "manual").map((r) => r.id);
   const automatedIds = sorted.filter((r) => r.type === "automated").map((r) => r.id);
   const reqCounts = await requirementLinkCountsByManualCase(db, manualIds);
@@ -241,7 +361,7 @@ export async function updateManualTestCase(
     sprintLabel?: string | null;
     steps?: Array<{ name: string; expectedResult?: string }>;
     epicId?: string | null;
-  }
+  } & TestCaseContentInput
 ) {
   const rows = await db.select().from(testCases).where(eq(testCases.id, input.id));
   if (rows.length === 0 || rows[0].type !== "manual") {
@@ -256,11 +376,18 @@ export async function updateManualTestCase(
   if (input.epicId !== undefined) {
     await assertEpicInProject(db, rows[0].projectId, input.epicId ?? undefined);
   }
+  if (input.externalKey !== undefined) {
+    await assertTestCaseExternalKeyAvailable(db, rows[0].projectId, input.externalKey, input.id);
+  }
   const patch: Record<string, unknown> = { updatedAt: now() };
   if (input.title !== undefined) patch.title = input.title;
   if (input.releaseLabel !== undefined) patch.releaseLabel = normalizeLabel(input.releaseLabel ?? undefined);
   if (input.sprintLabel !== undefined) patch.sprintLabel = normalizeLabel(input.sprintLabel ?? undefined);
   if (input.epicId !== undefined) patch.epicId = input.epicId;
+  applyContentPatch(patch, input);
+  if (input.automationStatus !== undefined) {
+    patch.automationStatus = normalizeAutomationStatusField(input.automationStatus, "manual");
+  }
   await db.update(testCases).set(patch).where(eq(testCases.id, input.id));
   if (input.steps) {
     await db.delete(testCaseSteps).where(eq(testCaseSteps.testCaseId, input.id));
@@ -291,7 +418,7 @@ export async function updateAutomatedTestCase(
     sprintLabel?: string | null;
     manualTestCaseIds?: string[];
     epicId?: string | null;
-  }
+  } & TestCaseContentInput
 ) {
   const rows = await db.select().from(testCases).where(eq(testCases.id, input.id));
   if (rows.length === 0 || rows[0].type !== "automated") {
@@ -303,12 +430,19 @@ export async function updateAutomatedTestCase(
   if (input.epicId !== undefined) {
     await assertEpicInProject(db, rows[0].projectId, input.epicId ?? undefined);
   }
+  if (input.externalKey !== undefined) {
+    await assertTestCaseExternalKeyAvailable(db, rows[0].projectId, input.externalKey, input.id);
+  }
   const patch: Record<string, unknown> = { updatedAt: now() };
   if (input.title !== undefined) patch.title = input.title;
   if (input.externalId !== undefined) patch.externalId = input.externalId;
   if (input.releaseLabel !== undefined) patch.releaseLabel = normalizeLabel(input.releaseLabel ?? undefined);
   if (input.sprintLabel !== undefined) patch.sprintLabel = normalizeLabel(input.sprintLabel ?? undefined);
   if (input.epicId !== undefined) patch.epicId = input.epicId;
+  applyContentPatch(patch, input);
+  if (input.automationStatus !== undefined) {
+    patch.automationStatus = normalizeAutomationStatusField(input.automationStatus, "automated");
+  }
   await db.update(testCases).set(patch).where(eq(testCases.id, input.id));
 
   if (input.manualTestCaseIds) {

@@ -41,8 +41,8 @@ Standalone backend-first Test Case Management System (TCMS) for small QA teams.
 ## Local setup
 
 1. **Install:** `npm install` (npm workspaces: root + `apps/web`).
-2. **API:** `npm run dev` (GraphQL at `http://localhost:4000/graphql` by default).
-3. **Web (optional):** `npm run dev:web` → [http://127.0.0.1:5173/](http://127.0.0.1:5173/) (proxies `/graphql` to the API).
+2. **API:** `npm run dev` (GraphQL at `http://localhost:4010/graphql` by default).
+3. **Web (optional):** `npm run dev:web` → [http://127.0.0.1:5180/](http://127.0.0.1:5180/) (proxies `/graphql` to the API).
 
 **Manual testing runbook:** [docs/LOCAL_MANUAL_TESTING.md](docs/LOCAL_MANUAL_TESTING.md). Developer details: [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md).
 

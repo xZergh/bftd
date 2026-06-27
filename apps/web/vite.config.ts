@@ -5,7 +5,8 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const apiTarget = process.env.VITE_API_PROXY_TARGET ?? "http://127.0.0.1:4000";
+const apiTarget = process.env.VITE_API_PROXY_TARGET ?? "http://127.0.0.1:4010";
+const webPort = Number(process.env.TCMS_DEV_WEB_PORT ?? 5180);
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -28,7 +29,7 @@ export default defineConfig({
   ],
   server: {
     host: "127.0.0.1",
-    port: 5173,
+    port: webPort,
     strictPort: true,
     proxy: {
       "/graphql": { target: apiTarget, changeOrigin: true },

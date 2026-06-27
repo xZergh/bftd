@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { createRequirementOnListPage } from "./helpers/workspace";
 
 test.describe("FE-H design links", () => {
   test("upsert lists and unlink Penpot link", async ({ page }) => {
@@ -17,10 +18,7 @@ test.describe("FE-H design links", () => {
     await expect(page.getByTestId("project-detail-page")).toBeVisible();
 
     await page.getByTestId("project-nav-requirements").click();
-    await page.getByTestId("requirement-create-key").fill(reqKey);
-    await page.getByTestId("requirement-create-title").fill(`Req for design ${suffix}`);
-    await page.getByTestId("requirement-create-submit").click();
-    await expect(page.locator(`tr[data-requirement-key="${reqKey}"]`)).toBeVisible();
+    await createRequirementOnListPage(page, { key: reqKey, title: `Req for design ${suffix}` });
 
     await page.getByTestId("project-nav-overview").click();
     await page.getByTestId("project-nav-design-links").click();

@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../PageLoading";
+import { RouterLink } from "../../tamagui/RouterLink";
 import {
   CreateEpicMutation,
   DeleteEpicMutation,
@@ -9,6 +10,7 @@ import {
 } from "../../graphql/documents";
 import { formatGraphQlTransportError } from "../../graphql/formatGraphQlError";
 import { REQUIRED_MSG, trimmedNonEmpty } from "../../forms/mandatoryFields";
+import { buildEpicFilterPath } from "../../navigation/epicFilter";
 import { useShellErrors } from "../../shell/ShellErrorsContext";
 
 type Props = {
@@ -185,11 +187,25 @@ export function EpicsManagePanel({ projectId, onClose, onChanged }: Props) {
                     data-testid={`epic-edit-title-${epic.externalKey}`}
                   />
                 </td>
-                <td className="epics-manage-table-count" data-testid={`epic-req-count-${epic.externalKey}`}>
-                  {epic.requirementCount ?? 0}
+                <td className="epics-manage-table-count">
+                  <EpicCountLink
+                    projectId={projectId}
+                    section="requirements"
+                    epicId={epic.id}
+                    epicKey={epic.externalKey}
+                    count={epic.requirementCount ?? 0}
+                    testId={`epic-req-count-${epic.externalKey}`}
+                  />
                 </td>
-                <td className="epics-manage-table-count" data-testid={`epic-tc-count-${epic.externalKey}`}>
-                  {epic.testCaseCount ?? 0}
+                <td className="epics-manage-table-count">
+                  <EpicCountLink
+                    projectId={projectId}
+                    section="test-cases"
+                    epicId={epic.id}
+                    epicKey={epic.externalKey}
+                    count={epic.testCaseCount ?? 0}
+                    testId={`epic-tc-count-${epic.externalKey}`}
+                  />
                 </td>
                 <td className="epics-manage-table-actions">
                   <button
@@ -254,5 +270,35 @@ export function EpicsManagePanel({ projectId, onClose, onChanged }: Props) {
         </button>
       </div>
     </div>
+  );
+}
+
+type EpicCountLinkProps = {
+  projectId: string;
+  section: "requirements" | "test-cases";
+  epicId: string;
+  epicKey: string;
+  count: number;
+  testId: string;
+};
+
+function EpicCountLink({ projectId, section, epicId, epicKey, count, testId }: EpicCountLinkProps) {
+  const label = section === "requirements" ? "requirements" : "test cases";
+  if (count === 0) {
+    return (
+      <span className="epic-count-zero" data-testid={testId} aria-label={`No ${label} in ${epicKey}`}>
+        0
+      </span>
+    );
+  }
+  return (
+    <RouterLink
+      to={buildEpicFilterPath(projectId, section, epicId)}
+      className="epic-count-link"
+      data-testid={testId}
+      title={`Show ${count} ${label} in ${epicKey}`}
+    >
+      {count}
+    </RouterLink>
   );
 }
