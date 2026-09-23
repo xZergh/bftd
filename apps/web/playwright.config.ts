@@ -19,7 +19,8 @@ const demoQaSpecs = [
   "**/fe-i-version-history.spec.ts",
   "**/fe-j-plans.spec.ts",
   "**/fe-l-manual-happy-path.spec.ts",
-  "**/fe-m-project-subnav.spec.ts"
+  "**/fe-m-project-subnav.spec.ts",
+  "**/fe-o-readability.spec.ts"
 ];
 
 export default defineConfig({

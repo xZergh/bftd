@@ -29,6 +29,7 @@ export type TestCaseListItem = {
   id: string;
   type: string;
   title: string;
+  status: string | null;
   externalId: string | null;
   releaseLabel: string | null;
   sprintLabel: string | null;
@@ -53,6 +54,7 @@ export type ProjectEnumSettings = {
   requirementStatuses: string[];
   requirementPriorities: string[];
   requirementTypes: string[];
+  testCaseStatuses: string[];
 };
 
 export type TestRunListItem = {

@@ -138,6 +138,7 @@ export const ProjectSettingsQuery = parse(`
       requirementStatuses
       requirementPriorities
       requirementTypes
+      testCaseStatuses
     }
   }
 `);
@@ -243,6 +244,7 @@ export const TestCasesListQuery = parse(`
       id
       type
       title
+      status
       externalId
       releaseLabel
       sprintLabel
@@ -418,6 +420,7 @@ export const UpdateManualTestCaseMutation = parse(`
       testCase {
         id
         title
+        status
         steps {
           id
           stepOrder
@@ -441,6 +444,7 @@ export const UpdateAutomatedTestCaseMutation = parse(`
       testCase {
         id
         title
+        status
         externalId
       }
       error {

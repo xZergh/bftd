@@ -55,6 +55,7 @@ type TestCase {
   projectId: ID!
   type: String!
   title: String!
+  status: String
   externalId: String
   releaseLabel: String
   sprintLabel: String
@@ -188,6 +189,7 @@ type ProjectEnumSettings {
   requirementStatuses: [String!]!
   requirementPriorities: [String!]!
   requirementTypes: [String!]!
+  testCaseStatuses: [String!]!
 }
 
 type ImportErrorItem {
@@ -380,6 +382,7 @@ input CreateManualTestCaseInput {
   steps: [ManualStepInput!]!
   releaseLabel: String
   sprintLabel: String
+  status: String
 }
 
 input CreateAutomatedTestCaseInput {
@@ -388,6 +391,7 @@ input CreateAutomatedTestCaseInput {
   manualTestCaseIds: [ID!]!
   releaseLabel: String
   sprintLabel: String
+  status: String
 }
 
 input CreateTestRunInput {
@@ -609,6 +613,7 @@ input UpdateManualTestCaseInput {
   releaseLabel: String
   sprintLabel: String
   steps: [ManualStepInput!]
+  status: String
 }
 
 input UpdateAutomatedTestCaseInput {
@@ -618,6 +623,7 @@ input UpdateAutomatedTestCaseInput {
   releaseLabel: String
   sprintLabel: String
   manualTestCaseIds: [ID!]
+  status: String
 }
 
 input DeleteTestCaseInput {

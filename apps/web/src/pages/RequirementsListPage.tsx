@@ -14,6 +14,7 @@ import {
 import {
   buildParentSelectOptions,
   buildRequirementTree,
+  filterRequirementSubtree,
   flattenRequirementTree,
   requirementParentKeyById
 } from "../components/requirements/requirementsHierarchy";
@@ -48,7 +49,8 @@ import "./ProjectsPage.css";
 const defaultEnumSettings: ProjectEnumSettings = {
   requirementStatuses: ["draft", "in_progress", "approved"],
   requirementPriorities: ["low", "medium", "high"],
-  requirementTypes: ["functional", "nonfunctional"]
+  requirementTypes: ["functional", "nonfunctional"],
+  testCaseStatuses: ["draft", "ready", "deprecated"]
 };
 
 export function RequirementsListPage() {
@@ -60,9 +62,9 @@ export function RequirementsListPage() {
   const [draftHydrated, setDraftHydrated] = useState(false);
   const [externalKey, setExternalKey] = useState("");
   const [title, setTitle] = useState("");
-  const [createStatus, setCreateStatus] = useState(demoPlaceholders.requirement.status);
-  const [createPriority, setCreatePriority] = useState(demoPlaceholders.requirement.priority);
-  const [createType, setCreateType] = useState(demoPlaceholders.requirement.requirementType);
+  const [createStatus, setCreateStatus] = useState<string>(demoPlaceholders.requirement.status);
+  const [createPriority, setCreatePriority] = useState<string>(demoPlaceholders.requirement.priority);
+  const [createType, setCreateType] = useState<string>(demoPlaceholders.requirement.requirementType);
   const [createRelease, setCreateRelease] = useState("");
   const [createSprint, setCreateSprint] = useState("");
   const [createTags, setCreateTags] = useState("");
@@ -88,8 +90,28 @@ export function RequirementsListPage() {
 
   const [, createRequirement] = useMutation(CreateRequirementMutation);
 
-  const enumSettings = settingsResult.data?.projectSettings ?? defaultEnumSettings;
-  const rows: RequirementListItem[] = listResult.data?.requirements ?? [];
+  const enumSettings: ProjectEnumSettings = settingsResult.data?.projectSettings ?? defaultEnumSettings;
+  const allRows: RequirementListItem[] = listResult.data?.requirements ?? [];
+
+  // Hierarchy subtree filter. Lives in the URL (?tree=) so a scoped view is shareable and
+  // survives reload, matching how the inspector already uses ?req=.
+  const treeRootId = searchParams.get("tree");
+  const setTreeRootId = useCallback(
+    (id: string) => {
+      setSearchParams(
+        (prev) => {
+          const n = new URLSearchParams(prev);
+          if (id === "") n.delete("tree");
+          else n.set("tree", id);
+          return n;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
+
+  const rows = useMemo(() => filterRequirementSubtree(allRows, treeRootId), [allRows, treeRootId]);
   const sortAccessors = useRequirementSortAccessors(rows);
   const { visibility: columnVisibility, toggleColumn } = useRequirementColumnVisibility();
   const { collapsedIds, toggleCollapsed } = useRequirementTreeCollapse(projectId ?? "");
@@ -97,6 +119,9 @@ export function RequirementsListPage() {
   const tableColSpan = requirementTableColumnCount(columnVisibility);
   const parentKeyById = useMemo(() => requirementParentKeyById(rows), [rows]);
   const parentSelectOptions = useMemo(() => buildParentSelectOptions(rows), [rows]);
+  // Built from allRows on purpose: sourcing these from the filtered rows would make it
+  // impossible to escape a narrow subtree once selected.
+  const treeFilterOptions = useMemo(() => buildParentSelectOptions(allRows), [allRows]);
   const inspectorParentOptions = useMemo(
     () => (selectedReqId ? buildParentSelectOptions(rows, selectedReqId) : []),
     [rows, selectedReqId]
@@ -307,7 +332,26 @@ export function RequirementsListPage() {
       <thead>
         <tr>
           <th scope="col" className="requirements-hierarchy-head">
-            {REQUIREMENT_HIERARCHY_COLUMN.label}
+            <label className="requirements-hierarchy-filter">
+              <span className="sr-only">
+                Filter requirements by {REQUIREMENT_HIERARCHY_COLUMN.label.toLowerCase()} subtree
+              </span>
+              <select
+                value={treeRootId ?? ""}
+                onChange={(e) => setTreeRootId(e.target.value)}
+                className="projects-table-inline-input"
+                data-testid="requirement-tree-filter"
+                aria-label="Filter by hierarchy subtree"
+              >
+                <option value="">{REQUIREMENT_HIERARCHY_COLUMN.label}: all</option>
+                {treeFilterOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {"\u00a0".repeat(opt.depth * 2)}
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </th>
           {REQUIREMENT_HIDEABLE_COLUMNS.map((col) =>
             columnVisibility[col.id] ? (

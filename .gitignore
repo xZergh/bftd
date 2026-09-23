@@ -53,3 +53,6 @@ artifacts/
 Thumbs.db
 .idea/
 .vscode/
+# Local Figma file snapshots (NHL design data; large, not for VCS)
+.figma-cache/
+.claude-terminal

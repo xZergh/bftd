@@ -143,7 +143,17 @@ export function RequirementTableRow({
     []
   );
 
-  const stop = (e: React.MouseEvent) => e.stopPropagation();
+  // Requirement cells hold inline-editable controls, so a blanket stopPropagation was applied
+  // to every cell. That also swallowed clicks on cell whitespace, so the row's onSelect almost
+  // never fired and the inspector appeared not to open at all (test-case rows have no inline
+  // controls, hence the difference). Stop only when the click actually landed on a control, so
+  // editing never selects but clicking anywhere else does.
+  const stop = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("input, select, textarea, button, a, label")) {
+      e.stopPropagation();
+    }
+  };
 
   return (
     <tr
@@ -152,7 +162,7 @@ export function RequirementTableRow({
       data-testid="requirement-row"
       onClick={onSelect}
     >
-      <td data-column="hierarchy" onClick={(e) => e.stopPropagation()}>
+      <td data-column="hierarchy" onClick={stop}>
         <RequirementHierarchyCell
           depth={hierarchy.depth}
           hasChildren={hierarchy.hasChildren}
@@ -273,7 +283,23 @@ export function RequirementTableRow({
         </td>
       ) : null}
       {columnVisibility.linkedManualTestCaseCount ? (
-        <td data-column="linkedManualTestCaseCount">{row.linkedManualTestCaseCount}</td>
+        <td data-column="linkedManualTestCaseCount" onClick={stop}>
+          {/* A count of N has no single href, so the affordance opens this requirement's
+              inspector, where the linked manual testcases are listed by name. */}
+          {row.linkedManualTestCaseCount > 0 ? (
+            <button
+              type="button"
+              className="projects-table-link-count"
+              onClick={onSelect}
+              data-testid={`requirement-links-open-${row.id}`}
+              title={`Show ${row.linkedManualTestCaseCount} linked manual testcase(s)`}
+            >
+              {row.linkedManualTestCaseCount}
+            </button>
+          ) : (
+            <span className="projects-table-link-count--empty">0</span>
+          )}
+        </td>
       ) : null}
       <td onClick={stop} data-column="actions">
         <RowSaveIndicator state={saveState} data-testid={`requirement-row-save-${row.id}`} />

@@ -3,7 +3,7 @@ title: "Project Wiki"
 type: "index"
 status: "active"
 last_commit: "a77e32279703922c9fcd0e3cfbcc4eb2186e01df"
-updated_at: "2026-05-09"
+updated_at: "2026-08-06"
 ---
 
 # TCMS Project Wiki
@@ -16,6 +16,7 @@ This wiki captures the current architecture and major feature flows from reposit
 - `[[flows-request-lifecycle]]` - how GraphQL requests travel through the backend.
 - `[[entities-src-db-schema-ts]]` - core SQLite/Drizzle entities and relationships.
 - `[[entities-test-plans-and-run-assignments]]` - test plans, plan links, and run-case assignment entities.
+- `[[entities-testcase-status]]` - testcase authoring status (`draft`/`ready`/`deprecated`), distinct from the delete lifecycle.
 
 ## Core Backend Features
 

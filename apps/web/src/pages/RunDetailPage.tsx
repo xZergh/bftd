@@ -91,13 +91,13 @@ export function RunDetailPage() {
     return m;
   }, [casesResult.data?.testCases]);
 
-  const selectableCases = useMemo(() => {
+  const selectableCases = useMemo((): Array<{ id: string; title: string }> => {
     const results = detail?.results ?? [];
     if (results.length > 0) {
       return results
         .map((r: { testCaseId: string }) => r.testCaseId)
-        .filter((id, idx, arr) => arr.indexOf(id) === idx)
-        .map((id) => ({ id, title: caseTitleById.get(id) ?? id }));
+        .filter((id: string, idx: number, arr: string[]) => arr.indexOf(id) === idx)
+        .map((id: string) => ({ id, title: caseTitleById.get(id) ?? id }));
     }
     return (casesResult.data?.testCases ?? []).map((t: TestCaseListItem) => ({ id: t.id, title: t.title }));
   }, [caseTitleById, casesResult.data?.testCases, detail?.results]);

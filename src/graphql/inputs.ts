@@ -28,14 +28,16 @@ export const manualInput = z.object({
   requirementIds: z.array(z.string().min(1)),
   steps: z.array(manualStepInput).min(1),
   releaseLabel: z.string().optional(),
-  sprintLabel: z.string().optional()
+  sprintLabel: z.string().optional(),
+  status: z.string().min(1).optional()
 });
 export const automatedInput = z.object({
   projectId: z.string().min(1),
   title: z.string().min(1),
   manualTestCaseIds: z.array(z.string().min(1)),
   releaseLabel: z.string().optional(),
-  sprintLabel: z.string().optional()
+  sprintLabel: z.string().optional(),
+  status: z.string().min(1).optional()
 });
 export const runInput = z.object({
   projectId: z.string().min(1),
@@ -244,7 +246,8 @@ export const updateManualTestCaseInput = z.object({
   title: z.string().optional(),
   releaseLabel: z.string().nullable().optional(),
   sprintLabel: z.string().nullable().optional(),
-  steps: z.array(manualStepInput).optional()
+  steps: z.array(manualStepInput).optional(),
+  status: z.string().min(1).optional()
 });
 export const updateAutomatedTestCaseInput = z.object({
   id: z.string().min(1),
@@ -252,7 +255,8 @@ export const updateAutomatedTestCaseInput = z.object({
   externalId: z.string().nullable().optional(),
   releaseLabel: z.string().nullable().optional(),
   sprintLabel: z.string().nullable().optional(),
-  manualTestCaseIds: z.array(z.string().min(1)).optional()
+  manualTestCaseIds: z.array(z.string().min(1)).optional(),
+  status: z.string().min(1).optional()
 });
 export const deleteTestCaseInput = z.object({ id: z.string().min(1) });
 export const linkRequirementManualInput = z.object({

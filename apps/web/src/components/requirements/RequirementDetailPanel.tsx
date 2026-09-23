@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { RouterLink } from "../../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../PageLoading";
+import { AutoGrowTextarea } from "../AutoGrowTextarea";
 import { RowSaveIndicator } from "../workspace/RowSaveIndicator";
 import { ValidationErrorPayloadPreview } from "../ValidationErrorPayloadPreview";
 import {
@@ -311,17 +312,40 @@ export function RequirementDetailPanel({
         </label>
         <label>
           Description
-          <textarea
+          <AutoGrowTextarea
             value={descriptionDraft}
             onChange={(e) => {
               setDescriptionDraft(e.target.value);
               setShowValidationPayload(false);
             }}
             data-testid="requirement-edit-description"
-            rows={variant === "full" ? 6 : 4}
+            minRows={variant === "full" ? 4 : 3}
+            maxRows={variant === "full" ? 18 : 12}
           />
         </label>
       </div>
+
+      {/* Saved-version readout, shown only while the draft diverges. Rendering it
+          unconditionally duplicated the textarea verbatim, which read as a bug; scoped to
+          unsaved edits it answers a real question ("what is actually stored right now?")
+          with prose-wrapped newlines the textarea cannot show side by side. */}
+      {descriptionDraft.trim() !== (req.description ?? "").trim() ? (
+        <div className="prose-readout-block">
+          <span className="prose-readout-label">Saved version (you have unsaved edits)</span>
+          {req.description?.trim() ? (
+            <p className="prose-readout" data-testid="requirement-description-readout">
+              {req.description}
+            </p>
+          ) : (
+            <p
+              className="prose-readout prose-readout--empty"
+              data-testid="requirement-description-readout"
+            >
+              No description saved yet.
+            </p>
+          )}
+        </div>
+      ) : null}
 
       <ValidationErrorPayloadPreview open={showValidationPayload} payload={updateRequirementClientPayload} />
 

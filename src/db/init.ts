@@ -81,6 +81,11 @@ function applyAdditiveMigrations(db: Database.Database) {
   }
 
   if (names.has("test_cases")) {
+    ensureColumn(db, "test_cases", "status", "TEXT");
+    // Backfill rows that predate the status column. Without this every existing testcase
+    // renders a blank status in the UI, which reads as data loss rather than a new field.
+    // Idempotent: only NULL rows are touched, so this is safe on every startup.
+    db.exec(`UPDATE test_cases SET status = 'draft' WHERE status IS NULL`);
     ensureColumn(db, "test_cases", "release_label", "TEXT");
     ensureColumn(db, "test_cases", "sprint_label", "TEXT");
     ensureColumn(db, "test_cases", "is_deleted", "INTEGER NOT NULL DEFAULT 0");
@@ -179,6 +184,7 @@ export function initSqlite(dbPath: string) {
       external_id TEXT,
       type TEXT NOT NULL,
       title TEXT NOT NULL,
+      status TEXT,
       release_label TEXT,
       sprint_label TEXT,
       is_deleted INTEGER NOT NULL DEFAULT 0,
