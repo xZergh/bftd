@@ -143,6 +143,7 @@ function mapTestCaseListRow(r: {
   projectId: string;
   type: string;
   title: string;
+  status?: string | null;
   externalId: string | null;
   releaseLabel: string | null;
   sprintLabel: string | null;
@@ -159,6 +160,7 @@ function mapTestCaseListRow(r: {
     projectId: r.projectId,
     type: r.type,
     title: r.title,
+    status: r.status ?? null,
     externalId: r.externalId,
     releaseLabel: r.releaseLabel,
     sprintLabel: r.sprintLabel,

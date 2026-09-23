@@ -84,3 +84,62 @@ describe("GraphQL integration - design links", () => {
     await t.close();
   });
 });
+
+describe("GraphQL integration - figma design provider", () => {
+  it("accepts provider 'figma' and rejects unknown providers", async () => {
+    const t = await createTestAgent("tcms-int-");
+    const pRes = await t.agent.post("/graphql").send({
+      query: `mutation($input: CreateProjectInput!) { createProject(input: $input) { project { id } } }`,
+      variables: { input: { name: "Figma Pilot App" } }
+    });
+    const projectId = pRes.body.data.createProject.project.id as string;
+    const reqRes = await t.agent.post("/graphql").send({
+      query: `mutation($input: CreateRequirementInput!) {
+        createRequirement(input: $input) { requirement { id } }
+      }`,
+      variables: { input: { projectId, externalKey: "FIG-1", title: "Figma Req" } }
+    });
+    const requirementId = reqRes.body.data.createRequirement.requirement.id as string;
+
+    const upsertQuery = `mutation($input: RequirementDesignLinkInput!) {
+      upsertRequirementDesignLink(input: $input) {
+        link { id provider designNodeId shareUrl }
+        error { code message fixHint }
+      }
+    }`;
+
+    const ok = await t.agent.post("/graphql").send({
+      query: upsertQuery,
+      variables: {
+        input: {
+          projectId,
+          requirementId,
+          provider: "figma",
+          designFileId: "eBcz4f34xUVWCVoT7J9ILx",
+          designNodeId: "4342:9188",
+          shareUrl: "https://www.figma.com/design/eBcz4f34xUVWCVoT7J9ILx/Shifts-Breakdown?node-id=4342-9188",
+          title: "UI Components"
+        }
+      }
+    });
+    expect(ok.body.data.upsertRequirementDesignLink.error).toBeNull();
+    expect(ok.body.data.upsertRequirementDesignLink.link.provider).toBe("figma");
+    expect(ok.body.data.upsertRequirementDesignLink.link.designNodeId).toBe("4342:9188");
+
+    const bad = await t.agent.post("/graphql").send({
+      query: upsertQuery,
+      variables: {
+        input: {
+          projectId,
+          requirementId,
+          provider: "sketch",
+          shareUrl: "https://example.com/x",
+          title: "Nope"
+        }
+      }
+    });
+    expect(bad.body.data.upsertRequirementDesignLink.link).toBeNull();
+    expect(bad.body.data.upsertRequirementDesignLink.error.code).toBe("VALIDATION_ERROR");
+    expect(bad.body.data.upsertRequirementDesignLink.error.fixHint).toContain("figma");
+  });
+});

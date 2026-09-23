@@ -4,22 +4,31 @@ import { AppError } from "./errors";
 export const REQUIREMENT_STATUSES = ["draft", "in_progress", "approved"] as const;
 export const REQUIREMENT_PRIORITIES = ["low", "medium", "high"] as const;
 export const REQUIREMENT_TYPES = ["functional", "nonfunctional"] as const;
+/**
+ * Test-case authoring status. Deliberately avoids "active" so it never reads as the
+ * is_deleted lifecycle already surfaced in the UI as active/deleted.
+ */
+export const TEST_CASE_STATUSES = ["draft", "ready", "deprecated"] as const;
+export const DEFAULT_TEST_CASE_STATUS: TestCaseStatus = "draft";
 
 export type RequirementStatus = (typeof REQUIREMENT_STATUSES)[number];
 export type RequirementPriority = (typeof REQUIREMENT_PRIORITIES)[number];
 export type RequirementType = (typeof REQUIREMENT_TYPES)[number];
+export type TestCaseStatus = (typeof TEST_CASE_STATUSES)[number];
 
 export type ProjectEnumSettings = {
   requirementStatuses: readonly RequirementStatus[];
   requirementPriorities: readonly RequirementPriority[];
   requirementTypes: readonly RequirementType[];
+  testCaseStatuses: readonly TestCaseStatus[];
 };
 
 export function defaultProjectEnumSettings(): ProjectEnumSettings {
   return {
     requirementStatuses: REQUIREMENT_STATUSES,
     requirementPriorities: REQUIREMENT_PRIORITIES,
-    requirementTypes: REQUIREMENT_TYPES
+    requirementTypes: REQUIREMENT_TYPES,
+    testCaseStatuses: TEST_CASE_STATUSES
   };
 }
 
@@ -56,6 +65,17 @@ export function assertRequirementType(value: string) {
       `Invalid requirement type "${value}".`,
       allowedHint(REQUIREMENT_TYPES),
       { requirementType: value }
+    );
+  }
+}
+
+export function assertTestCaseStatus(value: string) {
+  if (!(TEST_CASE_STATUSES as readonly string[]).includes(value)) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      `Invalid testcase status "${value}".`,
+      allowedHint(TEST_CASE_STATUSES),
+      { status: value }
     );
   }
 }

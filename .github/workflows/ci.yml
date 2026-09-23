@@ -68,6 +68,9 @@ jobs:
       - name: Typecheck
         run: npm run ci:typecheck
 
+      - name: Web production build
+        run: npm run ci:build:web
+
       - name: ESLint
         run: npm run ci:lint
 
@@ -150,6 +153,9 @@ jobs:
 
       - name: Typecheck
         run: npm run ci:typecheck
+
+      - name: Web production build
+        run: npm run ci:build:web
 
       - name: ESLint
         run: npm run ci:lint

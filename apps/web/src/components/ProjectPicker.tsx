@@ -31,8 +31,13 @@ export function ProjectPicker() {
   });
 
   const value = projectId ?? "";
-  const projects = data?.projects ?? [];
-  const selected = useMemo(() => projects.find((p) => p.id === value), [projects, value]);
+  // urql documents are untyped here (no codegen), so annotate at the boundary rather than
+  // letting `any` leak into every callback below.
+  const projects: ProjectListItem[] = data?.projects ?? [];
+  const selected = useMemo(
+    () => projects.find((p: ProjectListItem) => p.id === value),
+    [projects, value]
+  );
   const selectTitle =
     selected !== undefined
       ? `${selected.name} (${selected.key})${selected.isArchived ? " · archived" : ""}`

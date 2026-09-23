@@ -12,17 +12,23 @@ import { TestCaseDetailPage } from "./TestCaseDetailPage";
 import {
   CreateAutomatedTestCaseMutation,
   CreateManualTestCaseMutation,
+  ProjectSettingsQuery,
   RequirementsListQuery,
-  TestCasesListQuery
+  TestCasesListQuery,
+  UpdateAutomatedTestCaseMutation,
+  UpdateManualTestCaseMutation
 } from "../graphql/documents";
 import { formatGraphQlTransportError } from "../graphql/formatGraphQlError";
 import { REQUIRED_MSG, trimmedNonEmpty } from "../forms/mandatoryFields";
-import type { RequirementListItem, TestCaseListItem } from "../graphql/types";
+import type { ProjectEnumSettings, RequirementListItem, TestCaseListItem } from "../graphql/types";
 import { useColumnSort } from "../hooks/useColumnSort";
 import { useShellErrors } from "../shell/ShellErrorsContext";
 import "./ProjectsPage.css";
 
 type StepDraft = { name: string; expectedResult: string };
+
+/** Fallback until projectSettings resolves; mirrors TEST_CASE_STATUSES in the domain. */
+const DEFAULT_TEST_CASE_STATUSES = ["draft", "ready", "deprecated"];
 
 export function TestCasesListInlinePage() {
   const { projectId } = useParams();
@@ -70,8 +76,47 @@ export function TestCasesListInlinePage() {
     variables: { projectId: projectId ?? "", type: "manual", includeDeleted: false },
     pause: queryPaused
   });
+  const [settingsResult] = useQuery({
+    query: ProjectSettingsQuery,
+    variables: { projectId: projectId ?? "" },
+    pause: queryPaused
+  });
   const [, createManual] = useMutation(CreateManualTestCaseMutation);
   const [, createAutomated] = useMutation(CreateAutomatedTestCaseMutation);
+  const [, updateManual] = useMutation(UpdateManualTestCaseMutation);
+  const [, updateAutomated] = useMutation(UpdateAutomatedTestCaseMutation);
+
+  const testCaseStatuses: string[] =
+    (settingsResult.data?.projectSettings as ProjectEnumSettings | undefined)?.testCaseStatuses ??
+    DEFAULT_TEST_CASE_STATUSES;
+
+  /** Inline status edit. Routed by type because manual/automated have separate mutations. */
+  const onStatusChange = useCallback(
+    async (row: TestCaseListItem, status: string) => {
+      clearShellMessages();
+      const run = row.type === "manual" ? updateManual : updateAutomated;
+      const res = await run({ input: { id: row.id, status } });
+      if (res.error) {
+        setTransportMessage(formatGraphQlTransportError(res.error));
+        return;
+      }
+      const payload =
+        row.type === "manual" ? res.data?.updateManualTestCase : res.data?.updateAutomatedTestCase;
+      if (payload?.error) {
+        setPayloadAppError(payload.error);
+        return;
+      }
+      reexecuteCases({ requestPolicy: "network-only" });
+    },
+    [
+      clearShellMessages,
+      reexecuteCases,
+      setPayloadAppError,
+      setTransportMessage,
+      updateAutomated,
+      updateManual
+    ]
+  );
 
   useEffect(() => {
     if (!listResult.error) {
@@ -222,7 +267,8 @@ export function TestCasesListInlinePage() {
       releaseLabel: (t: TestCaseListItem) => t.releaseLabel,
       sprintLabel: (t: TestCaseListItem) => t.sprintLabel,
       linkedRequirementCount: (t: TestCaseListItem) => t.linkedRequirementCount,
-      status: (t: TestCaseListItem) => (t.isDeleted ? "deleted" : "active")
+      status: (t: TestCaseListItem) => t.status ?? "",
+      lifecycle: (t: TestCaseListItem) => (t.isDeleted ? "deleted" : "active")
     }),
     []
   );
@@ -280,6 +326,13 @@ export function TestCasesListInlinePage() {
             onSort={toggleSort}
           />
           <SortableTh label="Status" sortKey="status" activeSortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+          <SortableTh
+            label="Lifecycle"
+            sortKey="lifecycle"
+            activeSortKey={sortKey}
+            sortDir={sortDir}
+            onSort={toggleSort}
+          />
           <th scope="col"> </th>
         </tr>
       </thead>
@@ -506,7 +559,47 @@ export function TestCasesListInlinePage() {
               <td>{t.title}</td>
               <td>{t.releaseLabel ?? "—"}</td>
               <td>{t.sprintLabel ?? "—"}</td>
-              <td>{t.type === "manual" ? t.linkedRequirementCount : t.linkedManualTestCaseCount}</td>
+              <td onClick={(e) => e.stopPropagation()}>
+                {(() => {
+                  const count = t.type === "manual" ? t.linkedRequirementCount : t.linkedManualTestCaseCount;
+                  // A count of N cannot map to one href, so the affordance opens this row's
+                  // inspector, where the linked entities are already listed by name.
+                  return count > 0 ? (
+                    <button
+                      type="button"
+                      className="projects-table-link-count"
+                      onClick={() => selectRow(t.id)}
+                      data-testid={`testcase-links-open-${t.id}`}
+                      title={
+                        t.type === "manual"
+                          ? `Show ${count} linked requirement(s)`
+                          : `Show ${count} linked manual testcase(s)`
+                      }
+                    >
+                      {count}
+                    </button>
+                  ) : (
+                    <span className="projects-table-link-count--empty">0</span>
+                  );
+                })()}
+              </td>
+              <td onClick={(e) => e.stopPropagation()}>
+                <select
+                  value={t.status ?? ""}
+                  onChange={(e) => void onStatusChange(t, e.target.value)}
+                  className="projects-table-inline-input"
+                  data-testid={`testcase-row-status-${t.id}`}
+                  aria-label={`Status for ${t.title}`}
+                  disabled={t.isDeleted}
+                >
+                  {t.status === null ? <option value="">—</option> : null}
+                  {testCaseStatuses.map((st) => (
+                    <option key={st} value={st}>
+                      {st}
+                    </option>
+                  ))}
+                </select>
+              </td>
               <td>{t.isDeleted ? "deleted" : "active"}</td>
               <td onClick={(e) => e.stopPropagation()}>
                 <RouterLink to={`/projects/${projectId}/test-cases/${t.id}`} data-testid="testcase-open">

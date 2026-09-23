@@ -31,7 +31,7 @@
 
 .projects-create-fields input {
   padding: 0.45rem 0.5rem;
-  font-size: 1rem;
+  font-size: var(--tcms-font-size-base);
   max-width: 24rem;
 }
 
@@ -664,10 +664,11 @@
 .projects-modal-textarea {
   display: block;
   width: 100%;
-  max-width: 28rem;
+  max-width: var(--tcms-measure);
   font-family: inherit;
-  font-size: 1rem;
-  padding: 0.45rem 0.5rem;
+  font-size: var(--tcms-font-size-base);
+  line-height: var(--tcms-line-height-body);
+  padding: 0.5rem 0.6rem;
   border: 1px solid var(--tcms-input-border);
   border-radius: 6px;
   resize: vertical;
@@ -783,23 +784,56 @@
 }
 
 .testcase-step-row {
-  display: flex;
-  flex-wrap: wrap;
+  /* Grid, not flex-wrap: with wrapping, a long "Expected" value reflowed the row and
+     columns stopped lining up between steps. Fixed tracks keep them aligned. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto;
   gap: 0.5rem 1rem;
-  align-items: flex-end;
-  padding: 0.5rem 0;
+  align-items: start;
+  padding: 0.6rem 0;
   border-bottom: 1px solid var(--tcms-border);
+}
+
+/* Container query, not a media query: these rows render both full-width and inside the
+   narrow inspector panel. Keying off the viewport kept 3 cramped columns in the panel
+   even on a wide screen. */
+[data-testid="testcase-manual-steps"] {
+  container-type: inline-size;
+}
+
+@container (max-width: 34rem) {
+  .testcase-step-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .testcase-step-row .testcase-step-remove-cell {
+    justify-self: start;
+  }
+}
+
+/* Fallback for engines without container queries. */
+@supports not (container-type: inline-size) {
+  @media (max-width: 60rem) {
+    .testcase-step-row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
+
+.testcase-step-row .testcase-step-remove-cell {
+  align-self: end;
 }
 
 .testcase-step-row label {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  font-size: 0.875rem;
+  font-size: var(--tcms-font-size-base);
+  min-width: 0;
 }
 
 .testcase-step-remove {
-  font-size: 0.8125rem;
+  font-size: var(--tcms-font-size-sm);
 }
 
 .testcase-link-list {
@@ -973,9 +1007,10 @@
 
 .projects-create-fields textarea {
   font-family: inherit;
-  font-size: 1rem;
-  padding: 0.45rem 0.5rem;
-  max-width: 28rem;
+  font-size: var(--tcms-font-size-base);
+  line-height: var(--tcms-line-height-body);
+  padding: 0.5rem 0.6rem;
+  max-width: var(--tcms-measure);
   resize: vertical;
 }
 
@@ -1315,9 +1350,9 @@
   width: 100%;
   max-width: 52rem;
   padding: 0.65rem 0.75rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.8125rem;
-  line-height: 1.4;
+  font-family: var(--tcms-font-mono);
+  font-size: var(--tcms-font-size-sm);
+  line-height: var(--tcms-line-height-body);
   border: 1px solid var(--tcms-input-border);
   border-radius: 6px;
   resize: vertical;
@@ -1597,4 +1632,92 @@
   border-color: #b42318;
   background: #7f1d1d;
   color: #fff;
+}
+
+/* Auto-growing prose fields (see components/AutoGrowTextarea.tsx). */
+.autogrow-textarea {
+  display: block;
+  width: 100%;
+  font-family: inherit;
+  font-size: var(--tcms-font-size-base);
+  line-height: var(--tcms-line-height-body);
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--tcms-input-border);
+  border-radius: 6px;
+  background: var(--tcms-elevated);
+  color: var(--tcms-text);
+  /* Height is managed in JS; manual resize would fight it. */
+  resize: none;
+  overflow-y: hidden;
+}
+
+.projects-create-fields .autogrow-textarea {
+  max-width: var(--tcms-measure);
+}
+
+.requirement-detail-panel--inspector .projects-create-fields .autogrow-textarea {
+  max-width: none;
+}
+
+/* Read-only rendering of stored prose. `pre-wrap` is the point: our generated
+   descriptions carry meaningful newlines that collapse under normal white-space. */
+.prose-readout {
+  margin: 0.25rem 0 0;
+  max-width: var(--tcms-measure);
+  font-size: var(--tcms-font-size-base);
+  line-height: var(--tcms-line-height-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--tcms-text);
+}
+
+.prose-readout--empty {
+  color: var(--tcms-text-muted);
+  font-style: italic;
+}
+
+.prose-readout-label {
+  display: block;
+  margin-top: 0.6rem;
+  font-size: var(--tcms-font-size-sm);
+  color: var(--tcms-text-muted);
+}
+
+/* Link-count affordance: a count of N cannot map to one href, so it opens the row's
+   inspector where linked entities are listed by name. Styled as a link, not a button,
+   because that is what it behaves like. */
+.projects-table-link-count {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tcms-link);
+  font-size: var(--tcms-font-size-base);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.projects-table-link-count:hover {
+  text-decoration-thickness: 2px;
+}
+
+.projects-table-link-count--empty {
+  color: var(--tcms-text-muted);
+}
+
+/* Hierarchy column header doubles as a subtree filter. */
+.requirements-hierarchy-filter {
+  display: block;
+  min-width: 0;
+}
+
+.requirements-hierarchy-filter select {
+  width: 100%;
+  max-width: 16rem;
+}
+
+/* The Hierarchy header holds a requirement picker, so it needs room for a key + title.
+   Without a floor the column collapsed and truncated options to "DEMO-F". */
+.requirements-hierarchy-head {
+  min-width: 12rem;
 }

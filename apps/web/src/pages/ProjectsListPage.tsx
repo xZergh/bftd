@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button, H2, H3, Input, Label, Paragraph, XStack, YStack } from "tamagui";
+import { Button, H1, H3, Input, Label, Paragraph, XStack, YStack } from "tamagui";
 import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
@@ -534,18 +534,16 @@ export function ProjectsListPage() {
               minWidth={0}
               className="projects-toolbar-head"
             >
-              <H2
-                tag="h1"
+              <H1
                 id="projects-heading"
                 size="$5"
                 fontWeight="700"
                 color="$color12"
                 margin={0}
-                lineHeight="$1"
                 flexShrink={0}
               >
                 Projects
-              </H2>
+              </H1>
               <XStack className="projects-toolbar-search" alignItems="center" gap="$2" flexShrink={1} minWidth={0}>
                 <Label htmlFor="project-list-search" className="sr-only">
                   Search projects by name, key, or description
@@ -601,7 +599,7 @@ export function ProjectsListPage() {
               No projects yet. Open the Projects menu and choose New project.
             </Paragraph>
           ) : (
-            <YStack overflow="auto" maxWidth="100%">
+            <YStack overflow="scroll" maxWidth="100%">
               <table className="projects-table">
                 <thead>
                   <tr>

@@ -1,6 +1,7 @@
 import { and, asc, count, eq, inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { AppError } from "../errors";
+import { DEFAULT_TEST_CASE_STATUS, assertTestCaseStatus } from "../projectSettings";
 import {
   automatedManualLinks,
   requirementTestCaseLinks,
@@ -65,8 +66,10 @@ export async function createManualTestCase(
     steps: Array<{ name: string; expectedResult?: string }>;
     releaseLabel?: string;
     sprintLabel?: string;
+    status?: string;
   }
 ) {
+  if (input.status !== undefined) assertTestCaseStatus(input.status);
   if (!input.steps || input.steps.length === 0) {
     throw new AppError(
       "STEPS_REQUIRED",
@@ -102,6 +105,7 @@ export async function createManualTestCase(
     externalId: null as string | null,
     type: "manual" as const,
     title: input.title,
+    status: input.status ?? DEFAULT_TEST_CASE_STATUS,
     releaseLabel: normalizeLabel(input.releaseLabel),
     sprintLabel: normalizeLabel(input.sprintLabel),
     isDeleted: false,
@@ -131,8 +135,16 @@ export async function createManualTestCase(
 
 export async function createAutomatedTestCase(
   db: Db,
-  input: { projectId: string; title: string; manualTestCaseIds: string[]; releaseLabel?: string; sprintLabel?: string }
+  input: {
+    projectId: string;
+    title: string;
+    manualTestCaseIds: string[];
+    releaseLabel?: string;
+    sprintLabel?: string;
+    status?: string;
+  }
 ) {
+  if (input.status !== undefined) assertTestCaseStatus(input.status);
   if (input.manualTestCaseIds.length === 0) {
     throw new AppError(
       "MANUAL_LINK_REQUIRED",
@@ -165,6 +177,7 @@ export async function createAutomatedTestCase(
     externalId: null as string | null,
     type: "automated" as const,
     title: input.title,
+    status: input.status ?? DEFAULT_TEST_CASE_STATUS,
     releaseLabel: normalizeLabel(input.releaseLabel),
     sprintLabel: normalizeLabel(input.sprintLabel),
     isDeleted: false,
@@ -228,6 +241,7 @@ export async function updateManualTestCase(
     releaseLabel?: string | null;
     sprintLabel?: string | null;
     steps?: Array<{ name: string; expectedResult?: string }>;
+    status?: string;
   }
 ) {
   const rows = await db.select().from(testCases).where(eq(testCases.id, input.id));
@@ -244,6 +258,10 @@ export async function updateManualTestCase(
   if (input.title !== undefined) patch.title = input.title;
   if (input.releaseLabel !== undefined) patch.releaseLabel = normalizeLabel(input.releaseLabel ?? undefined);
   if (input.sprintLabel !== undefined) patch.sprintLabel = normalizeLabel(input.sprintLabel ?? undefined);
+  if (input.status !== undefined) {
+    assertTestCaseStatus(input.status);
+    patch.status = input.status;
+  }
   await db.update(testCases).set(patch).where(eq(testCases.id, input.id));
   if (input.steps) {
     await db.delete(testCaseSteps).where(eq(testCaseSteps.testCaseId, input.id));
@@ -273,6 +291,7 @@ export async function updateAutomatedTestCase(
     releaseLabel?: string | null;
     sprintLabel?: string | null;
     manualTestCaseIds?: string[];
+    status?: string;
   }
 ) {
   const rows = await db.select().from(testCases).where(eq(testCases.id, input.id));
@@ -287,6 +306,10 @@ export async function updateAutomatedTestCase(
   if (input.externalId !== undefined) patch.externalId = input.externalId;
   if (input.releaseLabel !== undefined) patch.releaseLabel = normalizeLabel(input.releaseLabel ?? undefined);
   if (input.sprintLabel !== undefined) patch.sprintLabel = normalizeLabel(input.sprintLabel ?? undefined);
+  if (input.status !== undefined) {
+    assertTestCaseStatus(input.status);
+    patch.status = input.status;
+  }
   await db.update(testCases).set(patch).where(eq(testCases.id, input.id));
 
   if (input.manualTestCaseIds) {

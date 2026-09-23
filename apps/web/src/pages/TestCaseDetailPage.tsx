@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { RouterLink } from "../tamagui/RouterLink";
 import { useMutation, useQuery } from "urql";
 import { PageLoading } from "../components/PageLoading";
+import { AutoGrowTextarea } from "../components/AutoGrowTextarea";
 import { ProjectWorkspaceHeader } from "../components/ProjectWorkspaceHeader";
 import {
   LinkAutomatedManualMutation,
@@ -732,8 +733,10 @@ export function TestCaseDetailPage({
             <div key={i} className="testcase-step-row">
               <label>
                 Step {i + 1} name
-                <input
-                  type="text"
+                {/* Textarea, not input: step names and expected results routinely run past
+                    60 chars, and a single-line input gave no wrapping — the text had to be
+                    scrubbed horizontally to be read at all. */}
+                <AutoGrowTextarea
                   value={s.name}
                   onChange={(e) => {
                     const next = [...stepDrafts];
@@ -741,12 +744,13 @@ export function TestCaseDetailPage({
                     setStepDrafts(next);
                   }}
                   data-testid={`testcase-edit-step-name-${i}`}
+                  minRows={2}
+                  maxRows={8}
                 />
               </label>
               <label>
                 Expected
-                <input
-                  type="text"
+                <AutoGrowTextarea
                   value={s.expectedResult}
                   onChange={(e) => {
                     const next = [...stepDrafts];
@@ -754,16 +758,20 @@ export function TestCaseDetailPage({
                     setStepDrafts(next);
                   }}
                   data-testid={`testcase-edit-step-expected-${i}`}
+                  minRows={2}
+                  maxRows={8}
                 />
               </label>
               {stepDrafts.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => setStepDrafts(stepDrafts.filter((_, j) => j !== i))}
-                  data-testid={`testcase-edit-step-remove-${i}`}
-                >
-                  Remove
-                </button>
+                <div className="testcase-step-remove-cell">
+                  <button
+                    type="button"
+                    onClick={() => setStepDrafts(stepDrafts.filter((_, j) => j !== i))}
+                    data-testid={`testcase-edit-step-remove-${i}`}
+                  >
+                    Remove
+                  </button>
+                </div>
               )}
             </div>
           ))}

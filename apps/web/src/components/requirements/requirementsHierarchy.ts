@@ -113,3 +113,41 @@ export function buildParentSelectOptions(
       label: `${item.row.externalKey} — ${item.row.title}`
     }));
 }
+
+/**
+ * Restrict rows to one requirement and its descendants.
+ *
+ * Used by the Hierarchy column's subtree filter. Returns the input unchanged when no root is
+ * selected, or when the selected id is not in `rows` (e.g. a stale value from the URL after the
+ * requirement was deleted) — silently returning an empty table would look like a data loss bug.
+ */
+export function filterRequirementSubtree(
+  rows: RequirementListItem[],
+  rootId: string | null
+): RequirementListItem[] {
+  if (!rootId) return rows;
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  if (!byId.has(rootId)) return rows;
+
+  const childrenByParent = new Map<string, RequirementListItem[]>();
+  for (const row of rows) {
+    const pid = row.parentRequirementId;
+    if (pid && byId.has(pid)) {
+      const list = childrenByParent.get(pid) ?? [];
+      list.push(row);
+      childrenByParent.set(pid, list);
+    }
+  }
+
+  const kept: RequirementListItem[] = [];
+  const visit = (id: string) => {
+    const row = byId.get(id);
+    if (!row) return;
+    kept.push(row);
+    for (const child of childrenByParent.get(id) ?? []) {
+      visit(child.id);
+    }
+  };
+  visit(rootId);
+  return kept;
+}

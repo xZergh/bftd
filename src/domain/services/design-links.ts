@@ -9,6 +9,14 @@ function now() {
   return new Date();
 }
 
+/**
+ * Design providers accepted on requirement design links.
+ *
+ * Adding a provider here is deliberately the only gate — link rows are provider-agnostic, so
+ * nothing downstream needs to change.
+ */
+export const SUPPORTED_DESIGN_PROVIDERS = new Set(["penpot", "figma"]);
+
 type DesignLinkUpsertInput = {
   projectId: string;
   provider: string;
@@ -30,8 +38,13 @@ export function upsertRequirementDesignLinkSync(
   tx: Db,
   input: DesignLinkUpsertInput
 ): { inserted: boolean; row: Record<string, unknown> } {
-  if (input.provider !== "penpot") {
-    throw new AppError("VALIDATION_ERROR", "Unsupported design provider.", "Use provider 'penpot' for MVP.", { provider: input.provider });
+  if (!SUPPORTED_DESIGN_PROVIDERS.has(input.provider)) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "Unsupported design provider.",
+      `Use one of: ${[...SUPPORTED_DESIGN_PROVIDERS].join(", ")}.`,
+      { provider: input.provider }
+    );
   }
   if (!input.shareUrl.startsWith("https://")) {
     throw new AppError("VALIDATION_ERROR", "Invalid design share URL.", "Provide a valid HTTPS shareUrl.", { shareUrl: input.shareUrl });

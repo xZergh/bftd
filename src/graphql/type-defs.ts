@@ -53,6 +53,7 @@ export const typeDefs = /* GraphQL */ `
     projectId: ID!
     type: String!
     title: String!
+    status: String
     externalId: String
     releaseLabel: String
     sprintLabel: String
@@ -186,6 +187,7 @@ export const typeDefs = /* GraphQL */ `
     requirementStatuses: [String!]!
     requirementPriorities: [String!]!
     requirementTypes: [String!]!
+    testCaseStatuses: [String!]!
   }
 
   type ImportErrorItem {
@@ -378,6 +380,7 @@ export const typeDefs = /* GraphQL */ `
     steps: [ManualStepInput!]!
     releaseLabel: String
     sprintLabel: String
+    status: String
   }
 
   input CreateAutomatedTestCaseInput {
@@ -386,6 +389,7 @@ export const typeDefs = /* GraphQL */ `
     manualTestCaseIds: [ID!]!
     releaseLabel: String
     sprintLabel: String
+    status: String
   }
 
   input CreateTestRunInput {
@@ -607,6 +611,7 @@ export const typeDefs = /* GraphQL */ `
     releaseLabel: String
     sprintLabel: String
     steps: [ManualStepInput!]
+    status: String
   }
 
   input UpdateAutomatedTestCaseInput {
@@ -616,6 +621,7 @@ export const typeDefs = /* GraphQL */ `
     releaseLabel: String
     sprintLabel: String
     manualTestCaseIds: [ID!]
+    status: String
   }
 
   input DeleteTestCaseInput {

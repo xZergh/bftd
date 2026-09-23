@@ -75,6 +75,8 @@ export const testCases = sqliteTable(
     externalId: text("external_id"),
     type: text("type", { enum: ["manual", "automated"] }).notNull(),
     title: text("title").notNull(),
+    /** Authoring status (draft/ready/deprecated). Distinct from the is_deleted lifecycle. */
+    status: text("status"),
     releaseLabel: text("release_label"),
     sprintLabel: text("sprint_label"),
     isDeleted: integer("is_deleted", { mode: "boolean" }).notNull().default(false),

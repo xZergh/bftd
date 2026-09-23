@@ -17,6 +17,60 @@
   --tcms-accent: #5eead4;
   --tcms-accent-muted: #0d9488;
   --tcms-input-border: #52525b;
+  --tcms-focus-ring: #93c5fd;
+
+  /* Typography scale. Previously the app had three competing control sizes
+     (0.8125 / 0.875 / 1rem) and no shared scale, so form controls and the prose
+     around them never lined up. Everything reads from these now. */
+  --tcms-font-size-sm: 0.8125rem;
+  --tcms-font-size-base: 0.875rem;
+  --tcms-font-size-lg: 1rem;
+
+  /* Tight for single-line UI chrome, body for anything that can wrap to 2+ lines.
+     Multi-line textareas were falling back to the browser default (~1.2). */
+  --tcms-line-height-tight: 1.3;
+  --tcms-line-height-body: 1.5;
+
+  /* Reading measure for prose fields. 45-75ch is the readable range; the
+     description textarea was capped at 28rem (~55ch) with no line-height. */
+  --tcms-measure: 68ch;
+
+  /* Mirrors the Tamagui preset's stack. The preset only applies it inside its own
+     wrapper, so `body` was left at the browser default (Times) and anything rendered
+     outside that wrapper — portals, dialogs — fell back to a serif. */
+  --tcms-font-sans: Inter, -apple-system, system-ui, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  --tcms-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+/* Form controls do NOT inherit font-family from their container, so any control
+   without an explicit rule renders in the browser's default control font at
+   ~13.3px. That is why manual-testcase step inputs looked like a different
+   typeface and size from their own labels. One rule, app-wide. */
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+  font-size: var(--tcms-font-size-base);
+  line-height: var(--tcms-line-height-tight);
+  color: inherit;
+}
+
+/* Anything that can wrap gets the body leading, not the tight UI leading. */
+textarea {
+  line-height: var(--tcms-line-height-body);
+}
+
+/* The default focus ring is near-invisible on the elevated charcoal surfaces. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--tcms-focus-ring);
+  outline-offset: 1px;
 }
 
 html {
@@ -28,6 +82,9 @@ body {
   min-height: 100vh;
   background: var(--tcms-bg);
   color: var(--tcms-text);
+  font-family: var(--tcms-font-sans);
+  font-size: var(--tcms-font-size-base);
+  line-height: var(--tcms-line-height-body);
 }
 
 .skip-to-main {

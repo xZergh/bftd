@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { automatedManualLinks, requirements, testCases, testCaseSteps } from "../../db/schema";
 import { AppError } from "../errors";
+import { DEFAULT_TEST_CASE_STATUS } from "../projectSettings";
 import { normalizeLabel } from "./labels";
 import { resolveProject } from "./projects";
 import { appendTestCaseVersionSync } from "./versioning";
@@ -316,6 +317,7 @@ export async function importAutomatedFromTrr(
             externalId: item.externalId ?? null,
             type: "automated",
             title: item.title!,
+            status: DEFAULT_TEST_CASE_STATUS,
             releaseLabel: normalizeLabel(item.releaseLabel ?? input.releaseLabel),
             sprintLabel: normalizeLabel(item.sprintLabel ?? input.sprintLabel),
             isDeleted: false,
